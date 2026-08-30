@@ -1,5 +1,4 @@
 import {
-  Button,
   DateLabel,
   Divider,
   HStack,
@@ -8,6 +7,7 @@ import {
   Script,
   Spacer,
   Text,
+  Toggle,
   VStack,
   Widget,
   ZStack,
@@ -39,6 +39,17 @@ type WidgetIssue = {
   text: string
   color: string
 }
+
+// Animation is a Scripting runtime global (like Storage), not a named export.
+// Binding it to the persisted generation lets WidgetKit animate entry changes.
+const COMPLETION_QUEUE_ANIMATION = Animation.smooth({
+  duration: 0.34,
+  extraBounce: 0,
+})
+const COMPLETION_SYMBOL_ANIMATION = Animation.snappy({
+  duration: 0.24,
+  extraBounce: 0,
+})
 
 export function DueManagerWidget(props: WidgetDataProps) {
   const displayHeight = Widget.displaySize?.height
@@ -159,6 +170,7 @@ function SmallWidget(props: WidgetDataProps) {
       />
       <CompletionTransitionLayers
         phase={completionPhase}
+        generation={completionGeneration}
         layer0={<SmallWidgetBody
           item={layer0Item}
           nextItem={layer0NextItem}
@@ -349,6 +361,7 @@ function ListWidget({
       />
       <CompletionTransitionLayers
         phase={completionPhase}
+        generation={completionGeneration}
         layer0={<ListWidgetBody
           visible={layer0Visible}
           roomy={roomy}
@@ -430,10 +443,12 @@ function ListWidgetBody({
 
 function CompletionTransitionLayers({
   phase,
+  generation,
   layer0,
   layer1,
 }: {
   phase: 0 | 1
+  generation: number
   layer0: any
   layer1: any
 }) {
@@ -444,12 +459,13 @@ function CompletionTransitionLayers({
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
   >
     {/* The outgoing layer stays above the incoming one while WidgetKit fades
-        it away, so the next row's empty circle cannot cover the checkmark. */}
+        it away, so the next row cannot cover the selected completion mark. */}
     <VStack
       key="completion-phase-0"
       opacity={phase0Active ? 1 : 0}
       allowsHitTesting={phase0Active}
       zIndex={phase0Active ? 1 : 2}
+      animation={{ animation: COMPLETION_QUEUE_ANIMATION, value: generation }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
       {layer0}
@@ -459,6 +475,7 @@ function CompletionTransitionLayers({
       opacity={phase1Active ? 1 : 0}
       allowsHitTesting={phase1Active}
       zIndex={phase1Active ? 1 : 2}
+      animation={{ animation: COMPLETION_QUEUE_ANIMATION, value: generation }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
       {layer1}
@@ -577,8 +594,16 @@ function CompletionControl({
     />
   }
   const completing = item.isCompleting === true
-  return <Button
-    buttonStyle="plain"
+  return <Toggle
+    value={completing}
+    toggleStyle="button"
+    buttonStyle="bordered"
+    buttonBorderShape="circle"
+    controlSize="mini"
+    tint="systemBlue"
+    contentShape="circle"
+    clipShape="circle"
+    frame={{ width: hitSize, height: hitSize }}
     intent={CompleteDueItemIntent({
       source: item.source,
       id: item.id,
@@ -588,24 +613,21 @@ function CompletionControl({
     })}
   >
     <CompletionSymbol
-      name={completing ? "checkmark.circle.fill" : "circle"}
+      name={completing ? "circle.inset.filled" : "circle"}
       hitSize={hitSize}
       symbolSize={symbolSize}
-      effectValue={completing ? renderGeneration : 0}
     />
-  </Button>
+  </Toggle>
 }
 
 function CompletionSymbol({
   name,
   hitSize,
   symbolSize,
-  effectValue,
 }: {
   name: string
   hitSize: number
   symbolSize: number
-  effectValue: number
 }) {
   return <Image
     systemName={name}
@@ -614,7 +636,7 @@ function CompletionSymbol({
     symbolRenderingMode="hierarchical"
     frame={{ width: hitSize, height: hitSize }}
     contentTransition="symbolEffectReplace"
-    symbolEffect={{ effect: "bounce", value: effectValue }}
+    animation={{ animation: COMPLETION_SYMBOL_ANIMATION, value: name }}
     widgetAccentable
   />
 }

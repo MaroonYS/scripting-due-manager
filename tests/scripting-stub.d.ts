@@ -44,6 +44,11 @@ declare const Storage: {
   contains(key: string, options?: { shared: boolean }): boolean
 }
 
+declare const Animation: {
+  smooth(options?: { duration?: number; extraBounce?: number }): any
+  snappy(options?: { duration?: number; extraBounce?: number }): any
+}
+
 declare const Reminder: {
   get(identifier: string): Promise<any | null>
   getIncompletes(options?: {

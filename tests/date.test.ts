@@ -695,20 +695,31 @@ test("completion intent keeps one persisted transition and requests one widget r
   assert.match(source, /completionIntentQueue/)
 })
 
-test("widget view avoids unavailable Animation runtime APIs", () => {
+test("widget view uses the global Animation API and an optimistic completion toggle", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
-  assert.doesNotMatch(source, /\bAnimation\b/)
+  const importBlock = source.slice(0, source.indexOf("from \"scripting\"") + 16)
+  assert.doesNotMatch(importBlock, /\bAnimation\b/)
+  assert.match(source, /Animation\.smooth/)
+  assert.match(source, /Animation\.snappy/)
   assert.match(source, /key="completion-phase-0"/)
   assert.match(source, /key="completion-phase-1"/)
   assert.match(source, /contentTransition="symbolEffectReplace"/)
   assert.equal(source.match(/zIndex=\{phase[01]Active \? 1 : 2\}/g)?.length, 2)
   assert.equal(source.match(/allowsHitTesting=\{phase[01]Active\}/g)?.length, 2)
   assert.doesNotMatch(source, /disabled=\{!phase[01]Active\}|disabled=\{completing\}/)
-  assert.match(source, /symbolEffect=\{\{ effect: "bounce", value: effectValue \}\}/)
-  assert.match(source, /effectValue=\{completing \? renderGeneration : 0\}/)
+  assert.match(source, /<Toggle\s+[\s\S]*?value=\{completing\}/)
+  assert.match(source, /toggleStyle="button"/)
+  assert.match(source, /buttonStyle="bordered"/)
+  assert.match(source, /buttonBorderShape="circle"/)
+  assert.match(source, /clipShape="circle"/)
+  assert.match(source, /circle\.inset\.filled/)
+  assert.doesNotMatch(source, /toggleStyle="switch"/)
+  assert.doesNotMatch(source, /return <Button[\s\S]*?CompleteDueItemIntent/)
+  assert.equal(source.match(/animation=\{\{ animation: COMPLETION_QUEUE_ANIMATION, value: generation \}\}/g)?.length, 2)
+  assert.doesNotMatch(source, /symbolEffect=\{\{ effect: "bounce"/)
 })
 
 test("small widget previews the next queue item in both completion phases", () => {
