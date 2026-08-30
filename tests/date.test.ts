@@ -738,6 +738,17 @@ test("small widget previews one non-interactive next queue item", () => {
   assert.doesNotMatch(preview, /CompletionControl|CompleteDueItemIntent/)
 })
 
+test("published script updates from the fixed latest-release package", () => {
+  const manifest = JSON.parse(readFileSync(
+    new URL("../到期管家/script.json", import.meta.url),
+    "utf8",
+  ))
+  assert.equal(
+    manifest.remoteResource.url,
+    "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/到期管家.scripting",
+  )
+})
+
 test("storage failure is surfaced instead of pretending settings were saved", () => {
   const originalStorage = (globalThis as any).Storage
   try {
