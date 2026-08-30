@@ -711,6 +711,25 @@ test("widget view avoids unavailable Animation runtime APIs", () => {
   assert.match(source, /effectValue=\{completing \? renderGeneration : 0\}/)
 })
 
+test("small widget previews the next queue item in both completion phases", () => {
+  const source = readFileSync(
+    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
+    "utf8",
+  )
+  assert.match(source, /const nextItem = items\[1\]/)
+  assert.match(source, /const previousNextItem = previousQueue\[1\]/)
+  assert.match(source, /const layer0NextItem = completionPhase === 0 \? nextItem : previousNextItem/)
+  assert.match(source, /const layer1NextItem = completionPhase === 1 \? nextItem : previousNextItem/)
+  assert.match(source, /function SmallNextItemPreview/)
+  assert.match(source, />下一项<\/Text>/)
+  const preview = source.slice(
+    source.indexOf("function SmallNextItemPreview"),
+    source.indexOf("function ListWidget"),
+  )
+  assert.match(preview, /<Link url=\{itemURL\(item\)\}>/)
+  assert.doesNotMatch(preview, /CompletionControl|CompleteDueItemIntent/)
+})
+
 test("storage failure is surfaced instead of pretending settings were saved", () => {
   const originalStorage = (globalThis as any).Storage
   try {

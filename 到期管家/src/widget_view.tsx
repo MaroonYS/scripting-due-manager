@@ -134,9 +134,14 @@ function SmallWidget(props: WidgetDataProps) {
     completionRenderedAt,
   } = props
   const item = items[0]
-  const previousItem = (previousItems ?? items)[0]
+  const nextItem = items[1]
+  const previousQueue = previousItems ?? items
+  const previousItem = previousQueue[0]
+  const previousNextItem = previousQueue[1]
   const layer0Item = completionPhase === 0 ? item : previousItem
   const layer1Item = completionPhase === 1 ? item : previousItem
+  const layer0NextItem = completionPhase === 0 ? nextItem : previousNextItem
+  const layer1NextItem = completionPhase === 1 ? nextItem : previousNextItem
   const issue = widgetIssue(props)
 
   return <WidgetFrame contentPadding={11}>
@@ -156,12 +161,14 @@ function SmallWidget(props: WidgetDataProps) {
         phase={completionPhase}
         layer0={<SmallWidgetBody
           item={layer0Item}
+          nextItem={layer0NextItem}
           issue={issue}
           renderGeneration={completionGeneration}
           renderedAt={completionRenderedAt}
         />}
         layer1={<SmallWidgetBody
           item={layer1Item}
+          nextItem={layer1NextItem}
           issue={issue}
           renderGeneration={completionGeneration}
           renderedAt={completionRenderedAt}
@@ -173,11 +180,13 @@ function SmallWidget(props: WidgetDataProps) {
 
 function SmallWidgetBody({
   item,
+  nextItem,
   issue,
   renderGeneration,
   renderedAt,
 }: {
   item: DisplayDueItem | undefined
+  nextItem: DisplayDueItem | undefined
   issue: WidgetIssue | null
   renderGeneration: number
   renderedAt: number
@@ -185,6 +194,7 @@ function SmallWidgetBody({
   return item
     ? <SmallDueItem
       item={item}
+      nextItem={nextItem}
       renderGeneration={renderGeneration}
       renderedAt={renderedAt}
     />
@@ -199,10 +209,12 @@ function SmallWidgetBody({
 
 function SmallDueItem({
   item,
+  nextItem,
   renderGeneration,
   renderedAt,
 }: {
   item: DisplayDueItem
+  nextItem: DisplayDueItem | undefined
   renderGeneration: number
   renderedAt: number
 }) {
@@ -214,7 +226,7 @@ function SmallDueItem({
     <HStack
       alignment="top"
       spacing={7}
-      padding={{ top: 12 }}
+      padding={{ top: nextItem ? 8 : 12 }}
       frame={{ maxWidth: "infinity" }}
     >
       <CompletionControl
@@ -226,7 +238,7 @@ function SmallDueItem({
       />
       <Link url={itemURL(item)}>
         <VStack alignment="leading" spacing={4} frame={{ maxWidth: "infinity" }}>
-          <Text font="subheadline" fontWeight="semibold" lineLimit={3} minScaleFactor={0.85}>
+          <Text font="subheadline" fontWeight="semibold" lineLimit={nextItem ? 2 : 3} minScaleFactor={0.85}>
             {item.title}
           </Text>
           {item.amount
@@ -237,7 +249,9 @@ function SmallDueItem({
         </VStack>
       </Link>
     </HStack>
-    <Spacer minLength={8} />
+    <Spacer minLength={nextItem ? 3 : 8} />
+    {nextItem ? <SmallNextItemPreview item={nextItem} /> : null}
+    {nextItem ? <Spacer minLength={3} /> : null}
     <Link url={itemURL(item)}>
       <HStack
         alignment="center"
@@ -250,6 +264,48 @@ function SmallDueItem({
         </Text>
         <Spacer />
         <DueStatusLabel item={item} font="caption" />
+      </HStack>
+    </Link>
+  </VStack>
+}
+
+function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
+  const status = dueStatus(item)
+  return <VStack
+    alignment="leading"
+    spacing={2}
+    frame={{ maxWidth: "infinity" }}
+  >
+    <Divider padding={{ leading: 39, trailing: 5 }} />
+    <Link url={itemURL(item)}>
+      <HStack
+        alignment="center"
+        spacing={4}
+        padding={{ leading: 5, trailing: 5 }}
+        frame={{ maxWidth: "infinity" }}
+      >
+        <Image
+          systemName={item.iconName}
+          font={11}
+          foregroundStyle={item.iconColor}
+          symbolRenderingMode="hierarchical"
+          frame={{ width: 12, height: 12 }}
+          widgetAccentable
+        />
+        <Text font="caption2" foregroundStyle="tertiaryLabel" lineLimit={1}>下一项</Text>
+        <Text
+          font="caption2"
+          fontWeight="medium"
+          foregroundStyle="secondaryLabel"
+          lineLimit={1}
+          minScaleFactor={0.75}
+        >
+          {item.title}
+        </Text>
+        <Spacer />
+        <Text font="caption2" foregroundStyle={status.overdue ? "systemRed" : "tertiaryLabel"} lineLimit={1}>
+          {status.label}
+        </Text>
       </HStack>
     </Link>
   </VStack>
