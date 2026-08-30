@@ -208,7 +208,7 @@ function SmallDueItem({
       />
       <Link url={itemURL(item)}>
         <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
-          <Text font={17} fontWeight="semibold" lineLimit={3} minScaleFactor={0.9}>
+          <Text font={16} fontWeight="semibold" lineLimit={3} minScaleFactor={0.9}>
             {item.title}
           </Text>
           {item.amount

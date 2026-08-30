@@ -2,7 +2,7 @@
   "name": "到期管家",
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "1.3.10",
+  "version": "1.3.11",
   "description": "Track recurring due dates and Apple Reminders in native-style widgets with compact interactive controls, continuous completion, animated queue updates, upcoming previews, and local intelligent SF Symbol matching.",
   "localizedDescriptions": {
     "zh": "通过原生风格桌面组件管理信用卡、订阅、周期事项与提醒事项，支持紧凑交互控件、连续完成、动态队列补位、下一事项预告和本机智能图标。"

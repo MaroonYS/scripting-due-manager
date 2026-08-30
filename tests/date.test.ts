@@ -719,7 +719,7 @@ test("small widget previews one non-interactive next queue item", () => {
   )
   assert.match(smallItem, /padding=\{\{ top: nextItem \? 10 : 12 \}\}/)
   assert.match(smallItem, /<VStack alignment="leading" spacing=\{2\} frame=\{\{ maxWidth: "infinity" \}\}>/)
-  assert.match(smallItem, /font=\{17\}/)
+  assert.match(smallItem, /font=\{16\}/)
   assert.match(smallItem, /lineLimit=\{3\}/)
   assert.match(smallItem, /minScaleFactor=\{0\.9\}/)
   assert.match(smallItem, /<Spacer minLength=\{nextItem \? 4 : 8\} \/>/)
