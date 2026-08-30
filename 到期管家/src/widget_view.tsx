@@ -198,7 +198,7 @@ function SmallDueItem({
     <HStack
       alignment="top"
       spacing={7}
-      padding={{ top: nextItem ? 7 : 10 }}
+      padding={{ top: nextItem ? 10 : 12 }}
       frame={{ maxWidth: "infinity" }}
     >
       <CompletionControl
@@ -208,7 +208,7 @@ function SmallDueItem({
       />
       <Link url={itemURL(item)}>
         <VStack alignment="leading" spacing={3} frame={{ maxWidth: "infinity" }}>
-          <Text font={14} fontWeight="semibold" lineLimit={nextItem ? 2 : 3} minScaleFactor={0.8}>
+          <Text font={15} fontWeight="semibold" lineLimit={nextItem ? 2 : 3} minScaleFactor={0.78}>
             {item.title}
           </Text>
           {item.amount
@@ -244,6 +244,7 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
   return <VStack
     alignment="leading"
     spacing={2}
+    padding={{ top: 3 }}
     frame={{ maxWidth: "infinity" }}
   >
     <Divider padding={{ leading: 39, trailing: 5 }} />
@@ -262,17 +263,16 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
           frame={{ width: 12, height: 12 }}
           widgetAccentable
         />
-        <Text font="caption2" foregroundStyle="tertiaryLabel" lineLimit={1}>下一项</Text>
         <Text
           font="caption2"
           fontWeight="medium"
           foregroundStyle="secondaryLabel"
           lineLimit={1}
           minScaleFactor={0.75}
+          frame={{ maxWidth: "infinity", alignment: "leading" }}
         >
           {item.title}
         </Text>
-        <Spacer />
         <Text font="caption2" foregroundStyle={status.overdue ? "systemRed" : "tertiaryLabel"} lineLimit={1}>
           {status.label}
         </Text>
