@@ -76,7 +76,10 @@ function WidgetHeader({
     <HStack
       alignment="center"
       spacing={6}
-      padding={{ top: compact ? 3 : 0 }}
+      padding={{
+        top: compact ? 3 : 0,
+        leading: compact ? 5 : 0,
+      }}
       frame={{ maxWidth: "infinity" }}
     >
       <Image
