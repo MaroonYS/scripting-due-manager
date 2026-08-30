@@ -7,7 +7,7 @@ import {
 } from "./src/storage"
 import {
   mergeWidgetCompletionFeedback,
-  readWidgetCompletionFeedback,
+  readWidgetCompletionTransition,
 } from "./src/widget_completion"
 import { DueManagerWidget } from "./src/widget_view"
 
@@ -16,18 +16,24 @@ async function main() {
   const reminderResult = state.settings.includeReminders
     ? await loadReminderItems(state.settings.reminderHorizonDays)
     : { items: [], fetchedAt: null, fromCache: false, error: null }
-  const items = sortDueItems(mergeWidgetCompletionFeedback(
-    [
-      ...manualItemsForDisplay(state),
-      ...reminderResult.items,
-    ],
-    readWidgetCompletionFeedback(),
-  ))
+  const items = sortDueItems([
+    ...manualItemsForDisplay(state),
+    ...reminderResult.items,
+  ])
+  const completionTransition = readWidgetCompletionTransition()
+  const previousItems = completionTransition.items.length > 0
+    ? sortDueItems(mergeWidgetCompletionFeedback(items, completionTransition.items))
+    : null
+  const completionRenderedAt = Date.now()
   const refreshAt = nextWidgetRefresh(items, new Date(), state.settings.includeReminders)
 
   Widget.present(
     <DueManagerWidget
       items={items}
+      previousItems={previousItems}
+      completionPhase={completionTransition.phase}
+      completionGeneration={completionTransition.generation}
+      completionRenderedAt={completionRenderedAt}
       reminderFetchedAt={reminderResult.fetchedAt}
       remindersFromCache={reminderResult.fromCache}
       remindersEnabled={state.settings.includeReminders}

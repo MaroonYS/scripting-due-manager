@@ -1,15 +1,32 @@
 import { parseDateKey } from "./date"
-import { loadState, manualItemsForDisplay } from "./storage"
+import {
+  loadState,
+  manualItemsForDisplay,
+  SHARED_STORAGE_OPTIONS,
+} from "./storage"
 import type { DisplayDueItem, ItemKind } from "./types"
 
 export const WIDGET_COMPLETION_FEEDBACK_KEY = "due-manager-widget-completion-feedback-v1"
 
-const COMPLETION_FEEDBACK_TTL_MS = 4_000
-const COMPLETION_FEEDBACK_LIMIT = 8
+const COMPLETION_FEEDBACK_TTL_MS = 30_000
+const COMPLETION_FEEDBACK_LIMIT = 1
+const COMPLETION_INTERACTION_LOCK_MS = 520
 
 type CompletionFeedbackEntry = {
   createdAt: number
   item: DisplayDueItem
+}
+
+type CompletionFeedbackStore = {
+  generation: number
+  phase: 0 | 1
+  entries: CompletionFeedbackEntry[]
+}
+
+export type WidgetCompletionTransition = {
+  generation: number
+  phase: 0 | 1
+  items: DisplayDueItem[]
 }
 
 export function findManualDisplayItemForCompletion(
@@ -23,21 +40,26 @@ export function findManualDisplayItemForCompletion(
 
 /**
  * Stores a short-lived copy of the completed occurrence. The real data is
- * already committed; this copy only lets WidgetKit animate the old row before
- * the next occurrence moves into its place.
+ * already committed. The phase flips once per interaction so the widget
+ * can crossfade between two stable layers after a single timeline reload.
  */
 export function writeWidgetCompletionFeedback(
   item: DisplayDueItem,
   now = Date.now(),
 ): boolean {
-  const entries = readCompletionFeedbackEntries(now)
-    .filter(entry => !sameOccurrence(entry.item, item))
-  const { isCompleting: _ignored, ...snapshot } = item
-  entries.push({ createdAt: now, item: snapshot })
+  const current = readCompletionFeedbackStore(now)
+  const generation = current.generation >= Number.MAX_SAFE_INTEGER - 1
+    ? 1
+    : current.generation + 1
+  const phase: 0 | 1 = current.phase === 0 ? 1 : 0
+  const { isCompleting: _ignored, ...itemWithoutCompletionState } = item
+  const snapshot = { ...itemWithoutCompletionState, note: "" }
   return Storage.set(WIDGET_COMPLETION_FEEDBACK_KEY, {
-    schemaVersion: 1,
-    entries: entries.slice(-COMPLETION_FEEDBACK_LIMIT),
-  })
+    schemaVersion: 2,
+    generation,
+    phase,
+    entries: [{ createdAt: now, item: snapshot }],
+  }, SHARED_STORAGE_OPTIONS)
 }
 
 export function clearWidgetCompletionFeedback(
@@ -47,27 +69,68 @@ export function clearWidgetCompletionFeedback(
   now = Date.now(),
 ): void {
   if (!source || !id || !completionKey) {
+    Storage.remove(WIDGET_COMPLETION_FEEDBACK_KEY, SHARED_STORAGE_OPTIONS)
     Storage.remove(WIDGET_COMPLETION_FEEDBACK_KEY)
     return
   }
-  const entries = readCompletionFeedbackEntries(now).filter(entry => !(
+  const current = readCompletionFeedbackStore(now)
+  const entries = current.entries.filter(entry => !(
     entry.item.source === source
     && entry.item.id === id
     && entry.item.completionKey === completionKey
   ))
-  if (entries.length === 0) {
-    Storage.remove(WIDGET_COMPLETION_FEEDBACK_KEY)
-    return
-  }
-  Storage.set(WIDGET_COMPLETION_FEEDBACK_KEY, { schemaVersion: 1, entries })
+  Storage.set(WIDGET_COMPLETION_FEEDBACK_KEY, {
+    schemaVersion: 2,
+    generation: current.generation,
+    phase: current.phase,
+    entries,
+  }, SHARED_STORAGE_OPTIONS)
 }
 
 export function readWidgetCompletionFeedback(now = Date.now()): DisplayDueItem[] {
-  return readCompletionFeedbackEntries(now).map(entry => ({
-    ...entry.item,
-    stale: false,
-    isCompleting: true,
-  }))
+  return readWidgetCompletionTransition(now).items
+}
+
+/** Rejects controls from a widget timeline that has already completed once. */
+export function isWidgetCompletionGenerationCurrent(
+  generation: number,
+  now = Date.now(),
+): boolean {
+  return Number.isSafeInteger(generation)
+    && generation >= 0
+    && readCompletionFeedbackStore(now).generation === generation
+}
+
+/**
+ * Locks the newly revealed controls for the duration of the completion
+ * crossfade, while still allowing ordinary timelines to respond immediately.
+ */
+export function canRunWidgetCompletionIntent(
+  generation: number,
+  renderedAt: number,
+  now = Date.now(),
+): boolean {
+  if (!Number.isSafeInteger(generation) || generation < 0) return false
+  if (!Number.isFinite(renderedAt)) return false
+  const current = readCompletionFeedbackStore(now)
+  if (current.generation !== generation) return false
+  if (current.entries.length === 0) return true
+  return now - renderedAt >= COMPLETION_INTERACTION_LOCK_MS
+}
+
+export function readWidgetCompletionTransition(
+  now = Date.now(),
+): WidgetCompletionTransition {
+  const current = readCompletionFeedbackStore(now)
+  return {
+    generation: current.generation,
+    phase: current.phase,
+    items: current.entries.map(entry => ({
+      ...entry.item,
+      stale: false,
+      isCompleting: true,
+    })),
+  }
 }
 
 export function mergeWidgetCompletionFeedback(
@@ -82,15 +145,45 @@ export function mergeWidgetCompletionFeedback(
   ]
 }
 
-function readCompletionFeedbackEntries(now: number): CompletionFeedbackEntry[] {
-  const raw = Storage.get<unknown>(WIDGET_COMPLETION_FEEDBACK_KEY)
-  if (!isRecord(raw) || raw.schemaVersion !== 1 || !Array.isArray(raw.entries)) {
-    return []
+function readCompletionFeedbackStore(now: number): CompletionFeedbackStore {
+  const shared = Storage.get<unknown>(
+    WIDGET_COMPLETION_FEEDBACK_KEY,
+    SHARED_STORAGE_OPTIONS,
+  )
+  const legacy = shared == null
+    ? Storage.get<unknown>(WIDGET_COMPLETION_FEEDBACK_KEY)
+    : null
+  const raw = shared ?? legacy
+  if (!isRecord(raw) || !Array.isArray(raw.entries)) {
+    return { generation: 0, phase: 0, entries: [] }
   }
-  return raw.entries
+  if (raw.schemaVersion !== 1 && raw.schemaVersion !== 2) {
+    return { generation: 0, phase: 0, entries: [] }
+  }
+  if (shared == null && legacy != null) {
+    Storage.set(WIDGET_COMPLETION_FEEDBACK_KEY, raw, SHARED_STORAGE_OPTIONS)
+  }
+  const isCurrentSchema = raw.schemaVersion === 2
+  const phase: 0 | 1 = isCurrentSchema && raw.phase === 1 ? 1 : 0
+  const generation = isCurrentSchema
+    && typeof raw.generation === "number"
+    && Number.isSafeInteger(raw.generation)
+    && raw.generation >= 0
+    ? raw.generation
+    : phase
+  const entries = raw.entries
     .slice(-COMPLETION_FEEDBACK_LIMIT)
     .map(value => normalizeCompletionFeedbackEntry(value, now))
     .filter((entry): entry is CompletionFeedbackEntry => entry != null)
+  if (shared != null && entries.length !== raw.entries.length) {
+    Storage.set(WIDGET_COMPLETION_FEEDBACK_KEY, {
+      schemaVersion: 2,
+      generation,
+      phase,
+      entries,
+    }, SHARED_STORAGE_OPTIONS)
+  }
+  return { generation, phase, entries }
 }
 
 function normalizeCompletionFeedbackEntry(
@@ -149,15 +242,6 @@ function normalizeCompletionFeedbackItem(raw: unknown): DisplayDueItem | null {
 
 function itemIdentity(item: Pick<DisplayDueItem, "source" | "id">): string {
   return `${item.source}\u0000${item.id}`
-}
-
-function sameOccurrence(
-  left: Pick<DisplayDueItem, "source" | "id" | "completionKey">,
-  right: Pick<DisplayDueItem, "source" | "id" | "completionKey">,
-): boolean {
-  return left.source === right.source
-    && left.id === right.id
-    && left.completionKey === right.completionKey
 }
 
 function isItemKind(value: unknown): value is ItemKind {

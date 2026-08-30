@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
 import test from "node:test"
 import {
   advanceManualItem,
@@ -31,10 +32,13 @@ import {
   updateSettings,
 } from "../到期管家/src/storage.ts"
 import {
+  canRunWidgetCompletionIntent,
   clearWidgetCompletionFeedback,
   findManualDisplayItemForCompletion,
+  isWidgetCompletionGenerationCurrent,
   mergeWidgetCompletionFeedback,
   readWidgetCompletionFeedback,
+  readWidgetCompletionTransition,
   WIDGET_COMPLETION_FEEDBACK_KEY,
   writeWidgetCompletionFeedback,
 } from "../到期管家/src/widget_completion.ts"
@@ -570,7 +574,8 @@ test("private state migrates to shared storage and shared data wins afterward", 
 
 test("completion feedback preserves the old occurrence until the animation ends", () => {
   const originalStorage = (globalThis as any).Storage
-  const values = new Map<string, unknown>()
+  const sharedValues = new Map<string, unknown>()
+  const privateValues = new Map<string, unknown>()
   const now = new Date(2026, 7, 30, 20, 0).getTime()
   const previous = displayItem({
     id: "card",
@@ -587,10 +592,21 @@ test("completion feedback preserves the old occurrence until the animation ends"
   const other = displayItem({ id: "other", title: "其他事项" })
   try {
     ;(globalThis as any).Storage = {
-      get: (key: string) => values.get(key) ?? null,
-      set: (key: string, value: unknown) => { values.set(key, value); return true },
-      remove: (key: string) => { values.delete(key) },
-      contains: (key: string) => values.has(key),
+      get: (key: string, options?: { shared: boolean }) => (
+        options?.shared ? sharedValues : privateValues
+      ).get(key) ?? null,
+      set: (key: string, value: unknown, options?: { shared: boolean }) => {
+        const domain = options?.shared ? sharedValues : privateValues
+        domain.set(key, value)
+        return true
+      },
+      remove: (key: string, options?: { shared: boolean }) => {
+        const domain = options?.shared ? sharedValues : privateValues
+        domain.delete(key)
+      },
+      contains: (key: string, options?: { shared: boolean }) => (
+        options?.shared ? sharedValues : privateValues
+      ).has(key),
     }
 
     assert.equal(writeWidgetCompletionFeedback(previous, now), true)
@@ -598,6 +614,7 @@ test("completion feedback preserves the old occurrence until the animation ends"
     assert.equal(feedback.length, 1)
     assert.equal(feedback[0].completionKey, previous.completionKey)
     assert.equal(feedback[0].isCompleting, true)
+    assert.equal(feedback[0].note, "")
 
     const merged = mergeWidgetCompletionFeedback([next, other], feedback)
     assert.equal(merged.some(item => item.completionKey === next.completionKey), false)
@@ -606,13 +623,17 @@ test("completion feedback preserves the old occurrence until the animation ends"
 
     clearWidgetCompletionFeedback("manual", previous.id, previous.completionKey, now + 200)
     assert.deepEqual(readWidgetCompletionFeedback(now + 201), [])
-    assert.equal(values.has(WIDGET_COMPLETION_FEEDBACK_KEY), false)
+    const cleared = readWidgetCompletionTransition(now + 201)
+    assert.equal(cleared.generation, 1)
+    assert.equal(cleared.phase, 1)
+    assert.equal(sharedValues.has(WIDGET_COMPLETION_FEEDBACK_KEY), true)
+    assert.equal(privateValues.has(WIDGET_COMPLETION_FEEDBACK_KEY), false)
   } finally {
     ;(globalThis as any).Storage = originalStorage
   }
 })
 
-test("completion feedback isolates concurrent rows and expires safely", () => {
+test("every completion advances the transition generation and replaces older feedback", () => {
   const originalStorage = (globalThis as any).Storage
   const values = new Map<string, unknown>()
   const now = Date.now()
@@ -626,17 +647,52 @@ test("completion feedback isolates concurrent rows and expires safely", () => {
       contains: (key: string) => values.has(key),
     }
 
+    assert.equal(canRunWidgetCompletionIntent(0, now, now), true)
     writeWidgetCompletionFeedback(first, now)
+    const firstTransition = readWidgetCompletionTransition(now + 1)
+    assert.equal(firstTransition.generation, 1)
+    assert.equal(firstTransition.phase, 1)
+    assert.deepEqual(firstTransition.items.map(item => item.id), [first.id])
+    assert.equal(isWidgetCompletionGenerationCurrent(0, now + 1), false)
+    assert.equal(isWidgetCompletionGenerationCurrent(1, now + 1), true)
+    assert.equal(canRunWidgetCompletionIntent(0, now + 1, now + 600), false)
+    assert.equal(canRunWidgetCompletionIntent(1, now + 1, now + 500), false)
+    assert.equal(canRunWidgetCompletionIntent(1, now + 1, now + 521), true)
+
     writeWidgetCompletionFeedback(second, now + 10)
-    clearWidgetCompletionFeedback("manual", first.id, first.completionKey, now + 20)
-    assert.deepEqual(
-      readWidgetCompletionFeedback(now + 21).map(item => item.id),
-      [second.id],
-    )
-    assert.deepEqual(readWidgetCompletionFeedback(now + 5_000), [])
+    const secondTransition = readWidgetCompletionTransition(now + 11)
+    assert.equal(secondTransition.generation, 2)
+    assert.equal(secondTransition.phase, 0)
+    assert.deepEqual(secondTransition.items.map(item => item.id), [second.id])
+    assert.equal(isWidgetCompletionGenerationCurrent(1, now + 11), false)
+    assert.equal(isWidgetCompletionGenerationCurrent(2, now + 11), true)
+
+    assert.deepEqual(readWidgetCompletionFeedback(now + 30_011), [])
+    const expired = readWidgetCompletionTransition(now + 30_011)
+    assert.equal(expired.generation, 2)
+    assert.equal(expired.phase, 0)
+    assert.deepEqual((values.get(WIDGET_COMPLETION_FEEDBACK_KEY) as any).entries, [])
   } finally {
     ;(globalThis as any).Storage = originalStorage
   }
+})
+
+test("completion intent keeps one persisted transition and requests one widget reload", () => {
+  const source = readFileSync(
+    new URL("../到期管家/app_intents.tsx", import.meta.url),
+    "utf8",
+  )
+  const feedbackWrite = source.indexOf("writeWidgetCompletionFeedback(feedbackItem)")
+  const generationGuard = source.indexOf("if (!canRunWidgetCompletionIntent")
+  const completionWrite = source.indexOf("const result = params.source")
+  const reload = source.indexOf("await reloadWidgetsAfterStorageWrite()")
+  assert.ok(feedbackWrite >= 0)
+  assert.ok(generationGuard >= 0)
+  assert.ok(completionWrite > generationGuard)
+  assert.ok(reload > feedbackWrite)
+  assert.equal(source.match(/await reloadWidgetsAfterStorageWrite\(\)/g)?.length, 1)
+  assert.doesNotMatch(source, /clearWidgetCompletionFeedback|setTimeout/)
+  assert.match(source, /completionIntentQueue/)
 })
 
 test("storage failure is surfaced instead of pretending settings were saved", () => {

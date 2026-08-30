@@ -9,7 +9,7 @@ import {
   writeWidgetActionError,
 } from "./src/storage"
 import {
-  clearWidgetCompletionFeedback,
+  canRunWidgetCompletionIntent,
   findManualDisplayItemForCompletion,
   writeWidgetCompletionFeedback,
 } from "./src/widget_completion"
@@ -22,7 +22,11 @@ export type CompleteDueItemParams = {
   source: "manual" | "reminder"
   id: string
   occurrenceKey: string
+  renderGeneration: number
+  renderedAt: number
 }
+
+let completionIntentQueue: Promise<void> = Promise.resolve()
 
 export const RefreshDueItemsIntent = AppIntentManager.register({
   name: "RefreshDueItems",
@@ -35,48 +39,58 @@ export const RefreshDueItemsIntent = AppIntentManager.register({
 export const CompleteDueItemIntent = AppIntentManager.register<CompleteDueItemParams>({
   name: "CompleteDueItem",
   protocol: AppIntentProtocol.AppIntent,
-  perform: async params => {
-    let validatedParams: CompleteDueItemParams | null = null
-    try {
-      if (!isCompletionParams(params)) {
-        throw new Error("Invalid completion parameters")
-      }
-      validatedParams = params
-
-      const feedbackItem = params.source === "manual"
-        ? findManualDisplayItemForCompletion(params.id, params.occurrenceKey)
-        : findReminderDisplayItemForCompletion(params.id, params.occurrenceKey)
-
-      const result = params.source === "manual"
-        ? completeManualOccurrence(params.id, params.occurrenceKey)
-        : await completeReminderOccurrence(params.id, params.occurrenceKey)
-      clearWidgetActionError()
-
-      if (result === "applied" && feedbackItem && writeWidgetCompletionFeedback(feedbackItem)) {
-        // First reload morphs the outline into a completed checkmark. Keep the
-        // old occurrence briefly before the final reload lets the queue advance.
-        await reloadWidgetsAfterStorageWrite()
-        await new Promise<void>(resolve => setTimeout(resolve, 800))
-      }
-    } catch (error) {
-      console.error("CompleteDueItem failed", error)
-      writeWidgetActionError(
-        params?.source === "reminder"
-          ? "提醒完成失败，请打开主脚本检查权限"
-          : "事项完成失败，请打开主脚本检查存储",
-      )
-    } finally {
-      if (validatedParams) {
-        clearWidgetCompletionFeedback(
-          validatedParams.source,
-          validatedParams.id,
-          validatedParams.occurrenceKey,
-        )
-      }
-      await reloadWidgetsAfterStorageWrite()
-    }
+  perform: params => {
+    const operation = completionIntentQueue
+      .catch(() => undefined)
+      .then(() => performCompleteDueItem(params))
+    completionIntentQueue = operation.catch(() => undefined)
+    return operation
   },
 })
+
+async function performCompleteDueItem(params: CompleteDueItemParams): Promise<void> {
+  try {
+    if (!isCompletionParams(params)) {
+      throw new Error("Invalid completion parameters")
+    }
+    if (!canRunWidgetCompletionIntent(
+      params.renderGeneration,
+      params.renderedAt,
+    )) {
+      // Only one completion may succeed from a rendered widget generation.
+      // This locks stale controls and serializes fast taps on different rows.
+      return
+    }
+
+    const feedbackItem = params.source === "manual"
+      ? findManualDisplayItemForCompletion(params.id, params.occurrenceKey)
+      : findReminderDisplayItemForCompletion(params.id, params.occurrenceKey)
+
+    const result = params.source === "manual"
+      ? completeManualOccurrence(params.id, params.occurrenceKey)
+      : await completeReminderOccurrence(params.id, params.occurrenceKey)
+    clearWidgetActionError()
+
+    if (result === "applied" && feedbackItem) {
+      // Keep the previous occurrence as a short-lived transition source.
+      // WidgetKit receives one final state update after this intent returns.
+      if (!writeWidgetCompletionFeedback(feedbackItem)) {
+        writeWidgetActionError("事项已完成，但完成动画状态未能保存")
+      }
+    }
+  } catch (error) {
+    console.error("CompleteDueItem failed", error)
+    writeWidgetActionError(
+      params?.source === "reminder"
+        ? "提醒完成失败，请打开主脚本检查权限"
+        : "事项完成失败，请打开主脚本检查存储",
+    )
+  } finally {
+    // A single reload mirrors native interactive widgets and avoids
+    // WidgetKit coalescing an unseen intermediate state.
+    await reloadWidgetsAfterStorageWrite()
+  }
+}
 
 function isCompletionParams(value: unknown): value is CompleteDueItemParams {
   if (value == null || typeof value !== "object") return false
@@ -88,4 +102,9 @@ function isCompletionParams(value: unknown): value is CompleteDueItemParams {
     && typeof params.occurrenceKey === "string"
     && params.occurrenceKey.length > 0
     && params.occurrenceKey.length <= 240
+    && typeof params.renderGeneration === "number"
+    && Number.isSafeInteger(params.renderGeneration)
+    && params.renderGeneration >= 0
+    && typeof params.renderedAt === "number"
+    && Number.isFinite(params.renderedAt)
 }

@@ -1,5 +1,5 @@
 declare module "scripting" {
-  export const AnimatedFrames: any
+  export const Animation: any
   export const AppIntentManager: {
     register<T = undefined>(definition: {
       name: string
@@ -30,6 +30,7 @@ declare module "scripting" {
   export const Toggle: any
   export const VStack: any
   export const Widget: any
+  export const ZStack: any
 
   export function useEffect(effect: () => void | (() => void), dependencies: unknown[]): void
   export function useState<T>(
