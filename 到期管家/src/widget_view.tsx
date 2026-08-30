@@ -195,30 +195,36 @@ function SmallDueItem({
     spacing={0}
     frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
   >
-    <HStack
-      alignment="top"
-      spacing={7}
-      padding={{ top: nextItem ? 10 : 12 }}
-      frame={{ maxWidth: "infinity" }}
+    <VStack
+      alignment="leading"
+      spacing={0}
+      frame={{ maxWidth: "infinity", height: 70, alignment: "topLeading" }}
     >
-      <CompletionControl
-        item={item}
-        hitSize={32}
-        symbolSize={19}
-      />
-      <Link url={itemURL(item)}>
-        <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
-          <Text font={16} fontWeight="semibold" lineLimit={3} minScaleFactor={0.9}>
-            {item.title}
-          </Text>
-          {item.amount
-            ? <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1} minScaleFactor={0.8}>
-              {item.amount}
+      <HStack
+        alignment="top"
+        spacing={7}
+        padding={{ top: nextItem ? 10 : 12 }}
+        frame={{ maxWidth: "infinity" }}
+      >
+        <CompletionControl
+          item={item}
+          hitSize={32}
+          symbolSize={19}
+        />
+        <Link url={itemURL(item)}>
+          <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
+            <Text font={16} fontWeight="semibold" lineLimit={item.amount ? 2 : 3} minScaleFactor={0.9}>
+              {item.title}
             </Text>
-            : null}
-        </VStack>
-      </Link>
-    </HStack>
+            {item.amount
+              ? <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1} minScaleFactor={0.8}>
+                {item.amount}
+              </Text>
+              : null}
+          </VStack>
+        </Link>
+      </HStack>
+    </VStack>
     <Spacer minLength={nextItem ? 4 : 8} />
     {nextItem ? <SmallNextItemPreview item={nextItem} /> : null}
     {nextItem ? <Spacer minLength={0} /> : null}

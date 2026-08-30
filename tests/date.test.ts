@@ -717,10 +717,11 @@ test("small widget previews one non-interactive next queue item", () => {
     source.indexOf("function SmallDueItem"),
     source.indexOf("function SmallNextItemPreview"),
   )
+  assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", height: 70, alignment: "topLeading" \}\}/)
   assert.match(smallItem, /padding=\{\{ top: nextItem \? 10 : 12 \}\}/)
   assert.match(smallItem, /<VStack alignment="leading" spacing=\{2\} frame=\{\{ maxWidth: "infinity" \}\}>/)
   assert.match(smallItem, /font=\{16\}/)
-  assert.match(smallItem, /lineLimit=\{3\}/)
+  assert.match(smallItem, /lineLimit=\{item\.amount \? 2 : 3\}/)
   assert.match(smallItem, /minScaleFactor=\{0\.9\}/)
   assert.match(smallItem, /<Spacer minLength=\{nextItem \? 4 : 8\} \/>/)
   assert.match(smallItem, /nextItem \? <Spacer minLength=\{0\} \/>/)
