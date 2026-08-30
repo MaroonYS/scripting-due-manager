@@ -19,6 +19,7 @@ import type {
 export const STATE_KEY = "due-manager-state-v1"
 export const REMINDER_SNAPSHOT_KEY = "due-manager-reminders-v1"
 export const WIDGET_ACTION_STATUS_KEY = "due-manager-widget-action-v1"
+export const SHARED_STORAGE_OPTIONS = { shared: true } as const
 
 export type ManualCompletionResult = "applied" | "stale" | "missing"
 
@@ -38,8 +39,15 @@ export function defaultState(now = Date.now()): AppState {
 }
 
 export function loadState(): AppState {
-  const raw = Storage.get<unknown>(STATE_KEY)
-  return normalizeState(raw)
+  const shared = Storage.get<unknown>(STATE_KEY, SHARED_STORAGE_OPTIONS)
+  if (shared != null) return normalizeState(shared)
+
+  // Versions before 1.2.1 used the current script's private domain. Copy a
+  // validated snapshot once so future package replacements keep the data.
+  const legacy = Storage.get<unknown>(STATE_KEY)
+  const state = normalizeState(legacy)
+  if (legacy != null) Storage.set(STATE_KEY, state, SHARED_STORAGE_OPTIONS)
+  return state
 }
 
 export function saveState(state: AppState): boolean {
@@ -47,7 +55,7 @@ export function saveState(state: AppState): boolean {
     ...state,
     schemaVersion: 1,
     updatedAt: Math.max(Date.now(), state.updatedAt),
-  })
+  }, SHARED_STORAGE_OPTIONS)
 }
 
 export function updateSettings(settings: Partial<AppSettings>): AppState {
@@ -195,15 +203,18 @@ export function writeWidgetActionError(message: string, now = Date.now()): void 
     createdAt: now,
     message: message.slice(0, 160),
   }
-  Storage.set(WIDGET_ACTION_STATUS_KEY, status)
+  Storage.set(WIDGET_ACTION_STATUS_KEY, status, SHARED_STORAGE_OPTIONS)
 }
 
 export function clearWidgetActionError(): void {
+  Storage.remove(WIDGET_ACTION_STATUS_KEY, SHARED_STORAGE_OPTIONS)
   Storage.remove(WIDGET_ACTION_STATUS_KEY)
 }
 
 export function readWidgetActionError(now = Date.now()): string | null {
-  const raw = Storage.get<unknown>(WIDGET_ACTION_STATUS_KEY)
+  const shared = Storage.get<unknown>(WIDGET_ACTION_STATUS_KEY, SHARED_STORAGE_OPTIONS)
+  const legacy = shared == null ? Storage.get<unknown>(WIDGET_ACTION_STATUS_KEY) : null
+  const raw = shared ?? legacy
   if (!isRecord(raw)
     || raw.schemaVersion !== 1
     || typeof raw.createdAt !== "number"
@@ -211,8 +222,11 @@ export function readWidgetActionError(now = Date.now()): string | null {
   ) {
     return null
   }
+  if (shared == null && legacy != null) {
+    Storage.set(WIDGET_ACTION_STATUS_KEY, raw, SHARED_STORAGE_OPTIONS)
+  }
   if (now - raw.createdAt > 30 * 60 * 1000 || now < raw.createdAt - 5 * 60 * 1000) {
-    Storage.remove(WIDGET_ACTION_STATUS_KEY)
+    clearWidgetActionError()
     return null
   }
   return raw.message.slice(0, 160)

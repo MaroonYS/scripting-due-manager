@@ -1,10 +1,14 @@
-import { AppIntentManager, AppIntentProtocol, Widget } from "scripting"
+import { AppIntentManager, AppIntentProtocol } from "scripting"
 import { completeReminderOccurrence } from "./src/reminders"
 import {
   clearWidgetActionError,
   completeManualOccurrence,
   writeWidgetActionError,
 } from "./src/storage"
+import {
+  reloadUserWidgets,
+  reloadWidgetsAfterStorageWrite,
+} from "./src/widget_refresh"
 
 export type CompleteDueItemParams = {
   source: "manual" | "reminder"
@@ -16,7 +20,7 @@ export const RefreshDueItemsIntent = AppIntentManager.register({
   name: "RefreshDueItems",
   protocol: AppIntentProtocol.AppIntent,
   perform: async (_params: undefined) => {
-    Widget.reloadAll()
+    await reloadUserWidgets()
   },
 })
 
@@ -43,7 +47,7 @@ export const CompleteDueItemIntent = AppIntentManager.register<CompleteDueItemPa
           : "事项完成失败，请打开主脚本检查存储",
       )
     } finally {
-      Widget.reloadAll()
+      await reloadWidgetsAfterStorageWrite()
     }
   },
 })

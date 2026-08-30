@@ -13,9 +13,27 @@ export function widgetItemCapacity(
     return family === "systemMedium" ? 3 : 7
   }
   if (family === "systemMedium") {
-    return clamp(Math.floor((displayHeight - 58) / 36), 2, 3)
+    return displayHeight >= 155 ? 3 : 2
   }
   return clamp(Math.floor((displayHeight - 64) / 40), 5, 7)
+}
+
+/** Uses the actual WidgetKit height so every supported iPhone size fills cleanly. */
+export function widgetRowHeight(
+  family: Exclude<HomeWidgetFamily, "systemSmall">,
+  displayHeight: number | undefined,
+  capacity: number,
+): number {
+  if (typeof displayHeight !== "number" || !Number.isFinite(displayHeight) || capacity <= 0) {
+    return family === "systemMedium" ? 38 : 42
+  }
+  const padding = family === "systemMedium" ? 22 : 28
+  const headerAndTopGap = family === "systemMedium" ? 23 : 26
+  const dividers = Math.max(0, capacity - 1)
+  const available = displayHeight - padding - headerAndTopGap - dividers
+  return family === "systemMedium"
+    ? clamp(Math.floor(available / capacity), 35, 40)
+    : clamp(Math.floor(available / capacity), 38, 44)
 }
 
 export function visibleWidgetItems<T>(items: readonly T[], capacity: number): T[] {

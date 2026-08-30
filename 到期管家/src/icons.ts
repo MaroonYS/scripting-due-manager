@@ -75,7 +75,11 @@ const ICON_RULES: IconRule[] = [
   },
   {
     icon: "creditcard.fill",
-    keywords: ["mastercard", "american express", "amex", "visa", "信用卡", "还款日", "卡账单", "银行账单"],
+    keywords: ["credit", "mastercard", "american express", "amex", "visa", "信用卡", "还款日", "卡账单", "银行账单"],
+  },
+  {
+    icon: "building.columns.fill",
+    keywords: ["bank", "banking", "sofi", "ally", "银行", "储蓄账户"],
   },
   {
     icon: "car.fill",

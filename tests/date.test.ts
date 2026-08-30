@@ -32,6 +32,7 @@ import {
 import {
   visibleWidgetItems,
   widgetItemCapacity,
+  widgetRowHeight,
 } from "../到期管家/src/widget_layout.ts"
 import type { DisplayDueItem, ManualDueItem } from "../到期管家/src/types.ts"
 
@@ -101,6 +102,8 @@ test("intelligent icons match common services locally", () => {
   assert.equal(resolveDueIcon("Ｓｐｏｔｉｆｙ 家庭会员", "subscription").name, "music.note")
   assert.equal(resolveDueIcon("网易云音乐黑胶会员", "subscription").name, "music.note")
   assert.equal(resolveDueIcon("Netflix", "subscription").name, "play.rectangle.fill")
+  assert.equal(resolveDueIcon("BANK 03 | SoFi", "reminder").name, "building.columns.fill")
+  assert.equal(resolveDueIcon("CREDIT 03 | Venture", "reminder").name, "creditcard.fill")
   assert.equal(resolveDueIcon("家庭电费", "bill").name, "bolt.fill")
   assert.equal(resolveDueIcon("车辆车险", "bill").name, "car.fill")
 })
@@ -284,6 +287,14 @@ test("widget capacities adapt to small, medium, and large heights", () => {
   assert.equal(widgetItemCapacity("systemMedium", 168), 3)
   assert.equal(widgetItemCapacity("systemLarge", 250), 5)
   assert.equal(widgetItemCapacity("systemLarge", 360), 7)
+})
+
+test("widget rows use Apple's published iPhone widget heights", () => {
+  assert.equal(widgetItemCapacity("systemMedium", 170), 3)
+  assert.equal(widgetRowHeight("systemMedium", 170, 3), 40)
+  assert.equal(widgetItemCapacity("systemLarge", 382), 7)
+  assert.equal(widgetRowHeight("systemLarge", 382, 7), 44)
+  assert.equal(widgetRowHeight("systemLarge", 354, 7), 42)
 })
 
 test("widget refresh targets a near timed due date before midnight", () => {
@@ -483,6 +494,41 @@ test("legacy items receive stable IDs and duplicate IDs are preserved safely", (
     assert.equal(first.items[0].id, second.items[0].id)
     assert.equal(first.items[0].iconName, null)
     assert.equal(new Set(first.items.map(value => value.id)).size, 3)
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
+})
+
+test("private state migrates to shared storage and shared data wins afterward", () => {
+  const originalStorage = (globalThis as any).Storage
+  let privateValue: unknown = {
+    items: [{ title: "旧版私有事项", dueDate: "2026-09-01" }],
+    settings: {},
+    updatedAt: 1,
+  }
+  let sharedValue: unknown = null
+  try {
+    ;(globalThis as any).Storage = {
+      get: (_key: string, options?: { shared: boolean }) => options?.shared ? sharedValue : privateValue,
+      set: (_key: string, value: unknown, options?: { shared: boolean }) => {
+        if (options?.shared) sharedValue = value
+        else privateValue = value
+        return true
+      },
+      remove: () => undefined,
+      contains: () => false,
+    }
+
+    const migrated = loadState()
+    assert.equal(migrated.items[0].title, "旧版私有事项")
+    assert.equal((sharedValue as any).items[0].title, "旧版私有事项")
+
+    privateValue = {
+      items: [{ title: "不应覆盖共享数据", dueDate: "2026-09-02" }],
+      settings: {},
+      updatedAt: 2,
+    }
+    assert.equal(loadState().items[0].title, "旧版私有事项")
   } finally {
     ;(globalThis as any).Storage = originalStorage
   }

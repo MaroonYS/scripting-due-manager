@@ -66,6 +66,8 @@ declare const console: {
   error(...values: unknown[]): void
 }
 
+declare function setTimeout(callback: () => void, delay?: number): unknown
+
 declare namespace JSX {
   interface Element {}
   interface IntrinsicAttributes {

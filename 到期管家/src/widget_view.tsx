@@ -15,7 +15,11 @@ import { CompleteDueItemIntent } from "../app_intents"
 import { dueStatus } from "./date"
 import { displayDate } from "./presentation"
 import type { DisplayDueItem } from "./types"
-import { visibleWidgetItems, widgetItemCapacity } from "./widget_layout"
+import {
+  visibleWidgetItems,
+  widgetItemCapacity,
+  widgetRowHeight,
+} from "./widget_layout"
 
 type WidgetDataProps = {
   items: DisplayDueItem[]
@@ -41,6 +45,7 @@ export function DueManagerWidget(props: WidgetDataProps) {
       {...props}
       limit={widgetItemCapacity("systemMedium", displayHeight)}
       family="systemMedium"
+      displayHeight={displayHeight}
     />
   }
   if (Widget.family === "systemLarge") {
@@ -48,6 +53,7 @@ export function DueManagerWidget(props: WidgetDataProps) {
       {...props}
       limit={widgetItemCapacity("systemLarge", displayHeight)}
       family="systemLarge"
+      displayHeight={displayHeight}
     />
   }
   return <AccessoryFallback items={props.items} />
@@ -57,17 +63,21 @@ function WidgetHeader({
   items,
   compact = false,
   issue,
+  iconName = "calendar.badge.clock",
+  iconColor = "systemOrange",
 }: {
   items: DisplayDueItem[]
   compact?: boolean
   issue: WidgetIssue | null
+  iconName?: string
+  iconColor?: string
 }) {
   return <Link url={Script.createRunURLScheme(Script.name)}>
     <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
       <Image
-        systemName="calendar.badge.clock"
+        systemName={iconName}
         font={compact ? 13 : 14}
-        foregroundStyle="systemOrange"
+        foregroundStyle={iconColor}
         symbolRenderingMode="hierarchical"
         widgetAccentable
       />
@@ -87,7 +97,7 @@ function WidgetHeader({
           foregroundStyle={issue.color}
         />
         : null}
-      <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={1}>
+      <Text font={compact ? "caption2" : "caption"} foregroundStyle="secondaryLabel" lineLimit={1}>
         {items.length}
       </Text>
     </HStack>
@@ -99,13 +109,19 @@ function SmallWidget(props: WidgetDataProps) {
   const item = items[0]
   const issue = widgetIssue(props)
 
-  return <WidgetFrame padding={14}>
+  return <WidgetFrame contentPadding={11}>
     <VStack
       alignment="leading"
       spacing={0}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
-      <WidgetHeader items={items} compact issue={issue} />
+      <WidgetHeader
+        items={items}
+        compact
+        issue={issue}
+        iconName={item?.iconName}
+        iconColor={item?.iconColor}
+      />
       {item
         ? <SmallDueItem item={item} />
         : <Link url={Script.createRunURLScheme(Script.name)}>
@@ -115,58 +131,47 @@ function SmallWidget(props: WidgetDataProps) {
               : <EmptyState compact />}
           </VStack>
         </Link>}
-      {item && issue
-        ? <Text
-          font="caption2"
-          foregroundStyle={issue.color}
-          lineLimit={1}
-          padding={{ top: 4 }}
-        >
-          {issue.text}
-        </Text>
-        : null}
     </VStack>
   </WidgetFrame>
 }
 
 function SmallDueItem({ item }: { item: DisplayDueItem }) {
-  return <HStack
-    alignment="top"
-    spacing={6}
-    padding={{ top: 12 }}
-    frame={{ maxWidth: "infinity" }}
+  return <VStack
+    alignment="leading"
+    spacing={0}
+    frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
   >
-    <CompletionControl item={item} hitSize={32} symbolSize={21} />
-    <Link url={itemURL(item)}>
-      <VStack alignment="leading" spacing={5} frame={{ maxWidth: "infinity" }}>
-        <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
-          <Image
-            systemName={item.iconName}
-            font={15}
-            foregroundStyle={item.iconColor}
-            symbolRenderingMode="hierarchical"
-            frame={{ width: 18, height: 18 }}
-            widgetAccentable
-          />
-          <Text font="subheadline" fontWeight="semibold" lineLimit={2} minScaleFactor={0.85}>
+    <HStack
+      alignment="top"
+      spacing={7}
+      padding={{ top: 12 }}
+      frame={{ maxWidth: "infinity" }}
+    >
+      <CompletionControl item={item} hitSize={32} symbolSize={19} />
+      <Link url={itemURL(item)}>
+        <VStack alignment="leading" spacing={4} frame={{ maxWidth: "infinity" }}>
+          <Text font="subheadline" fontWeight="semibold" lineLimit={3} minScaleFactor={0.85}>
             {item.title}
           </Text>
-        </HStack>
-        <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
-          {displayDate(item)}
-        </Text>
-        <HStack alignment="center" spacing={5} frame={{ maxWidth: "infinity" }}>
           {item.amount
             ? <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1} minScaleFactor={0.8}>
               {item.amount}
             </Text>
             : null}
-          <Spacer />
-          <DueStatusLabel item={item} font="caption" />
-        </HStack>
-      </VStack>
+        </VStack>
+      </Link>
+    </HStack>
+    <Spacer minLength={8} />
+    <Link url={itemURL(item)}>
+      <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
+        <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
+          {displayDate(item)}
+        </Text>
+        <Spacer />
+        <DueStatusLabel item={item} font="caption" />
+      </HStack>
     </Link>
-  </HStack>
+  </VStack>
 }
 
 function ListWidget({
@@ -176,17 +181,19 @@ function ListWidget({
   remindersFromCache,
   reminderError,
   interactionError,
+  displayHeight,
 }: WidgetDataProps & {
   limit: number
   family: "systemMedium" | "systemLarge"
+  displayHeight?: number
 }) {
   const issue = widgetIssue({ remindersFromCache, reminderError, interactionError })
   const effectiveLimit = issue ? Math.max(1, limit - 1) : limit
   const visible = visibleWidgetItems(items, effectiveLimit)
   const roomy = family === "systemLarge"
-  const rowHeight = roomy ? 38 : 36
+  const rowHeight = widgetRowHeight(family, displayHeight, effectiveLimit)
 
-  return <WidgetFrame padding={roomy ? 16 : 14}>
+  return <WidgetFrame contentPadding={roomy ? 14 : 11}>
     <VStack
       alignment="leading"
       spacing={0}
@@ -197,14 +204,14 @@ function ListWidget({
         ? <VStack
           alignment="leading"
           spacing={0}
-          padding={{ top: 4 }}
+          padding={{ top: roomy ? 6 : 3 }}
           frame={{ maxWidth: "infinity" }}
         >
           {visible.map((item, index) => (
             <VStack key={`${item.source}-${item.id}-${item.completionKey}`} spacing={0} frame={{ maxWidth: "infinity" }}>
               <DueItemRow item={item} roomy={roomy} height={rowHeight} />
               {index < visible.length - 1
-                ? <Divider padding={{ leading: roomy ? 57 : 55 }} />
+                ? <Divider padding={{ leading: roomy ? 62 : 59 }} />
                 : null}
             </VStack>
           ))}
@@ -242,8 +249,8 @@ function DueItemRow({
   >
     <CompletionControl
       item={item}
-      hitSize={roomy ? 32 : 30}
-      symbolSize={roomy ? 21 : 20}
+      hitSize={roomy ? 34 : 32}
+      symbolSize={roomy ? 20 : 19}
     />
     <Link url={itemURL(item)}>
       <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
@@ -391,7 +398,7 @@ function ErrorState({
 }
 
 function AccessoryFallback({ items }: { items: DisplayDueItem[] }) {
-  return <WidgetFrame padding={8}>
+  return <WidgetFrame contentPadding={8}>
     <Link url={Script.createRunURLScheme(Script.name)}>
       <VStack alignment="center" spacing={3} frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
         <Image systemName="calendar.badge.clock" font={18} foregroundStyle="systemOrange" widgetAccentable />
@@ -403,17 +410,21 @@ function AccessoryFallback({ items }: { items: DisplayDueItem[] }) {
 
 function WidgetFrame({
   children,
-  padding = 14,
+  contentPadding = 11,
 }: {
   children: any
-  padding?: number
+  contentPadding?: number
 }) {
   return <VStack
-    padding={padding}
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
-    widgetBackground="systemBackground"
+    widgetBackground="secondarySystemBackground"
   >
-    {children}
+    <VStack
+      padding={contentPadding}
+      frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
+    >
+      {children}
+    </VStack>
   </VStack>
 }
 

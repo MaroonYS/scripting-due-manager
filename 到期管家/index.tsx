@@ -54,6 +54,10 @@ import type {
   ManualDueItem,
   RecurrenceUnit,
 } from "./src/types"
+import {
+  reloadUserWidgets,
+  reloadWidgetsAfterStorageWrite,
+} from "./src/widget_refresh"
 
 type ReminderStatus = {
   loading: boolean
@@ -101,11 +105,12 @@ function DueManagerApp() {
       fromCache: result.fromCache,
       error: result.error,
     })
-    Widget.reloadAll()
+    await reloadWidgetsAfterStorageWrite()
   }
 
   useEffect(() => {
     if (state.settings.includeReminders) void refreshReminders()
+    else void reloadWidgetsAfterStorageWrite()
   }, [])
 
   const setReminderIntegration = async (enabled: boolean) => {
@@ -115,7 +120,7 @@ function DueManagerApp() {
         clearReminderSnapshot()
         refreshState(next)
         setReminderStatus(EMPTY_REMINDER_STATUS)
-        Widget.reloadAll()
+        await reloadWidgetsAfterStorageWrite()
       } catch (error) {
         await Dialog.alert({ title: "无法关闭提醒事项", message: String(error) })
       }
@@ -150,7 +155,7 @@ function DueManagerApp() {
           message: "请在 iOS 设置中检查 Scripting 的提醒事项权限。\n\n" + result.error,
         })
       }
-      Widget.reloadAll()
+      await reloadWidgetsAfterStorageWrite()
     } catch (error) {
       setReminderStatus({ ...EMPTY_REMINDER_STATUS, error: String(error) })
       await Dialog.alert({ title: "授权失败", message: String(error) })
@@ -161,7 +166,7 @@ function DueManagerApp() {
     try {
       const next = updateSettings({ showAmounts })
       refreshState(next)
-      Widget.reloadAll()
+      await reloadWidgetsAfterStorageWrite()
     } catch (error) {
       await Dialog.alert({ title: "设置保存失败", message: String(error) })
     }
@@ -272,18 +277,22 @@ function DueManagerApp() {
         <Button
           title="刷新桌面组件"
           systemImage="arrow.triangle.2.circlepath"
-          action={() => Widget.reloadAll()}
+          action={async () => await reloadUserWidgets()}
         />
       </Section>
 
-      <Section footer={
-        <Text>
-          iOS 决定桌面组件的数据刷新时间，不保证分钟级准点。有具体时间的事项会使用系统动态倒计时文字。
-        </Text>
-      }>
+      <Section footer={<Text>旧版私有数据会在首次运行时自动迁移；以后更新脚本不需要重新录入事项。数据仍只保存在本机 Scripting 中。</Text>}>
+        <HStack spacing={10}>
+          <Image systemName="externaldrive.fill.badge.checkmark" foregroundStyle="systemGreen" />
+          <VStack alignment="leading" spacing={2}>
+            <Text font="subheadline">本机持久存储已启用</Text>
+            <Text font="caption" foregroundStyle="secondaryLabel">保存后自动刷新用户小组件</Text>
+          </VStack>
+        </HStack>
         <HStack>
-          <Image systemName="lock.shield" foregroundStyle="systemGreen" />
-          <Text font="subheadline">数据仅保存在本机</Text>
+          <Text>版本</Text>
+          <Spacer />
+          <Text foregroundStyle="secondaryLabel">{Script.metadata.version}</Text>
         </HStack>
       </Section>
     </List>
@@ -372,8 +381,8 @@ function ItemEditor({
     }
     try {
       const nextState = upsertItem(nextItem)
-      Widget.reloadAll()
       onChanged(nextState)
+      await reloadWidgetsAfterStorageWrite()
       dismiss()
     } catch (error) {
       await Dialog.alert({ title: "保存失败", message: String(error) })
@@ -408,8 +417,8 @@ function ItemEditor({
 
     try {
       const nextState = upsertItem(advanced)
-      Widget.reloadAll()
       onChanged(nextState)
+      await reloadWidgetsAfterStorageWrite()
       dismiss()
     } catch (error) {
       await Dialog.alert({ title: "保存完成状态失败", message: String(error) })
@@ -426,8 +435,8 @@ function ItemEditor({
     if (!confirmed) return
     try {
       const nextState = deleteItem(item.id)
-      Widget.reloadAll()
       onChanged(nextState)
+      await reloadWidgetsAfterStorageWrite()
       dismiss()
     } catch (error) {
       await Dialog.alert({ title: "删除失败", message: String(error) })

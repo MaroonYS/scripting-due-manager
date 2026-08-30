@@ -1,4 +1,4 @@
-import { Text, VStack, Widget } from "scripting"
+import { Script, Text, VStack, Widget } from "scripting"
 import { loadReminderItems, nextWidgetRefresh, sortDueItems } from "./src/reminders"
 import {
   loadState,
@@ -29,21 +29,23 @@ async function main() {
     />,
     { policy: "after", date: refreshAt },
   )
+  Script.exit()
 }
 
 main().catch(error => {
   console.error(error)
   Widget.present(
     <VStack
-      padding={12}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
-      spacing={6}
-      widgetBackground="systemBackground"
+      widgetBackground="secondarySystemBackground"
     >
-      <Text font="headline" foregroundStyle="systemRed">到期管家加载失败</Text>
-      <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={4}>
-        请运行主脚本检查数据或提醒事项权限。
-      </Text>
+      <VStack padding={11} alignment="leading" spacing={6} frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+        <Text font="headline" foregroundStyle="systemRed">到期管家加载失败</Text>
+        <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={4}>
+          请运行主脚本检查数据或提醒事项权限。
+        </Text>
+      </VStack>
     </VStack>,
   )
+  Script.exit()
 })

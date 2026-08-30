@@ -5,7 +5,7 @@ import {
   parseDateKey,
 } from "./date"
 import { resolveDueIcon } from "./icons"
-import { REMINDER_SNAPSHOT_KEY } from "./storage"
+import { REMINDER_SNAPSHOT_KEY, SHARED_STORAGE_OPTIONS } from "./storage"
 import type {
   CachedReminderItem,
   DisplayDueItem,
@@ -31,7 +31,7 @@ export async function loadReminderItems(
       fetchedAt: Date.now(),
       items: cached,
     }
-    Storage.set(REMINDER_SNAPSHOT_KEY, snapshot)
+    Storage.set(REMINDER_SNAPSHOT_KEY, snapshot, SHARED_STORAGE_OPTIONS)
     return {
       items: cached.map(item => cacheItemToDisplay(item, false)),
       fetchedAt: snapshot.fetchedAt,
@@ -134,6 +134,7 @@ export function isSnapshotStale(fetchedAt: number | null, now = Date.now()): boo
 }
 
 export function clearReminderSnapshot(): void {
+  Storage.remove(REMINDER_SNAPSHOT_KEY, SHARED_STORAGE_OPTIONS)
   Storage.remove(REMINDER_SNAPSHOT_KEY)
 }
 
@@ -199,21 +200,27 @@ function removeReminderFromSnapshot(id: string): void {
   if (!snapshot) return
   const items = snapshot.items.filter(item => item.id !== id)
   if (items.length === snapshot.items.length) return
-  Storage.set(REMINDER_SNAPSHOT_KEY, { ...snapshot, items })
+  Storage.set(REMINDER_SNAPSHOT_KEY, { ...snapshot, items }, SHARED_STORAGE_OPTIONS)
 }
 
 function readSnapshot(): ReminderSnapshot | null {
-  const raw = Storage.get<any>(REMINDER_SNAPSHOT_KEY)
+  const shared = Storage.get<any>(REMINDER_SNAPSHOT_KEY, SHARED_STORAGE_OPTIONS)
+  const legacy = shared == null ? Storage.get<any>(REMINDER_SNAPSHOT_KEY) : null
+  const raw = shared ?? legacy
   if (!raw || raw.schemaVersion !== 1 || !Array.isArray(raw.items)) return null
   const items = raw.items
     .slice(0, 500)
     .map(normalizeCachedItem)
     .filter((item: CachedReminderItem | null): item is CachedReminderItem => item != null)
-  return {
+  const snapshot: ReminderSnapshot = {
     schemaVersion: 1,
     fetchedAt: typeof raw.fetchedAt === "number" ? raw.fetchedAt : 0,
     items,
   }
+  if (shared == null && legacy != null) {
+    Storage.set(REMINDER_SNAPSHOT_KEY, snapshot, SHARED_STORAGE_OPTIONS)
+  }
+  return snapshot
 }
 
 function normalizeCachedItem(raw: any): CachedReminderItem | null {
