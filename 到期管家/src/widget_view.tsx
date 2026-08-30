@@ -82,7 +82,8 @@ function WidgetHeader({
       alignment="center"
       spacing={compact ? 5 : 6}
       padding={{
-        top: compact ? 2 : 0,
+        top: compact ? 8 : 0,
+        bottom: compact ? -6 : 0,
         leading: compact ? 5 : 0,
       }}
       frame={{ maxWidth: "infinity" }}
@@ -227,17 +228,17 @@ function SmallDueItem({
       <HStack
         alignment="center"
         spacing={0}
+        padding={{ top: -5, bottom: 5, leading: 5, trailing: 5 }}
         frame={{ maxWidth: "infinity", height: 14, alignment: "leading" }}
       >
-        <VStack frame={{ width: 39, height: 1 }} />
         {detail
           ? <Link url={itemURL(item)}>
             <Text
-              font="caption2"
+              font={13}
               foregroundStyle="secondaryLabel"
               lineLimit={1}
-              minScaleFactor={0.75}
-              frame={{ maxWidth: 105, alignment: "leading" }}
+              minScaleFactor={0.8}
+              frame={{ maxWidth: 135, alignment: "leading" }}
             >
               {detail}
             </Text>
@@ -253,7 +254,7 @@ function SmallDueItem({
       <HStack
         alignment="center"
         spacing={6}
-        padding={{ leading: 5, trailing: 5, bottom: 4 }}
+        padding={{ top: -5, leading: 5, trailing: 5, bottom: 9 }}
         frame={{ maxWidth: "infinity" }}
       >
         <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
