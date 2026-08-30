@@ -205,7 +205,7 @@ function SmallDueItem({
       frame={{ maxWidth: "infinity", height: 76, alignment: "topLeading" }}
     >
       <HStack
-        alignment="center"
+        alignment="top"
         spacing={7}
         padding={{ top: 22 }}
         frame={{ maxWidth: "infinity", alignment: "leading" }}
@@ -222,61 +222,65 @@ function SmallDueItem({
             lineLimit={3}
             minScaleFactor={0.9}
             fixedSize={{ horizontal: false, vertical: true }}
+            padding={{ top: 6, bottom: -6 }}
             frame={{ maxWidth: 105, alignment: "leading" }}
           >
             {item.title}
           </Text>
         </Link>
       </HStack>
-      <VStack
-        alignment="leading"
-        spacing={0}
-        padding={{ leading: 5, trailing: 5 }}
-        frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
-      >
-        <Spacer />
-        {detail
-          ? <Link url={itemURL(item)}>
-            <Text
-              font={13}
-              foregroundStyle="secondaryLabel"
-              lineLimit={1}
-              minScaleFactor={0.8}
-              fixedSize={{ horizontal: false, vertical: true }}
-              frame={{ maxWidth: 135, alignment: "leading" }}
-            >
-              {detail}
-            </Text>
-          </Link>
-          : null}
-        <Spacer />
-      </VStack>
     </VStack>
-    <Spacer minLength={nextItem ? 4 : 8} />
-    {nextItem ? <SmallNextItemPreview item={nextItem} /> : null}
-    {nextItem ? <Spacer minLength={0} /> : null}
-    <Link url={itemURL(item)}>
-      <HStack
-        alignment="center"
-        spacing={6}
-        padding={{ top: -5, leading: 5, trailing: 5, bottom: 9 }}
-        frame={{ maxWidth: "infinity" }}
-      >
-        <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
-          {displayDate(item)}
-        </Text>
-        <Spacer />
-        <DueStatusLabel item={item} font="caption" />
-      </HStack>
-    </Link>
+    <Spacer minLength={4} />
+    {detail
+      ? <SmallCurrentDetail item={item} detail={detail} />
+      : <VStack frame={{ maxWidth: "infinity", height: 19, alignment: "leading" }} />}
+    <Spacer minLength={0} />
+    {nextItem
+      ? <SmallNextItemPreview item={nextItem} />
+      : <VStack frame={{ maxWidth: "infinity", height: 18, alignment: "leading" }} />}
   </VStack>
 }
 
 function smallItemDetail(item: DisplayDueItem): string {
-  return [item.amount, item.note]
+  return [item.amount, item.source === "reminder" ? "" : item.note]
     .map((value) => value.replace(/\s+/g, " ").trim())
     .filter(Boolean)
     .join(" · ")
+}
+
+function SmallCurrentDetail({
+  item,
+  detail,
+}: {
+  item: DisplayDueItem
+  detail: string
+}) {
+  return <VStack
+    alignment="leading"
+    spacing={0}
+    frame={{ maxWidth: "infinity", height: 19, alignment: "leading" }}
+  >
+    <Link url={itemURL(item)}>
+      <HStack
+        alignment="center"
+        spacing={0}
+        padding={{ top: 4, leading: 5, trailing: 5 }}
+        frame={{ maxWidth: "infinity" }}
+      >
+        <Text
+          font={13}
+          foregroundStyle="secondaryLabel"
+          lineLimit={1}
+          minScaleFactor={0.8}
+          fixedSize={{ horizontal: false, vertical: true }}
+          frame={{ maxWidth: 135, alignment: "leading" }}
+        >
+          {detail}
+        </Text>
+        <Spacer />
+      </HStack>
+    </Link>
+  </VStack>
 }
 
 function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
@@ -284,13 +288,13 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
   return <VStack
     alignment="leading"
     spacing={0}
-    frame={{ maxWidth: "infinity" }}
+    frame={{ maxWidth: "infinity", height: 18, alignment: "leading" }}
   >
     <Link url={itemURL(item)}>
       <HStack
         alignment="center"
         spacing={4}
-        padding={{ top: 4, leading: 5, trailing: 5 }}
+        padding={{ top: -5, leading: 5, trailing: 5, bottom: 9 }}
         frame={{ maxWidth: "infinity" }}
       >
         <Image
