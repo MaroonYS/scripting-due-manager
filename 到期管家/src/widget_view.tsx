@@ -27,7 +27,6 @@ type WidgetDataProps = {
   previousItems: DisplayDueItem[] | null
   completionPhase: 0 | 1
   completionGeneration: number
-  completionRenderedAt: number
   reminderFetchedAt: number | null
   remindersFromCache: boolean
   remindersEnabled: boolean
@@ -42,14 +41,7 @@ type WidgetIssue = {
 
 // Animation is a Scripting runtime global (like Storage), not a named export.
 // Binding it to the persisted generation lets WidgetKit animate entry changes.
-const COMPLETION_QUEUE_ANIMATION = Animation.smooth({
-  duration: 0.34,
-  extraBounce: 0,
-})
-const COMPLETION_SYMBOL_ANIMATION = Animation.snappy({
-  duration: 0.24,
-  extraBounce: 0,
-})
+const COMPLETION_QUEUE_ANIMATION = Animation.default()
 
 export function DueManagerWidget(props: WidgetDataProps) {
   const displayHeight = Widget.displaySize?.height
@@ -142,7 +134,6 @@ function SmallWidget(props: WidgetDataProps) {
     previousItems,
     completionPhase,
     completionGeneration,
-    completionRenderedAt,
   } = props
   const item = items[0]
   const nextItem = items[1]
@@ -176,14 +167,12 @@ function SmallWidget(props: WidgetDataProps) {
           nextItem={layer0NextItem}
           issue={issue}
           renderGeneration={completionGeneration}
-          renderedAt={completionRenderedAt}
         />}
         layer1={<SmallWidgetBody
           item={layer1Item}
           nextItem={layer1NextItem}
           issue={issue}
           renderGeneration={completionGeneration}
-          renderedAt={completionRenderedAt}
         />}
       />
     </VStack>
@@ -195,20 +184,17 @@ function SmallWidgetBody({
   nextItem,
   issue,
   renderGeneration,
-  renderedAt,
 }: {
   item: DisplayDueItem | undefined
   nextItem: DisplayDueItem | undefined
   issue: WidgetIssue | null
   renderGeneration: number
-  renderedAt: number
 }) {
   return item
     ? <SmallDueItem
       item={item}
       nextItem={nextItem}
       renderGeneration={renderGeneration}
-      renderedAt={renderedAt}
     />
     : <Link url={Script.createRunURLScheme(Script.name)}>
       <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
@@ -223,12 +209,10 @@ function SmallDueItem({
   item,
   nextItem,
   renderGeneration,
-  renderedAt,
 }: {
   item: DisplayDueItem
   nextItem: DisplayDueItem | undefined
   renderGeneration: number
-  renderedAt: number
 }) {
   return <VStack
     alignment="leading"
@@ -246,7 +230,6 @@ function SmallDueItem({
         hitSize={32}
         symbolSize={19}
         renderGeneration={renderGeneration}
-        renderedAt={renderedAt}
       />
       <Link url={itemURL(item)}>
         <VStack alignment="leading" spacing={4} frame={{ maxWidth: "infinity" }}>
@@ -328,7 +311,6 @@ function ListWidget({
   previousItems,
   completionPhase,
   completionGeneration,
-  completionRenderedAt,
   limit,
   family,
   remindersFromCache,
@@ -368,7 +350,6 @@ function ListWidget({
           rowHeight={rowHeight}
           issue={issue}
           renderGeneration={completionGeneration}
-          renderedAt={completionRenderedAt}
         />}
         layer1={<ListWidgetBody
           visible={layer1Visible}
@@ -376,7 +357,6 @@ function ListWidget({
           rowHeight={rowHeight}
           issue={issue}
           renderGeneration={completionGeneration}
-          renderedAt={completionRenderedAt}
         />}
       />
     </VStack>
@@ -389,14 +369,12 @@ function ListWidgetBody({
   rowHeight,
   issue,
   renderGeneration,
-  renderedAt,
 }: {
   visible: DisplayDueItem[]
   roomy: boolean
   rowHeight: number
   issue: WidgetIssue | null
   renderGeneration: number
-  renderedAt: number
 }) {
   return <VStack
     alignment="leading"
@@ -411,13 +389,16 @@ function ListWidgetBody({
         frame={{ maxWidth: "infinity" }}
       >
         {visible.map((item, index) => (
-          <VStack key={`slot-${index}`} spacing={0} frame={{ maxWidth: "infinity" }}>
+          <VStack
+            key={`row-${item.source}-${item.id}-${item.completionKey}`}
+            spacing={0}
+            frame={{ maxWidth: "infinity" }}
+          >
             <DueItemRow
               item={item}
               roomy={roomy}
               height={rowHeight}
               renderGeneration={renderGeneration}
-              renderedAt={renderedAt}
             />
             {index < visible.length - 1
               ? <Divider padding={{ leading: roomy ? 62 : 59 }} />
@@ -456,6 +437,7 @@ function CompletionTransitionLayers({
   const phase1Active = phase === 1
   return <ZStack
     alignment="topLeading"
+    animation={{ animation: COMPLETION_QUEUE_ANIMATION, value: generation }}
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
   >
     {/* The outgoing layer stays above the incoming one while WidgetKit fades
@@ -465,7 +447,6 @@ function CompletionTransitionLayers({
       opacity={phase0Active ? 1 : 0}
       allowsHitTesting={phase0Active}
       zIndex={phase0Active ? 1 : 2}
-      animation={{ animation: COMPLETION_QUEUE_ANIMATION, value: generation }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
       {layer0}
@@ -475,7 +456,6 @@ function CompletionTransitionLayers({
       opacity={phase1Active ? 1 : 0}
       allowsHitTesting={phase1Active}
       zIndex={phase1Active ? 1 : 2}
-      animation={{ animation: COMPLETION_QUEUE_ANIMATION, value: generation }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
       {layer1}
@@ -488,13 +468,11 @@ function DueItemRow({
   roomy,
   height,
   renderGeneration,
-  renderedAt,
 }: {
   item: DisplayDueItem
   roomy: boolean
   height: number
   renderGeneration: number
-  renderedAt: number
 }) {
   return <HStack
     alignment="center"
@@ -506,7 +484,6 @@ function DueItemRow({
       hitSize={roomy ? 34 : 32}
       symbolSize={roomy ? 20 : 19}
       renderGeneration={renderGeneration}
-      renderedAt={renderedAt}
     />
     <Link url={itemURL(item)}>
       <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
@@ -577,13 +554,11 @@ function CompletionControl({
   hitSize,
   symbolSize,
   renderGeneration,
-  renderedAt,
 }: {
   item: DisplayDueItem
   hitSize: number
   symbolSize: number
   renderGeneration: number
-  renderedAt: number
 }) {
   if (item.stale) {
     return <Image
@@ -595,6 +570,7 @@ function CompletionControl({
   }
   const completing = item.isCompleting === true
   return <Toggle
+    key={`complete-${renderGeneration}-${item.source}-${item.id}-${item.completionKey}`}
     value={completing}
     toggleStyle="button"
     buttonStyle="bordered"
@@ -609,12 +585,10 @@ function CompletionControl({
       id: item.id,
       occurrenceKey: item.completionKey,
       renderGeneration,
-      renderedAt,
     })}
   >
     <CompletionSymbol
       name={completing ? "circle.inset.filled" : "circle"}
-      hitSize={hitSize}
       symbolSize={symbolSize}
     />
   </Toggle>
@@ -622,11 +596,9 @@ function CompletionControl({
 
 function CompletionSymbol({
   name,
-  hitSize,
   symbolSize,
 }: {
   name: string
-  hitSize: number
   symbolSize: number
 }) {
   return <Image
@@ -634,9 +606,9 @@ function CompletionSymbol({
     font={symbolSize}
     foregroundStyle="systemBlue"
     symbolRenderingMode="hierarchical"
-    frame={{ width: hitSize, height: hitSize }}
+    frame={{ width: symbolSize + 2, height: symbolSize + 2 }}
     contentTransition="symbolEffectReplace"
-    animation={{ animation: COMPLETION_SYMBOL_ANIMATION, value: name }}
+    animation={{ animation: COMPLETION_QUEUE_ANIMATION, value: name }}
     widgetAccentable
   />
 }

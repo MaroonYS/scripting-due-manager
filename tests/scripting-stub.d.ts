@@ -45,6 +45,7 @@ declare const Storage: {
 }
 
 declare const Animation: {
+  default(): any
   smooth(options?: { duration?: number; extraBounce?: number }): any
   snappy(options?: { duration?: number; extraBounce?: number }): any
 }

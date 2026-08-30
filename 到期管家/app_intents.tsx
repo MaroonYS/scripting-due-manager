@@ -23,7 +23,6 @@ export type CompleteDueItemParams = {
   id: string
   occurrenceKey: string
   renderGeneration: number
-  renderedAt: number
 }
 
 let completionIntentQueue: Promise<void> = Promise.resolve()
@@ -49,18 +48,17 @@ export const CompleteDueItemIntent = AppIntentManager.register<CompleteDueItemPa
 })
 
 async function performCompleteDueItem(params: CompleteDueItemParams): Promise<void> {
+  let shouldReload = false
   try {
     if (!isCompletionParams(params)) {
       throw new Error("Invalid completion parameters")
     }
-    if (!canRunWidgetCompletionIntent(
-      params.renderGeneration,
-      params.renderedAt,
-    )) {
-      // Only one completion may succeed from a rendered widget generation.
-      // This locks stale controls and serializes fast taps on different rows.
+    if (!canRunWidgetCompletionIntent(params.renderGeneration)) {
+      // The control belongs to a timeline that has already completed an item.
+      // Ignore it without refreshing; the current generation remains tappable.
       return
     }
+    shouldReload = true
 
     const feedbackItem = params.source === "manual"
       ? findManualDisplayItemForCompletion(params.id, params.occurrenceKey)
@@ -79,6 +77,7 @@ async function performCompleteDueItem(params: CompleteDueItemParams): Promise<vo
       }
     }
   } catch (error) {
+    shouldReload = true
     console.error("CompleteDueItem failed", error)
     writeWidgetActionError(
       params?.source === "reminder"
@@ -86,9 +85,11 @@ async function performCompleteDueItem(params: CompleteDueItemParams): Promise<vo
         : "事项完成失败，请打开主脚本检查存储",
     )
   } finally {
-    // A single reload mirrors native interactive widgets and avoids
-    // WidgetKit coalescing an unseen intermediate state.
-    await reloadWidgetsAfterStorageWrite()
+    if (shouldReload) {
+      // A single reload mirrors native interactive widgets and avoids
+      // WidgetKit coalescing an unseen intermediate state.
+      await reloadWidgetsAfterStorageWrite()
+    }
   }
 }
 
@@ -105,6 +106,4 @@ function isCompletionParams(value: unknown): value is CompleteDueItemParams {
     && typeof params.renderGeneration === "number"
     && Number.isSafeInteger(params.renderGeneration)
     && params.renderGeneration >= 0
-    && typeof params.renderedAt === "number"
-    && Number.isFinite(params.renderedAt)
 }

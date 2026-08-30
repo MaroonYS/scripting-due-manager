@@ -10,7 +10,6 @@ export const WIDGET_COMPLETION_FEEDBACK_KEY = "due-manager-widget-completion-fee
 
 const COMPLETION_FEEDBACK_TTL_MS = 30_000
 const COMPLETION_FEEDBACK_LIMIT = 1
-const COMPLETION_INTERACTION_LOCK_MS = 520
 
 type CompletionFeedbackEntry = {
   createdAt: number
@@ -102,20 +101,16 @@ export function isWidgetCompletionGenerationCurrent(
 }
 
 /**
- * Locks the newly revealed controls for the duration of the completion
- * crossfade, while still allowing ordinary timelines to respond immediately.
+ * Rejects stale controls from an older widget generation. The generation
+ * check is sufficient to de-duplicate the old control without delaying the
+ * newly revealed item.
  */
 export function canRunWidgetCompletionIntent(
   generation: number,
-  renderedAt: number,
   now = Date.now(),
 ): boolean {
   if (!Number.isSafeInteger(generation) || generation < 0) return false
-  if (!Number.isFinite(renderedAt)) return false
-  const current = readCompletionFeedbackStore(now)
-  if (current.generation !== generation) return false
-  if (current.entries.length === 0) return true
-  return now - renderedAt >= COMPLETION_INTERACTION_LOCK_MS
+  return readCompletionFeedbackStore(now).generation === generation
 }
 
 export function readWidgetCompletionTransition(

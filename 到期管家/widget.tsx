@@ -24,7 +24,6 @@ async function main() {
   const previousItems = completionTransition.items.length > 0
     ? sortDueItems(mergeWidgetCompletionFeedback(items, completionTransition.items))
     : null
-  const completionRenderedAt = Date.now()
   const refreshAt = nextWidgetRefresh(items, new Date(), state.settings.includeReminders)
 
   Widget.present(
@@ -33,7 +32,6 @@ async function main() {
       previousItems={previousItems}
       completionPhase={completionTransition.phase}
       completionGeneration={completionTransition.generation}
-      completionRenderedAt={completionRenderedAt}
       reminderFetchedAt={reminderResult.fetchedAt}
       remindersFromCache={reminderResult.fromCache}
       remindersEnabled={state.settings.includeReminders}
