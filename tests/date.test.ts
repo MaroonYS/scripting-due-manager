@@ -695,6 +695,17 @@ test("completion intent keeps one persisted transition and requests one widget r
   assert.match(source, /completionIntentQueue/)
 })
 
+test("widget view avoids unavailable Animation runtime APIs", () => {
+  const source = readFileSync(
+    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
+    "utf8",
+  )
+  assert.doesNotMatch(source, /\bAnimation\b/)
+  assert.match(source, /key="completion-phase-0"/)
+  assert.match(source, /key="completion-phase-1"/)
+  assert.match(source, /contentTransition="symbolEffectReplace"/)
+})
+
 test("storage failure is surfaced instead of pretending settings were saved", () => {
   const originalStorage = (globalThis as any).Storage
   try {

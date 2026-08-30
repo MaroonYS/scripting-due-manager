@@ -1,5 +1,4 @@
 import {
-  Animation,
   Button,
   DateLabel,
   Divider,
@@ -41,10 +40,6 @@ type WidgetIssue = {
   color: string
 }
 
-const COMPLETION_FADE_IN = Animation.smooth({ duration: 0.34, extraBounce: 0 }).delay(0.08)
-const COMPLETION_FADE_OUT = Animation.smooth({ duration: 0.32, extraBounce: 0 }).delay(0.1)
-const COMPLETION_SYMBOL = Animation.snappy({ duration: 0.26, extraBounce: 0.04 })
-
 export function DueManagerWidget(props: WidgetDataProps) {
   const displayHeight = Widget.displaySize?.height
   if (Widget.family === "systemSmall") {
@@ -71,14 +66,12 @@ export function DueManagerWidget(props: WidgetDataProps) {
 
 function WidgetHeader({
   items,
-  generation,
   compact = false,
   issue,
   iconName = "calendar.badge.clock",
   iconColor = "systemOrange",
 }: {
   items: DisplayDueItem[]
-  generation: number
   compact?: boolean
   issue: WidgetIssue | null
   iconName?: string
@@ -92,7 +85,6 @@ function WidgetHeader({
         top: compact ? 3 : 0,
         leading: compact ? 5 : 0,
       }}
-      animation={{ animation: COMPLETION_FADE_IN, value: generation }}
       frame={{ maxWidth: "infinity" }}
     >
       <Image
@@ -155,7 +147,6 @@ function SmallWidget(props: WidgetDataProps) {
     >
       <WidgetHeader
         items={items}
-        generation={completionGeneration}
         compact
         issue={issue}
         iconName={item?.iconName}
@@ -163,7 +154,6 @@ function SmallWidget(props: WidgetDataProps) {
       />
       <CompletionTransitionLayers
         phase={completionPhase}
-        generation={completionGeneration}
         layer0={<SmallWidgetBody
           item={layer0Item}
           issue={issue}
@@ -299,12 +289,10 @@ function ListWidget({
     >
       <WidgetHeader
         items={items}
-        generation={completionGeneration}
         issue={issue}
       />
       <CompletionTransitionLayers
         phase={completionPhase}
-        generation={completionGeneration}
         layer0={<ListWidgetBody
           visible={layer0Visible}
           roomy={roomy}
@@ -386,12 +374,10 @@ function ListWidgetBody({
 
 function CompletionTransitionLayers({
   phase,
-  generation,
   layer0,
   layer1,
 }: {
   phase: 0 | 1
-  generation: number
   layer0: any
   layer1: any
 }) {
@@ -406,10 +392,6 @@ function CompletionTransitionLayers({
       opacity={phase0Active ? 1 : 0}
       disabled={!phase0Active}
       zIndex={phase0Active ? 1 : 0}
-      animation={{
-        animation: phase0Active ? COMPLETION_FADE_IN : COMPLETION_FADE_OUT,
-        value: generation,
-      }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
       {layer0}
@@ -419,10 +401,6 @@ function CompletionTransitionLayers({
       opacity={phase1Active ? 1 : 0}
       disabled={!phase1Active}
       zIndex={phase1Active ? 1 : 0}
-      animation={{
-        animation: phase1Active ? COMPLETION_FADE_IN : COMPLETION_FADE_OUT,
-        value: generation,
-      }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
       {layer1}
@@ -576,7 +554,6 @@ function CompletionSymbol({
     symbolRenderingMode="hierarchical"
     frame={{ width: hitSize, height: hitSize }}
     contentTransition="symbolEffectReplace"
-    animation={{ animation: COMPLETION_SYMBOL, value: name }}
     widgetAccentable
   />
 }

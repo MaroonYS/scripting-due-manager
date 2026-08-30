@@ -1,5 +1,4 @@
 declare module "scripting" {
-  export const Animation: any
   export const AppIntentManager: {
     register<T = undefined>(definition: {
       name: string
