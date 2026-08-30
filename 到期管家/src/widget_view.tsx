@@ -73,7 +73,12 @@ function WidgetHeader({
   iconColor?: string
 }) {
   return <Link url={Script.createRunURLScheme(Script.name)}>
-    <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
+    <HStack
+      alignment="center"
+      spacing={6}
+      padding={{ top: compact ? 3 : 0 }}
+      frame={{ maxWidth: "infinity" }}
+    >
       <Image
         systemName={iconName}
         font={compact ? 13 : 14}
@@ -97,7 +102,13 @@ function WidgetHeader({
           foregroundStyle={issue.color}
         />
         : null}
-      <Text font={compact ? "caption2" : "caption"} foregroundStyle="secondaryLabel" lineLimit={1}>
+      <Text
+        font={compact ? "caption2" : "caption"}
+        foregroundStyle="secondaryLabel"
+        lineLimit={1}
+        monospacedDigit
+        padding={{ trailing: compact ? 5 : 0 }}
+      >
         {items.length}
       </Text>
     </HStack>
@@ -163,7 +174,12 @@ function SmallDueItem({ item }: { item: DisplayDueItem }) {
     </HStack>
     <Spacer minLength={8} />
     <Link url={itemURL(item)}>
-      <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
+      <HStack
+        alignment="center"
+        spacing={6}
+        padding={{ leading: 5, trailing: 5, bottom: 4 }}
+        frame={{ maxWidth: "infinity" }}
+      >
         <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
           {displayDate(item)}
         </Text>
