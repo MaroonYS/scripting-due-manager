@@ -9,7 +9,6 @@ import {
   writeWidgetActionError,
 } from "./src/storage"
 import {
-  canRunWidgetCompletionIntent,
   findManualDisplayItemForCompletion,
   writeWidgetCompletionFeedback,
 } from "./src/widget_completion"
@@ -22,7 +21,6 @@ export type CompleteDueItemParams = {
   source: "manual" | "reminder"
   id: string
   occurrenceKey: string
-  renderGeneration: number
 }
 
 let completionIntentQueue: Promise<void> = Promise.resolve()
@@ -48,17 +46,10 @@ export const CompleteDueItemIntent = AppIntentManager.register<CompleteDueItemPa
 })
 
 async function performCompleteDueItem(params: CompleteDueItemParams): Promise<void> {
-  let shouldReload = false
   try {
     if (!isCompletionParams(params)) {
       throw new Error("Invalid completion parameters")
     }
-    if (!canRunWidgetCompletionIntent(params.renderGeneration)) {
-      // The control belongs to a timeline that has already completed an item.
-      // Ignore it without refreshing; the current generation remains tappable.
-      return
-    }
-    shouldReload = true
 
     const feedbackItem = params.source === "manual"
       ? findManualDisplayItemForCompletion(params.id, params.occurrenceKey)
@@ -77,7 +68,6 @@ async function performCompleteDueItem(params: CompleteDueItemParams): Promise<vo
       }
     }
   } catch (error) {
-    shouldReload = true
     console.error("CompleteDueItem failed", error)
     writeWidgetActionError(
       params?.source === "reminder"
@@ -85,11 +75,9 @@ async function performCompleteDueItem(params: CompleteDueItemParams): Promise<vo
         : "事项完成失败，请打开主脚本检查存储",
     )
   } finally {
-    if (shouldReload) {
-      // A single reload mirrors native interactive widgets and avoids
-      // WidgetKit coalescing an unseen intermediate state.
-      await reloadWidgetsAfterStorageWrite()
-    }
+    // Occurrence keys make old controls idempotent, so every interaction may
+    // safely request a fresh timeline instead of leaving a stale widget stuck.
+    await reloadWidgetsAfterStorageWrite()
   }
 }
 
@@ -103,7 +91,4 @@ function isCompletionParams(value: unknown): value is CompleteDueItemParams {
     && typeof params.occurrenceKey === "string"
     && params.occurrenceKey.length > 0
     && params.occurrenceKey.length <= 240
-    && typeof params.renderGeneration === "number"
-    && Number.isSafeInteger(params.renderGeneration)
-    && params.renderGeneration >= 0
 }

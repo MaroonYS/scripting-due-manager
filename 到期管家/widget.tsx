@@ -6,7 +6,6 @@ import {
   readWidgetActionError,
 } from "./src/storage"
 import {
-  mergeWidgetCompletionFeedback,
   readWidgetCompletionTransition,
 } from "./src/widget_completion"
 import { DueManagerWidget } from "./src/widget_view"
@@ -21,16 +20,11 @@ async function main() {
     ...reminderResult.items,
   ])
   const completionTransition = readWidgetCompletionTransition()
-  const previousItems = completionTransition.items.length > 0
-    ? sortDueItems(mergeWidgetCompletionFeedback(items, completionTransition.items))
-    : null
   const refreshAt = nextWidgetRefresh(items, new Date(), state.settings.includeReminders)
 
   Widget.present(
     <DueManagerWidget
       items={items}
-      previousItems={previousItems}
-      completionPhase={completionTransition.phase}
       completionGeneration={completionTransition.generation}
       reminderFetchedAt={reminderResult.fetchedAt}
       remindersFromCache={reminderResult.fromCache}

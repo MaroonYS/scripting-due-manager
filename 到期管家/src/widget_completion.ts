@@ -90,29 +90,6 @@ export function readWidgetCompletionFeedback(now = Date.now()): DisplayDueItem[]
   return readWidgetCompletionTransition(now).items
 }
 
-/** Rejects controls from a widget timeline that has already completed once. */
-export function isWidgetCompletionGenerationCurrent(
-  generation: number,
-  now = Date.now(),
-): boolean {
-  return Number.isSafeInteger(generation)
-    && generation >= 0
-    && readCompletionFeedbackStore(now).generation === generation
-}
-
-/**
- * Rejects stale controls from an older widget generation. The generation
- * check is sufficient to de-duplicate the old control without delaying the
- * newly revealed item.
- */
-export function canRunWidgetCompletionIntent(
-  generation: number,
-  now = Date.now(),
-): boolean {
-  if (!Number.isSafeInteger(generation) || generation < 0) return false
-  return readCompletionFeedbackStore(now).generation === generation
-}
-
 export function readWidgetCompletionTransition(
   now = Date.now(),
 ): WidgetCompletionTransition {

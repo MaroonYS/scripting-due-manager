@@ -32,10 +32,8 @@ import {
   updateSettings,
 } from "../到期管家/src/storage.ts"
 import {
-  canRunWidgetCompletionIntent,
   clearWidgetCompletionFeedback,
   findManualDisplayItemForCompletion,
-  isWidgetCompletionGenerationCurrent,
   mergeWidgetCompletionFeedback,
   readWidgetCompletionFeedback,
   readWidgetCompletionTransition,
@@ -647,24 +645,17 @@ test("every completion advances the transition generation and replaces older fee
       contains: (key: string) => values.has(key),
     }
 
-    assert.equal(canRunWidgetCompletionIntent(0, now), true)
     writeWidgetCompletionFeedback(first, now)
     const firstTransition = readWidgetCompletionTransition(now + 1)
     assert.equal(firstTransition.generation, 1)
     assert.equal(firstTransition.phase, 1)
     assert.deepEqual(firstTransition.items.map(item => item.id), [first.id])
-    assert.equal(isWidgetCompletionGenerationCurrent(0, now + 1), false)
-    assert.equal(isWidgetCompletionGenerationCurrent(1, now + 1), true)
-    assert.equal(canRunWidgetCompletionIntent(0, now + 1), false)
-    assert.equal(canRunWidgetCompletionIntent(1, now + 1), true)
 
     writeWidgetCompletionFeedback(second, now + 10)
     const secondTransition = readWidgetCompletionTransition(now + 11)
     assert.equal(secondTransition.generation, 2)
     assert.equal(secondTransition.phase, 0)
     assert.deepEqual(secondTransition.items.map(item => item.id), [second.id])
-    assert.equal(isWidgetCompletionGenerationCurrent(1, now + 11), false)
-    assert.equal(isWidgetCompletionGenerationCurrent(2, now + 11), true)
 
     assert.deepEqual(readWidgetCompletionFeedback(now + 30_011), [])
     const expired = readWidgetCompletionTransition(now + 30_011)
@@ -682,21 +673,18 @@ test("completion intent keeps one persisted transition and requests one widget r
     "utf8",
   )
   const feedbackWrite = source.indexOf("writeWidgetCompletionFeedback(feedbackItem)")
-  const generationGuard = source.indexOf("if (!canRunWidgetCompletionIntent")
   const completionWrite = source.indexOf("const result = params.source")
   const reload = source.indexOf("await reloadWidgetsAfterStorageWrite()")
   assert.ok(feedbackWrite >= 0)
-  assert.ok(generationGuard >= 0)
-  assert.ok(completionWrite > generationGuard)
+  assert.ok(completionWrite >= 0)
   assert.ok(reload > feedbackWrite)
   assert.equal(source.match(/await reloadWidgetsAfterStorageWrite\(\)/g)?.length, 1)
   assert.doesNotMatch(source, /clearWidgetCompletionFeedback|setTimeout/)
-  assert.doesNotMatch(source, /renderedAt/)
-  assert.match(source, /if \(shouldReload\)/)
+  assert.doesNotMatch(source, /renderedAt|renderGeneration|canRunWidgetCompletionIntent|shouldReload/)
   assert.match(source, /completionIntentQueue/)
 })
 
-test("widget view uses one parent transition and a generation-scoped completion toggle", () => {
+test("widget view mounts one plain completion button tree", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
@@ -704,36 +692,27 @@ test("widget view uses one parent transition and a generation-scoped completion 
   const importBlock = source.slice(0, source.indexOf("from \"scripting\"") + 16)
   assert.doesNotMatch(importBlock, /\bAnimation\b/)
   assert.match(source, /Animation\.default\(\)/)
-  assert.match(source, /key="completion-phase-0"/)
-  assert.match(source, /key="completion-phase-1"/)
+  assert.match(source, /key="completion-active-layer"/)
+  assert.match(source, /function CompletionContent/)
+  assert.match(source, /contentTransition="opacity"/)
   assert.match(source, /contentTransition="symbolEffectReplace"/)
-  assert.equal(source.match(/zIndex=\{phase[01]Active \? 1 : 2\}/g)?.length, 2)
-  assert.equal(source.match(/allowsHitTesting=\{phase[01]Active\}/g)?.length, 2)
-  assert.doesNotMatch(source, /disabled=\{!phase[01]Active\}|disabled=\{completing\}/)
-  assert.match(source, /<Toggle\s+[\s\S]*?value=\{completing\}/)
-  assert.match(source, /toggleStyle="button"/)
-  assert.match(source, /buttonStyle="bordered"/)
-  assert.match(source, /buttonBorderShape="circle"/)
-  assert.match(source, /clipShape="circle"/)
-  assert.match(source, /key=\{`complete-\$\{renderGeneration\}-\$\{item\.source\}-\$\{item\.id\}-\$\{item\.completionKey\}`\}/)
+  assert.doesNotMatch(source, /zIndex=|allowsHitTesting=|<Toggle|toggleStyle=|buttonStyle="bordered"|buttonBorderShape=|clipShape=/)
+  assert.match(source, /return <Button\s+[\s\S]*?buttonStyle="plain"[\s\S]*?CompleteDueItemIntent/)
   assert.match(source, /key=\{`row-\$\{item\.source\}-\$\{item\.id\}-\$\{item\.completionKey\}`\}/)
-  assert.match(source, /frame=\{\{ width: symbolSize \+ 2, height: symbolSize \+ 2 \}\}/)
+  assert.match(source, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
   assert.match(source, /circle\.inset\.filled/)
-  assert.doesNotMatch(source, /toggleStyle="switch"/)
-  assert.doesNotMatch(source, /return <Button[\s\S]*?CompleteDueItemIntent/)
+  assert.doesNotMatch(source, /previousItems|completionPhase|layer0|layer1/)
   assert.equal(source.match(/animation=\{\{ animation: COMPLETION_QUEUE_ANIMATION, value: generation \}\}/g)?.length, 1)
   assert.doesNotMatch(source, /symbolEffect=\{\{ effect: "bounce"/)
 })
 
-test("small widget previews the next queue item in both completion phases", () => {
+test("small widget previews one non-interactive next queue item", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
   assert.match(source, /const nextItem = items\[1\]/)
-  assert.match(source, /const previousNextItem = previousQueue\[1\]/)
-  assert.match(source, /const layer0NextItem = completionPhase === 0 \? nextItem : previousNextItem/)
-  assert.match(source, /const layer1NextItem = completionPhase === 1 \? nextItem : previousNextItem/)
+  assert.equal(source.match(/<SmallWidgetBody/g)?.length, 1)
   assert.match(source, /function SmallNextItemPreview/)
   assert.match(source, />下一项<\/Text>/)
   const preview = source.slice(
