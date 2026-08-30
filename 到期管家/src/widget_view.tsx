@@ -199,13 +199,13 @@ function SmallDueItem({
   >
     <VStack
       alignment="leading"
-      spacing={2}
+      spacing={0}
       frame={{ maxWidth: "infinity", height: 76, alignment: "topLeading" }}
     >
       <HStack
         alignment="center"
         spacing={7}
-        frame={{ maxWidth: "infinity", height: 58, alignment: "leading" }}
+        frame={{ maxWidth: "infinity", height: 57, alignment: "leading" }}
       >
         <CompletionControl
           item={item}
@@ -227,7 +227,7 @@ function SmallDueItem({
       <HStack
         alignment="center"
         spacing={0}
-        frame={{ maxWidth: "infinity", height: 16, alignment: "leading" }}
+        frame={{ maxWidth: "infinity", height: 14, alignment: "leading" }}
       >
         <VStack frame={{ width: 39, height: 1 }} />
         {detail
@@ -277,16 +277,14 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
   const status = dueStatus(item)
   return <VStack
     alignment="leading"
-    spacing={2}
-    padding={{ top: 2 }}
+    spacing={0}
     frame={{ maxWidth: "infinity" }}
   >
-    <Divider padding={{ leading: 39, trailing: 5 }} />
     <Link url={itemURL(item)}>
       <HStack
         alignment="center"
         spacing={4}
-        padding={{ leading: 5, trailing: 5 }}
+        padding={{ top: 4, leading: 5, trailing: 5 }}
         frame={{ maxWidth: "infinity" }}
       >
         <Image
