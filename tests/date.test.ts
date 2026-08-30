@@ -713,6 +713,16 @@ test("small widget previews one non-interactive next queue item", () => {
   )
   assert.match(source, /const nextItem = items\[1\]/)
   assert.equal(source.match(/<SmallWidgetBody/g)?.length, 1)
+  const smallItem = source.slice(
+    source.indexOf("function SmallDueItem"),
+    source.indexOf("function SmallNextItemPreview"),
+  )
+  assert.match(smallItem, /font=\{14\}/)
+  assert.match(smallItem, /lineLimit=\{nextItem \? 2 : 3\}/)
+  assert.match(smallItem, /minScaleFactor=\{0\.8\}/)
+  assert.match(smallItem, /<Spacer minLength=\{nextItem \? 6 : 8\} \/>/)
+  assert.match(smallItem, /nextItem \? <Spacer minLength=\{0\} \/>/)
+  assert.match(source, /font=\{compact \? 13 : "headline"\}/)
   assert.match(source, /function SmallNextItemPreview/)
   assert.match(source, />下一项<\/Text>/)
   const preview = source.slice(

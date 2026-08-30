@@ -80,23 +80,23 @@ function WidgetHeader({
   return <Link url={Script.createRunURLScheme(Script.name)}>
     <HStack
       alignment="center"
-      spacing={6}
+      spacing={compact ? 5 : 6}
       padding={{
-        top: compact ? 3 : 0,
+        top: compact ? 2 : 0,
         leading: compact ? 5 : 0,
       }}
       frame={{ maxWidth: "infinity" }}
     >
       <Image
         systemName={iconName}
-        font={compact ? 13 : 14}
+        font={compact ? 12 : 14}
         foregroundStyle={iconColor}
         symbolRenderingMode="hierarchical"
         contentTransition="symbolEffectReplace"
         widgetAccentable
       />
       <Text
-        font={compact ? "subheadline" : "headline"}
+        font={compact ? 13 : "headline"}
         fontWeight="semibold"
         foregroundStyle="label"
         lineLimit={1}
@@ -198,7 +198,7 @@ function SmallDueItem({
     <HStack
       alignment="top"
       spacing={7}
-      padding={{ top: nextItem ? 8 : 12 }}
+      padding={{ top: nextItem ? 7 : 10 }}
       frame={{ maxWidth: "infinity" }}
     >
       <CompletionControl
@@ -207,8 +207,8 @@ function SmallDueItem({
         symbolSize={19}
       />
       <Link url={itemURL(item)}>
-        <VStack alignment="leading" spacing={4} frame={{ maxWidth: "infinity" }}>
-          <Text font="subheadline" fontWeight="semibold" lineLimit={nextItem ? 2 : 3} minScaleFactor={0.85}>
+        <VStack alignment="leading" spacing={3} frame={{ maxWidth: "infinity" }}>
+          <Text font={14} fontWeight="semibold" lineLimit={nextItem ? 2 : 3} minScaleFactor={0.8}>
             {item.title}
           </Text>
           {item.amount
@@ -219,9 +219,9 @@ function SmallDueItem({
         </VStack>
       </Link>
     </HStack>
-    <Spacer minLength={nextItem ? 3 : 8} />
+    <Spacer minLength={nextItem ? 6 : 8} />
     {nextItem ? <SmallNextItemPreview item={nextItem} /> : null}
-    {nextItem ? <Spacer minLength={3} /> : null}
+    {nextItem ? <Spacer minLength={0} /> : null}
     <Link url={itemURL(item)}>
       <HStack
         alignment="center"
