@@ -4,6 +4,7 @@ import {
   formatDateKey,
   parseDateKey,
 } from "./date"
+import { resolveDueIcon } from "./icons"
 import { REMINDER_SNAPSHOT_KEY } from "./storage"
 import type {
   CachedReminderItem,
@@ -172,12 +173,15 @@ function reminderToCacheItem(reminder: any): CachedReminderItem | null {
 }
 
 function cacheItemToDisplay(item: CachedReminderItem, stale: boolean): DisplayDueItem {
+  const icon = resolveDueIcon(item.title, "reminder")
   return {
     id: item.id,
     source: "reminder",
     completionKey: reminderOccurrenceKey(item),
     title: item.title,
     kind: "reminder",
+    iconName: icon.name,
+    iconColor: icon.color,
     dueDate: item.dueDate,
     includesTime: item.includesTime,
     hour: item.hour,

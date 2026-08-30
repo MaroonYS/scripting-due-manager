@@ -4,6 +4,7 @@ import {
   localDateKey,
   parseDateKey,
 } from "./date"
+import { normalizeIconOverride, resolveDueIcon } from "./icons"
 import type {
   AppSettings,
   AppState,
@@ -86,6 +87,7 @@ export function createDraftItem(now = new Date()): ManualDueItem {
     id: makeID(),
     title: "",
     kind: "custom",
+    iconName: null,
     dueDate: localDateKey(tomorrow),
     includesTime: false,
     hour: 9,
@@ -102,27 +104,32 @@ export function createDraftItem(now = new Date()): ManualDueItem {
 export function manualItemsForDisplay(state: AppState): DisplayDueItem[] {
   return state.items
     .filter(item => item.enabled)
-    .map(item => ({
-      id: item.id,
-      source: "manual" as const,
-      completionKey: manualOccurrenceKey(item),
-      title: item.title,
-      kind: item.kind,
-      dueDate: item.dueDate,
-      includesTime: item.includesTime,
-      hour: item.hour,
-      minute: item.minute,
-      dueTimestamp: dateKeyToLocalDate(
-        item.dueDate,
-        item.includesTime,
-        item.hour,
-        item.minute,
-      ).getTime(),
-      amount: state.settings.showAmounts ? item.amount : "",
-      note: item.note,
-      priority: kindPriority(item.kind),
-      stale: false,
-    }))
+    .map(item => {
+      const icon = resolveDueIcon(item.title, item.kind, item.iconName)
+      return {
+        id: item.id,
+        source: "manual" as const,
+        completionKey: manualOccurrenceKey(item),
+        title: item.title,
+        kind: item.kind,
+        iconName: icon.name,
+        iconColor: icon.color,
+        dueDate: item.dueDate,
+        includesTime: item.includesTime,
+        hour: item.hour,
+        minute: item.minute,
+        dueTimestamp: dateKeyToLocalDate(
+          item.dueDate,
+          item.includesTime,
+          item.hour,
+          item.minute,
+        ).getTime(),
+        amount: state.settings.showAmounts ? item.amount : "",
+        note: item.note,
+        priority: kindPriority(item.kind),
+        stale: false,
+      }
+    })
 }
 
 export function manualOccurrenceKey(
@@ -266,6 +273,7 @@ function normalizeItem(raw: unknown, index: number): ManualDueItem | null {
       : stableLegacyID(raw, index),
     title,
     kind: isItemKind(raw.kind) ? raw.kind : "custom",
+    iconName: normalizeIconOverride(raw.iconName),
     dueDate,
     includesTime: raw.includesTime === true,
     hour: clampInteger(raw.hour, 0, 23, 9),

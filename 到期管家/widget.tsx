@@ -36,9 +36,9 @@ main().catch(error => {
   Widget.present(
     <VStack
       padding={12}
-      frame={Widget.displaySize}
+      frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
       spacing={6}
-      widgetBackground={{ light: "#FFFFFF", dark: "#1C1C1E" }}
+      widgetBackground="systemBackground"
     >
       <Text font="headline" foregroundStyle="systemRed">到期管家加载失败</Text>
       <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={4}>

@@ -2,10 +2,10 @@
   "name": "到期管家",
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "1.1.0",
-  "description": "Track and complete credit-card bills, subscriptions, recurring due dates, and Apple Reminders from one native-style Home Screen widget.",
+  "version": "1.2.0",
+  "description": "Track recurring due dates and Apple Reminders in compact native-style widgets with local intelligent SF Symbol matching.",
   "localizedDescriptions": {
-    "zh": "在原生风格桌面组件中管理并完成信用卡账单、订阅、周期到期事项与系统提醒事项。"
+    "zh": "通过紧凑的原生风格桌面组件管理信用卡、订阅、周期事项与提醒事项，并在本机智能匹配图标。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/raw/refs/heads/main/到期管家.scripting",

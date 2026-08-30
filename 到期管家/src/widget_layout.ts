@@ -13,9 +13,9 @@ export function widgetItemCapacity(
     return family === "systemMedium" ? 3 : 7
   }
   if (family === "systemMedium") {
-    return clamp(Math.floor((displayHeight - 66) / 34), 2, 3)
+    return clamp(Math.floor((displayHeight - 58) / 36), 2, 3)
   }
-  return clamp(Math.floor((displayHeight - 79) / 38), 5, 7)
+  return clamp(Math.floor((displayHeight - 64) / 40), 5, 7)
 }
 
 export function visibleWidgetItems<T>(items: readonly T[], capacity: number): T[] {

@@ -1,6 +1,7 @@
 import {
   Button,
   DateLabel,
+  Divider,
   HStack,
   Image,
   Link,
@@ -10,14 +11,9 @@ import {
   VStack,
   Widget,
 } from "scripting"
-import { CompleteDueItemIntent, RefreshDueItemsIntent } from "../app_intents"
-import { dueStatus, pad2 } from "./date"
-import {
-  compactUpdateTime,
-  displayDate,
-  kindColor,
-  summaryText,
-} from "./presentation"
+import { CompleteDueItemIntent } from "../app_intents"
+import { dueStatus } from "./date"
+import { displayDate } from "./presentation"
 import type { DisplayDueItem } from "./types"
 import { visibleWidgetItems, widgetItemCapacity } from "./widget_layout"
 
@@ -30,6 +26,11 @@ type WidgetDataProps = {
   interactionError: string | null
 }
 
+type WidgetIssue = {
+  text: string
+  color: string
+}
+
 export function DueManagerWidget(props: WidgetDataProps) {
   const displayHeight = Widget.displaySize?.height
   if (Widget.family === "systemSmall") {
@@ -39,266 +40,290 @@ export function DueManagerWidget(props: WidgetDataProps) {
     return <ListWidget
       {...props}
       limit={widgetItemCapacity("systemMedium", displayHeight)}
+      family="systemMedium"
     />
   }
-  return <ListWidget
-    {...props}
-    limit={widgetItemCapacity("systemLarge", displayHeight)}
-    roomy
-  />
-}
-
-function WidgetHeader({ items }: { items: DisplayDueItem[] }) {
-  return <HStack alignment="center" spacing={7}>
-    <Link buttonStyle="plain" url={Script.createRunURLScheme(Script.name)}>
-      <VStack alignment="leading" spacing={1}>
-        <Text font="headline" fontWeight="semibold" foregroundStyle="systemBlue" lineLimit={1}>
-          到期
-        </Text>
-        <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
-          {items.length > 0 ? summaryText(items) : "所有事项均已完成"}
-        </Text>
-      </VStack>
-    </Link>
-    <Spacer />
-    <Button buttonStyle="plain" intent={RefreshDueItemsIntent(undefined)}>
-      <Image
-        systemName="arrow.clockwise"
-        font={12}
-        foregroundStyle="secondaryLabel"
-        frame={{ width: 28, height: 28 }}
-      />
-    </Button>
-  </HStack>
-}
-
-function SmallWidget({
-  items,
-  reminderError,
-  remindersFromCache,
-  interactionError,
-}: WidgetDataProps) {
-  const item = items[0]
-  if (!item) {
-    return <WidgetFrame>
-      <Link buttonStyle="plain" url={Script.createRunURLScheme(Script.name)}>
-        {interactionError
-          ? <ErrorState compact title="操作未完成" detail={interactionError} />
-          : reminderError
-            ? <ErrorState
-              compact
-              title="提醒事项读取失败"
-              detail={remindersFromCache ? "提醒缓存不可用，请打开主脚本检查" : "请打开主脚本检查提醒事项权限"}
-            />
-            : <EmptyState compact />}
-      </Link>
-    </WidgetFrame>
+  if (Widget.family === "systemLarge") {
+    return <ListWidget
+      {...props}
+      limit={widgetItemCapacity("systemLarge", displayHeight)}
+      family="systemLarge"
+    />
   }
+  return <AccessoryFallback items={props.items} />
+}
 
-  const status = dueStatus(item)
-  const remaining = item.dueTimestamp - Date.now()
-  const useLiveTimer = item.includesTime && remaining > 0 && remaining <= 36 * 60 * 60 * 1000
+function WidgetHeader({
+  items,
+  compact = false,
+  issue,
+}: {
+  items: DisplayDueItem[]
+  compact?: boolean
+  issue: WidgetIssue | null
+}) {
+  return <Link url={Script.createRunURLScheme(Script.name)}>
+    <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
+      <Image
+        systemName="calendar.badge.clock"
+        font={compact ? 13 : 14}
+        foregroundStyle="systemOrange"
+        symbolRenderingMode="hierarchical"
+        widgetAccentable
+      />
+      <Text
+        font={compact ? "subheadline" : "headline"}
+        fontWeight="semibold"
+        foregroundStyle="label"
+        lineLimit={1}
+      >
+        {compact ? "到期" : "到期管家"}
+      </Text>
+      <Spacer />
+      {issue
+        ? <Image
+          systemName="exclamationmark.circle.fill"
+          font={11}
+          foregroundStyle={issue.color}
+        />
+        : null}
+      <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={1}>
+        {items.length}
+      </Text>
+    </HStack>
+  </Link>
+}
 
-  return <WidgetFrame>
+function SmallWidget(props: WidgetDataProps) {
+  const { items } = props
+  const item = items[0]
+  const issue = widgetIssue(props)
+
+  return <WidgetFrame padding={14}>
     <VStack
       alignment="leading"
-      spacing={5}
-      frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+      spacing={0}
+      frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
-      <HStack spacing={5}>
-        <Link buttonStyle="plain" url={Script.createRunURLScheme(Script.name)}>
-          <Text font="caption" fontWeight="semibold" foregroundStyle="systemBlue">到期</Text>
-        </Link>
-        <Spacer />
-        {item.stale || reminderError || interactionError
-          ? <Image
-            systemName={interactionError ? "exclamationmark.circle.fill" : "exclamationmark.arrow.triangle.2.circlepath"}
-            font={11}
-            foregroundStyle={interactionError ? "systemRed" : "secondaryLabel"}
-          />
-          : null}
-        <Text font="caption2" foregroundStyle="secondaryLabel">{items.length} 项</Text>
-      </HStack>
-      <Spacer minLength={1} />
-      <HStack alignment="top" spacing={7} frame={{ maxWidth: "infinity" }}>
-        <CompletionControl item={item} size={43} symbolSize={24} />
-        <Link buttonStyle="plain" url={itemURL(item)}>
-          <VStack alignment="leading" spacing={3} frame={{ maxWidth: "infinity" }}>
-            <Text font="headline" fontWeight="semibold" lineLimit={2} minScaleFactor={0.78}>
-              {item.title}
-            </Text>
-            {useLiveTimer
-              ? <DateLabel
-                date={new Date(item.dueTimestamp)}
-                style="timer"
-                font="title3"
-                fontWeight="bold"
-                monospacedDigit
-                foregroundStyle="systemOrange"
-              />
-              : <Text
-                font="title3"
-                fontWeight="bold"
-                foregroundStyle={status.color}
-                contentTransition="numericTextCountsUp"
-                lineLimit={1}
-              >
-                {status.label}
-              </Text>}
-            <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
-              {rowDateText(item)}{item.amount ? ` · ${item.amount}` : ""}
-            </Text>
+      <WidgetHeader items={items} compact issue={issue} />
+      {item
+        ? <SmallDueItem item={item} />
+        : <Link url={Script.createRunURLScheme(Script.name)}>
+          <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+            {issue
+              ? <ErrorState compact title="暂时无法读取" detail={issue.text} />
+              : <EmptyState compact />}
           </VStack>
-        </Link>
-      </HStack>
-      <Spacer minLength={0} />
-      <HStack spacing={4}>
-        <Text
-          font={9}
-          foregroundStyle={interactionError ? "systemRed" : "tertiaryLabel"}
+        </Link>}
+      {item && issue
+        ? <Text
+          font="caption2"
+          foregroundStyle={issue.color}
           lineLimit={1}
+          padding={{ top: 4 }}
         >
-          {interactionError ?? (item.stale ? "缓存项目不可在组件完成" : "点圆圈完成本期")}
+          {issue.text}
         </Text>
-        <Spacer />
-        {items.length > 1
-          ? <Text font={9} foregroundStyle="tertiaryLabel">还有 {items.length - 1} 项</Text>
-          : null}
-      </HStack>
+        : null}
     </VStack>
   </WidgetFrame>
+}
+
+function SmallDueItem({ item }: { item: DisplayDueItem }) {
+  return <HStack
+    alignment="top"
+    spacing={6}
+    padding={{ top: 12 }}
+    frame={{ maxWidth: "infinity" }}
+  >
+    <CompletionControl item={item} hitSize={32} symbolSize={21} />
+    <Link url={itemURL(item)}>
+      <VStack alignment="leading" spacing={5} frame={{ maxWidth: "infinity" }}>
+        <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
+          <Image
+            systemName={item.iconName}
+            font={15}
+            foregroundStyle={item.iconColor}
+            symbolRenderingMode="hierarchical"
+            frame={{ width: 18, height: 18 }}
+            widgetAccentable
+          />
+          <Text font="subheadline" fontWeight="semibold" lineLimit={2} minScaleFactor={0.85}>
+            {item.title}
+          </Text>
+        </HStack>
+        <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
+          {displayDate(item)}
+        </Text>
+        <HStack alignment="center" spacing={5} frame={{ maxWidth: "infinity" }}>
+          {item.amount
+            ? <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1} minScaleFactor={0.8}>
+              {item.amount}
+            </Text>
+            : null}
+          <Spacer />
+          <DueStatusLabel item={item} font="caption" />
+        </HStack>
+      </VStack>
+    </Link>
+  </HStack>
 }
 
 function ListWidget({
   items,
   limit,
-  reminderFetchedAt,
+  family,
   remindersFromCache,
-  remindersEnabled,
   reminderError,
   interactionError,
-  roomy = false,
 }: WidgetDataProps & {
   limit: number
-  roomy?: boolean
+  family: "systemMedium" | "systemLarge"
 }) {
-  const visible = visibleWidgetItems(items, limit)
-  return <WidgetFrame padding={roomy ? 14 : 12}>
+  const issue = widgetIssue({ remindersFromCache, reminderError, interactionError })
+  const effectiveLimit = issue ? Math.max(1, limit - 1) : limit
+  const visible = visibleWidgetItems(items, effectiveLimit)
+  const roomy = family === "systemLarge"
+  const rowHeight = roomy ? 38 : 36
+
+  return <WidgetFrame padding={roomy ? 16 : 14}>
     <VStack
       alignment="leading"
-      spacing={roomy ? 4 : 2}
-      frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+      spacing={0}
+      frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
-      <WidgetHeader items={items} />
+      <WidgetHeader items={items} issue={issue} />
       {visible.length > 0
-        ? visible.map(item => (
-          <DueItemRow
-            key={`${item.source}-${item.id}-${item.completionKey}`}
-            item={item}
-            roomy={roomy}
-          />
-        ))
-        : <Link buttonStyle="plain" url={Script.createRunURLScheme(Script.name)}>
-          {interactionError
-            ? <ErrorState title="操作未完成" detail={interactionError} />
-            : reminderError
-              ? <ErrorState
-                title="提醒事项读取失败"
-                detail={remindersFromCache ? "缓存不可用，请打开主脚本检查" : "打开主脚本检查提醒事项权限"}
-              />
-              : <EmptyState />}
-        </Link>}
-      <HStack spacing={4}>
-        <Text
-          font={9}
-          foregroundStyle={interactionError ? "systemRed" : "tertiaryLabel"}
-          lineLimit={1}
+        ? <VStack
+          alignment="leading"
+          spacing={0}
+          padding={{ top: 4 }}
+          frame={{ maxWidth: "infinity" }}
         >
-          {interactionError ?? reminderFooterText({
-            items,
-            reminderFetchedAt,
-            remindersFromCache,
-            remindersEnabled,
-            reminderError,
-          })}
+          {visible.map((item, index) => (
+            <VStack key={`${item.source}-${item.id}-${item.completionKey}`} spacing={0} frame={{ maxWidth: "infinity" }}>
+              <DueItemRow item={item} roomy={roomy} height={rowHeight} />
+              {index < visible.length - 1
+                ? <Divider padding={{ leading: roomy ? 57 : 55 }} />
+                : null}
+            </VStack>
+          ))}
+        </VStack>
+        : <Link url={Script.createRunURLScheme(Script.name)}>
+          <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+            {issue
+              ? <ErrorState title="暂时无法读取" detail={issue.text} />
+              : <EmptyState />}
+          </VStack>
+        </Link>}
+      <Spacer minLength={0} />
+      {visible.length > 0 && issue
+        ? <Text font="caption2" foregroundStyle={issue.color} lineLimit={1} padding={{ top: 3 }}>
+          {issue.text}
         </Text>
-        <Spacer />
-        {items.length > limit
-          ? <Text font={9} foregroundStyle="tertiaryLabel">还有 {items.length - limit} 项</Text>
-          : null}
-      </HStack>
+        : null}
     </VStack>
   </WidgetFrame>
 }
 
-function DueItemRow({ item, roomy }: { item: DisplayDueItem; roomy: boolean }) {
-  const status = dueStatus(item)
-  const remaining = item.dueTimestamp - Date.now()
-  const useLiveTimer = item.includesTime && remaining > 0 && remaining <= 24 * 60 * 60 * 1000
-
-  return <HStack spacing={6} frame={{ maxWidth: "infinity" }}>
+function DueItemRow({
+  item,
+  roomy,
+  height,
+}: {
+  item: DisplayDueItem
+  roomy: boolean
+  height: number
+}) {
+  return <HStack
+    alignment="center"
+    spacing={5}
+    frame={{ maxWidth: "infinity", height }}
+  >
     <CompletionControl
       item={item}
-      size={roomy ? 35 : 32}
-      symbolSize={roomy ? 21 : 19}
+      hitSize={roomy ? 32 : 30}
+      symbolSize={roomy ? 21 : 20}
     />
-    <Link buttonStyle="plain" url={itemURL(item)}>
-      <VStack alignment="leading" spacing={1} frame={{ maxWidth: "infinity" }}>
-        <HStack spacing={5}>
-          <Text font={roomy ? "subheadline" : "caption"} fontWeight="semibold" lineLimit={1}>
-            {item.title}
-          </Text>
-          <Spacer />
-          {useLiveTimer
-            ? <DateLabel
-              date={new Date(item.dueTimestamp)}
-              style="timer"
-              font={roomy ? "caption" : "caption2"}
-              fontWeight="semibold"
-              monospacedDigit
-              foregroundStyle="systemOrange"
-            />
-            : <Text
-              font={roomy ? "caption" : "caption2"}
-              fontWeight="semibold"
-              foregroundStyle={status.color}
-              lineLimit={1}
-            >
-              {status.label}
-            </Text>}
-        </HStack>
-        <HStack spacing={4}>
-          <Text font={9} foregroundStyle="secondaryLabel" lineLimit={1}>
-            {rowDateText(item)}
-          </Text>
-          {item.amount
-            ? <Text font={9} foregroundStyle="secondaryLabel" lineLimit={1}>· {item.amount}</Text>
-            : null}
-          <Spacer />
-          {item.stale
-            ? <Text font={8} foregroundStyle="tertiaryLabel">缓存</Text>
-            : null}
-        </HStack>
-      </VStack>
+    <Link url={itemURL(item)}>
+      <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
+        <Image
+          systemName={item.iconName}
+          font={roomy ? 14 : 13}
+          foregroundStyle={item.iconColor}
+          symbolRenderingMode="hierarchical"
+          frame={{ width: 17, height: 18 }}
+          widgetAccentable
+        />
+        <VStack alignment="leading" spacing={1} frame={{ maxWidth: "infinity" }}>
+          <HStack alignment="center" spacing={5} frame={{ maxWidth: "infinity" }}>
+            <Text font="subheadline" fontWeight="semibold" lineLimit={1}>
+              {item.title}
+            </Text>
+            <Spacer />
+            <DueStatusLabel item={item} font="caption" />
+          </HStack>
+          <HStack alignment="center" spacing={4} frame={{ maxWidth: "infinity" }}>
+            <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
+              {displayDate(item)}
+            </Text>
+            {item.amount
+              ? <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
+                · {item.amount}
+              </Text>
+              : null}
+            <Spacer />
+          </HStack>
+        </VStack>
+      </HStack>
     </Link>
   </HStack>
 }
 
+function DueStatusLabel({
+  item,
+  font,
+}: {
+  item: DisplayDueItem
+  font: "caption" | "caption2"
+}) {
+  const status = dueStatus(item)
+  const remaining = item.dueTimestamp - Date.now()
+  const useLiveTimer = item.includesTime
+    && remaining > 0
+    && remaining <= 24 * 60 * 60 * 1000
+  const color = widgetStatusColor(item, status.overdue, status.days, remaining)
+
+  if (useLiveTimer) {
+    return <DateLabel
+      date={new Date(item.dueTimestamp)}
+      style="timer"
+      font={font}
+      fontWeight="semibold"
+      monospacedDigit
+      foregroundStyle={color}
+    />
+  }
+  return <Text font={font} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>
+    {status.label}
+  </Text>
+}
+
 function CompletionControl({
   item,
-  size,
+  hitSize,
   symbolSize,
 }: {
   item: DisplayDueItem
-  size: number
+  hitSize: number
   symbolSize: number
 }) {
   if (item.stale) {
     return <Image
       systemName="clock.arrow.circlepath"
-      font={symbolSize - 2}
+      font={symbolSize - 1}
       foregroundStyle="tertiaryLabel"
-      frame={{ width: size, height: size }}
+      frame={{ width: hitSize, height: hitSize }}
     />
   }
   return <Button
@@ -312,9 +337,8 @@ function CompletionControl({
     <Image
       systemName="circle"
       font={symbolSize}
-      fontWeight="semibold"
-      foregroundStyle={kindColor(item.kind)}
-      frame={{ width: size, height: size }}
+      foregroundStyle="systemBlue"
+      frame={{ width: hitSize, height: hitSize }}
       widgetAccentable
     />
   </Button>
@@ -328,13 +352,13 @@ function EmptyState({ compact = false }: { compact?: boolean }) {
   >
     <Image
       systemName="checkmark.circle.fill"
-      font={compact ? 30 : 25}
+      font={compact ? 28 : 24}
       foregroundStyle="systemGreen"
       widgetAccentable
     />
-    <Text font={compact ? "headline" : "subheadline"} fontWeight="semibold">全部完成</Text>
+    <Text font={compact ? "subheadline" : "headline"} fontWeight="semibold">全部完成</Text>
     <Text font="caption2" foregroundStyle="secondaryLabel" multilineTextAlignment="center" lineLimit={2}>
-      运行「到期管家」添加事项
+      打开「到期管家」添加事项
     </Text>
   </VStack>
 }
@@ -355,69 +379,75 @@ function ErrorState({
   >
     <Image
       systemName="exclamationmark.triangle.fill"
-      font={compact ? 28 : 23}
+      font={compact ? 25 : 22}
       foregroundStyle="systemOrange"
       widgetAccentable
     />
-    <Text font={compact ? "headline" : "subheadline"} fontWeight="semibold">{title}</Text>
+    <Text font={compact ? "subheadline" : "headline"} fontWeight="semibold">{title}</Text>
     <Text font="caption2" foregroundStyle="secondaryLabel" multilineTextAlignment="center" lineLimit={2}>
       {detail}
     </Text>
   </VStack>
 }
 
+function AccessoryFallback({ items }: { items: DisplayDueItem[] }) {
+  return <WidgetFrame padding={8}>
+    <Link url={Script.createRunURLScheme(Script.name)}>
+      <VStack alignment="center" spacing={3} frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+        <Image systemName="calendar.badge.clock" font={18} foregroundStyle="systemOrange" widgetAccentable />
+        <Text font="caption" fontWeight="semibold" lineLimit={1}>{items.length}</Text>
+      </VStack>
+    </Link>
+  </WidgetFrame>
+}
+
 function WidgetFrame({
   children,
-  padding = 12,
+  padding = 14,
 }: {
   children: any
   padding?: number
 }) {
   return <VStack
     padding={padding}
-    frame={Widget.displaySize}
-    widgetBackground={{
-      light: "#FFFFFF",
-      dark: "#1C1C1E",
-    }}
+    frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
+    widgetBackground="systemBackground"
   >
     {children}
   </VStack>
 }
 
-function rowDateText(item: DisplayDueItem): string {
-  const status = dueStatus(item)
-  const time = item.includesTime ? ` ${pad2(item.hour)}:${pad2(item.minute)}` : ""
-  if (!status.overdue && status.days === 0) return `今天${time}`
-  if (!status.overdue && status.days === 1) return `明天${time}`
-  return displayDate(item)
+function widgetStatusColor(
+  item: DisplayDueItem,
+  overdue: boolean,
+  days: number,
+  remaining: number,
+): string {
+  if (overdue) return "systemRed"
+  if (days === 0 || (item.includesTime && remaining > 0 && remaining <= 24 * 60 * 60 * 1000)) {
+    return "systemOrange"
+  }
+  return "secondaryLabel"
+}
+
+function widgetIssue(props: {
+  remindersFromCache: boolean
+  reminderError: string | null
+  interactionError: string | null
+}): WidgetIssue | null {
+  if (props.interactionError) {
+    return { text: props.interactionError, color: "systemRed" }
+  }
+  if (props.reminderError) {
+    return {
+      text: props.remindersFromCache ? "提醒事项同步失败，正在显示缓存" : "提醒事项读取失败，请打开主脚本检查",
+      color: "systemOrange",
+    }
+  }
+  return null
 }
 
 function itemURL(item: DisplayDueItem): string {
   if (item.source === "reminder") return Script.createRunURLScheme(Script.name)
   return Script.createRunURLScheme(Script.name, { action: "edit", id: item.id })
-}
-
-function reminderFooterText({
-  items,
-  reminderFetchedAt,
-  remindersFromCache,
-  remindersEnabled,
-  reminderError,
-}: {
-  items: DisplayDueItem[]
-  reminderFetchedAt: number | null
-  remindersFromCache: boolean
-  remindersEnabled: boolean
-  reminderError: string | null
-}): string {
-  if (!remindersEnabled) return "点圆圈完成本期"
-  if (reminderError) {
-    const usingSnapshot = items.some(item => item.source === "reminder" && item.stale)
-    if (usingSnapshot) return `提醒读取失败 · 使用 ${compactUpdateTime(reminderFetchedAt)} 缓存`
-    return remindersFromCache
-      ? "提醒缓存不可用 · 打开主脚本检查"
-      : "提醒读取失败 · 打开主脚本检查权限"
-  }
-  return `点圆圈完成 · 提醒 ${compactUpdateTime(reminderFetchedAt)}`
 }

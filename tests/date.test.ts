@@ -9,6 +9,10 @@ import {
   parseDateKey,
 } from "../到期管家/src/date.ts"
 import {
+  normalizeIconOverride,
+  resolveDueIcon,
+} from "../到期管家/src/icons.ts"
+import {
   completeReminderOccurrence,
   isSnapshotStale,
   loadReminderItems,
@@ -36,6 +40,7 @@ function item(overrides: Partial<ManualDueItem> = {}): ManualDueItem {
     id: "test",
     title: "Test",
     kind: "custom",
+    iconName: null,
     dueDate: "2026-01-31",
     includesTime: false,
     hour: 9,
@@ -61,6 +66,8 @@ function displayItem(overrides: Partial<DisplayDueItem>): DisplayDueItem {
     completionKey: overrides.completionKey ?? `occurrence-${overrides.id ?? dueDate}`,
     title: overrides.title ?? dueDate,
     kind: "custom",
+    iconName: "calendar.badge.clock",
+    iconColor: "systemTeal",
     dueDate,
     includesTime,
     hour,
@@ -87,6 +94,26 @@ test("validates local date keys", () => {
   assert.deepEqual(parseDateKey("2028-02-29"), { year: 2028, month: 2, day: 29 })
   assert.equal(parseDateKey("2027-02-29"), null)
   assert.equal(parseDateKey("2026-13-01"), null)
+})
+
+test("intelligent icons match common services locally", () => {
+  assert.equal(resolveDueIcon("Claude Pro", "subscription").name, "sparkles")
+  assert.equal(resolveDueIcon("Ｓｐｏｔｉｆｙ 家庭会员", "subscription").name, "music.note")
+  assert.equal(resolveDueIcon("网易云音乐黑胶会员", "subscription").name, "music.note")
+  assert.equal(resolveDueIcon("Netflix", "subscription").name, "play.rectangle.fill")
+  assert.equal(resolveDueIcon("家庭电费", "bill").name, "bolt.fill")
+  assert.equal(resolveDueIcon("车辆车险", "bill").name, "car.fill")
+})
+
+test("manual icon override wins and invalid values return to automatic matching", () => {
+  assert.equal(resolveDueIcon("Claude Pro", "subscription", "drop.fill").name, "drop.fill")
+  assert.equal(normalizeIconOverride("not.a.real.allowed.symbol"), null)
+  assert.equal(resolveDueIcon("Claude Pro", "subscription", "not.a.real.allowed.symbol").name, "sparkles")
+})
+
+test("icon matching uses English word boundaries", () => {
+  assert.equal(resolveDueIcon("Current account review", "custom").name, "calendar.badge.clock")
+  assert.equal(resolveDueIcon("Home internet renewal", "subscription").name, "wifi")
 })
 
 test("calendar-day differences do not depend on DST hours", () => {
@@ -240,6 +267,15 @@ test("completing the visible item lets the next queue item fill its place", () =
   const completed = planManualCompletion(state, first.id, manualOccurrenceKey(first), 10)
   const after = visibleWidgetItems(sortDueItems(manualItemsForDisplay(completed.state)), 2)
   assert.deepEqual(after.map(value => value.id), ["second", "third"])
+})
+
+test("manual display items always receive an icon and preserve a manual override", () => {
+  const automatic = item({ id: "ai", title: "Claude Pro", kind: "subscription" })
+  const overridden = item({ id: "water", title: "Claude Pro", iconName: "drop.fill" })
+  const state = { ...defaultState(3), items: [automatic, overridden], updatedAt: 3 }
+  const displayed = manualItemsForDisplay(state)
+  assert.equal(displayed.find(value => value.id === "ai")?.iconName, "sparkles")
+  assert.equal(displayed.find(value => value.id === "water")?.iconName, "drop.fill")
 })
 
 test("widget capacities adapt to small, medium, and large heights", () => {
@@ -445,6 +481,7 @@ test("legacy items receive stable IDs and duplicate IDs are preserved safely", (
     const first = loadState()
     const second = loadState()
     assert.equal(first.items[0].id, second.items[0].id)
+    assert.equal(first.items[0].iconName, null)
     assert.equal(new Set(first.items.map(value => value.id)).size, 3)
   } finally {
     ;(globalThis as any).Storage = originalStorage

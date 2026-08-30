@@ -16,6 +16,8 @@ export interface ManualDueItem {
   id: string
   title: string
   kind: ItemKind
+  /** null follows the title/type automatically; a value locks a local SF Symbol. */
+  iconName: string | null
   /** Local calendar date in YYYY-MM-DD. Do not parse with new Date(dateKey). */
   dueDate: string
   includesTime: boolean
@@ -67,6 +69,8 @@ export interface DisplayDueItem {
   completionKey: string
   title: string
   kind: ItemKind | "reminder"
+  iconName: string
+  iconColor: string
   dueDate: string
   includesTime: boolean
   hour: number

@@ -29,10 +29,11 @@ import {
   localDateKey,
 } from "./src/date"
 import {
-  kindColor,
-  kindIcon,
-  recurrenceLabel,
-} from "./src/presentation"
+  DUE_ICON_GROUPS,
+  DUE_ICON_OPTIONS,
+  resolveDueIcon,
+} from "./src/icons"
+import { recurrenceLabel } from "./src/presentation"
 import {
   clearReminderSnapshot,
   loadReminderItems,
@@ -304,6 +305,7 @@ function ItemEditor({
   const initialDate = dateKeyToLocalDate(item.dueDate, true, item.hour, item.minute)
   const [title, setTitle] = useState(item.title)
   const [kind, setKind] = useState<ItemKind>(item.kind)
+  const [iconName, setIconName] = useState<string | null>(item.iconName)
   const [dueTimestamp, setDueTimestamp] = useState(initialDate.getTime())
   const [includesTime, setIncludesTime] = useState(item.includesTime)
   const [recurrenceUnit, setRecurrenceUnit] = useState<RecurrenceUnit | "none">(
@@ -349,6 +351,7 @@ function ItemEditor({
       ...item,
       title: trimmedTitle,
       kind,
+      iconName,
       dueDate,
       includesTime,
       hour: selectedDate.getHours(),
@@ -467,6 +470,18 @@ function ItemEditor({
         <Text tag="bill">账单</Text>
         <Text tag="custom">其他</Text>
       </Picker>
+      <NavigationLink
+        destination={
+          <IconPicker
+            title={title}
+            kind={kind}
+            value={iconName}
+            onChanged={setIconName}
+          />
+        }
+      >
+        <IconSettingRow title={title} kind={kind} value={iconName} />
+      </NavigationLink>
       <Toggle
         title="包含具体时间"
         systemImage="clock"
@@ -610,10 +625,11 @@ function ManualItemsSection({
 
 function ManualItemRow({ item, inactive = false }: { item: ManualDueItem; inactive?: boolean }) {
   const status = dueStatus(item)
+  const icon = resolveDueIcon(item.title, item.kind, item.iconName)
   return <HStack spacing={10}>
     <Image
-      systemName={kindIcon(item.kind)}
-      foregroundStyle={inactive ? "tertiaryLabel" : kindColor(item.kind)}
+      systemName={icon.name}
+      foregroundStyle={inactive ? "tertiaryLabel" : icon.color}
       frame={{ width: 24 }}
     />
     <VStack alignment="leading" spacing={2}>
@@ -633,6 +649,112 @@ function ManualItemRow({ item, inactive = false }: { item: ManualDueItem; inacti
     >
       {inactive ? "已隐藏" : status.label}
     </Text>
+  </HStack>
+}
+
+function IconSettingRow({
+  title,
+  kind,
+  value,
+}: {
+  title: string
+  kind: ItemKind
+  value: string | null
+}) {
+  const icon = resolveDueIcon(title, kind, value)
+  return <HStack spacing={10}>
+    <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 24 }} />
+    <Text>图标</Text>
+    <Spacer />
+    <Text font="subheadline" foregroundStyle="secondaryLabel" lineLimit={1}>
+      {value == null ? `自动 · ${icon.label}` : icon.label}
+    </Text>
+  </HStack>
+}
+
+function IconPicker({
+  title,
+  kind,
+  value,
+  onChanged,
+}: {
+  title: string
+  kind: ItemKind
+  value: string | null
+  onChanged: (value: string | null) => void
+}) {
+  const dismiss = Navigation.useDismiss()
+  const automatic = resolveDueIcon(title, kind)
+
+  const choose = (next: string | null) => {
+    onChanged(next)
+    dismiss()
+  }
+
+  return <List
+    listStyle="insetGroup"
+    navigationTitle="选择图标"
+    navigationBarTitleDisplayMode="inline"
+  >
+    <Section footer={<Text>自动匹配只在本机根据名称和类型判断，不会上传事项名称。</Text>}>
+      <Button buttonStyle="plain" action={() => choose(null)}>
+        <IconChoiceRow
+          name={automatic.name}
+          color={automatic.color}
+          title="自动匹配"
+          detail={`当前：${automatic.label}`}
+          selected={value == null}
+        />
+      </Button>
+    </Section>
+    {DUE_ICON_GROUPS.map(group => (
+      <Section key={group} header={<Text>{group}</Text>}>
+        {DUE_ICON_OPTIONS
+          .filter(option => option.group === group)
+          .map(option => (
+            <Button
+              key={option.name}
+              buttonStyle="plain"
+              action={() => choose(option.name)}
+            >
+              <IconChoiceRow
+                name={option.name}
+                color={option.color}
+                title={option.label}
+                selected={value === option.name}
+              />
+            </Button>
+          ))}
+      </Section>
+    ))}
+  </List>
+}
+
+function IconChoiceRow({
+  name,
+  color,
+  title,
+  detail,
+  selected,
+}: {
+  name: string
+  color: string
+  title: string
+  detail?: string
+  selected: boolean
+}) {
+  return <HStack spacing={12}>
+    <Image systemName={name} foregroundStyle={color} frame={{ width: 26 }} />
+    <VStack alignment="leading" spacing={1}>
+      <Text foregroundStyle="label">{title}</Text>
+      {detail
+        ? <Text font="caption" foregroundStyle="secondaryLabel">{detail}</Text>
+        : null}
+    </VStack>
+    <Spacer />
+    {selected
+      ? <Image systemName="checkmark" foregroundStyle="systemBlue" fontWeight="semibold" />
+      : null}
   </HStack>
 }
 
