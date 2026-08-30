@@ -139,6 +139,7 @@ function SmallWidget(props: WidgetDataProps) {
     <VStack
       alignment="leading"
       spacing={0}
+      padding={{ leading: 3, trailing: 3 }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
       <WidgetHeader
@@ -206,7 +207,7 @@ function SmallDueItem({
       <HStack
         alignment="center"
         spacing={7}
-        padding={{ top: 3 }}
+        padding={{ top: 22 }}
         frame={{ maxWidth: "infinity", alignment: "leading" }}
       >
         <CompletionControl
@@ -220,6 +221,7 @@ function SmallDueItem({
             fontWeight="semibold"
             lineLimit={3}
             minScaleFactor={0.9}
+            fixedSize={{ horizontal: false, vertical: true }}
             frame={{ maxWidth: 105, alignment: "leading" }}
           >
             {item.title}
@@ -240,6 +242,7 @@ function SmallDueItem({
               foregroundStyle="secondaryLabel"
               lineLimit={1}
               minScaleFactor={0.8}
+              fixedSize={{ horizontal: false, vertical: true }}
               frame={{ maxWidth: 135, alignment: "leading" }}
             >
               {detail}

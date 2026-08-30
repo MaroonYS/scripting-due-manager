@@ -714,19 +714,28 @@ test("small widget previews one non-interactive next queue item", () => {
   )
   assert.match(source, /const nextItem = items\[1\]/)
   assert.equal(source.match(/<SmallWidgetBody/g)?.length, 1)
+  const smallWidget = source.slice(
+    source.indexOf("function SmallWidget("),
+    source.indexOf("function SmallWidgetBody"),
+  )
+  assert.match(smallWidget, /padding=\{\{ leading: 3, trailing: 3 \}\}/)
   const smallItem = source.slice(
     source.indexOf("function SmallDueItem"),
     source.indexOf("function SmallNextItemPreview"),
   )
   assert.match(smallItem, /const detail = smallItemDetail\(item\)/)
   assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", height: 76, alignment: "topLeading" \}\}/)
-  assert.match(smallItem, /padding=\{\{ top: 3 \}\}/)
+  assert.match(smallItem, /padding=\{\{ top: 22 \}\}/)
   assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
   assert.doesNotMatch(smallItem, /height: 57/)
   assert.match(smallItem, /frame=\{\{ maxWidth: 105, alignment: "leading" \}\}/)
   assert.match(smallItem, /font=\{16\}/)
   assert.match(smallItem, /lineLimit=\{3\}/)
   assert.match(smallItem, /minScaleFactor=\{0\.9\}/)
+  assert.equal(
+    smallItem.match(/fixedSize=\{\{ horizontal: false, vertical: true \}\}/g)?.length,
+    2,
+  )
   assert.match(smallItem, /padding=\{\{ leading: 5, trailing: 5 \}\}/)
   assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" \}\}/)
   assert.doesNotMatch(smallItem, /top: -5, bottom: 5/)
