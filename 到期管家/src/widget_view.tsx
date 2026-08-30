@@ -387,11 +387,13 @@ function CompletionTransitionLayers({
     alignment="topLeading"
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
   >
+    {/* The outgoing layer stays above the incoming one while WidgetKit fades
+        it away, so the next row's empty circle cannot cover the checkmark. */}
     <VStack
       key="completion-phase-0"
       opacity={phase0Active ? 1 : 0}
-      disabled={!phase0Active}
-      zIndex={phase0Active ? 1 : 0}
+      allowsHitTesting={phase0Active}
+      zIndex={phase0Active ? 1 : 2}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
       {layer0}
@@ -399,8 +401,8 @@ function CompletionTransitionLayers({
     <VStack
       key="completion-phase-1"
       opacity={phase1Active ? 1 : 0}
-      disabled={!phase1Active}
-      zIndex={phase1Active ? 1 : 0}
+      allowsHitTesting={phase1Active}
+      zIndex={phase1Active ? 1 : 2}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
       {layer1}
@@ -521,7 +523,6 @@ function CompletionControl({
   const completing = item.isCompleting === true
   return <Button
     buttonStyle="plain"
-    disabled={completing}
     intent={CompleteDueItemIntent({
       source: item.source,
       id: item.id,
@@ -534,6 +535,7 @@ function CompletionControl({
       name={completing ? "checkmark.circle.fill" : "circle"}
       hitSize={hitSize}
       symbolSize={symbolSize}
+      effectValue={completing ? renderGeneration : 0}
     />
   </Button>
 }
@@ -542,10 +544,12 @@ function CompletionSymbol({
   name,
   hitSize,
   symbolSize,
+  effectValue,
 }: {
   name: string
   hitSize: number
   symbolSize: number
+  effectValue: number
 }) {
   return <Image
     systemName={name}
@@ -554,6 +558,7 @@ function CompletionSymbol({
     symbolRenderingMode="hierarchical"
     frame={{ width: hitSize, height: hitSize }}
     contentTransition="symbolEffectReplace"
+    symbolEffect={{ effect: "bounce", value: effectValue }}
     widgetAccentable
   />
 }

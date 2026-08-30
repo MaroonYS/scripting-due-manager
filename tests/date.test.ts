@@ -704,6 +704,11 @@ test("widget view avoids unavailable Animation runtime APIs", () => {
   assert.match(source, /key="completion-phase-0"/)
   assert.match(source, /key="completion-phase-1"/)
   assert.match(source, /contentTransition="symbolEffectReplace"/)
+  assert.equal(source.match(/zIndex=\{phase[01]Active \? 1 : 2\}/g)?.length, 2)
+  assert.equal(source.match(/allowsHitTesting=\{phase[01]Active\}/g)?.length, 2)
+  assert.doesNotMatch(source, /disabled=\{!phase[01]Active\}|disabled=\{completing\}/)
+  assert.match(source, /symbolEffect=\{\{ effect: "bounce", value: effectValue \}\}/)
+  assert.match(source, /effectValue=\{completing \? renderGeneration : 0\}/)
 })
 
 test("storage failure is surfaced instead of pretending settings were saved", () => {
