@@ -45,6 +45,7 @@ import {
   findItem,
   loadState,
   manualItemsForDisplay,
+  normalizeReminderCalendarIDs,
   updateSettings,
   upsertItem,
 } from "./src/storage"
@@ -65,6 +66,12 @@ type ReminderStatus = {
   fetchedAt: number | null
   fromCache: boolean
   error: string | null
+}
+
+type ReminderCalendarChoice = {
+  id: string
+  title: string
+  sourceTitle: string
 }
 
 const EMPTY_REMINDER_STATUS: ReminderStatus = {
@@ -97,7 +104,10 @@ function DueManagerApp() {
     }
     setReminderStatus(status => ({ ...status, loading: true }))
     const current = loadState()
-    const result = await loadReminderItems(current.settings.reminderHorizonDays)
+    const result = await loadReminderItems(
+      current.settings.reminderHorizonDays,
+      current.settings.reminderCalendarIDs,
+    )
     setReminderStatus({
       loading: false,
       count: result.items.length,
@@ -141,7 +151,10 @@ function DueManagerApp() {
 
       const next = updateSettings({ includeReminders: true })
       refreshState(next)
-      const result = await loadReminderItems(next.settings.reminderHorizonDays)
+      const result = await loadReminderItems(
+        next.settings.reminderHorizonDays,
+        next.settings.reminderCalendarIDs,
+      )
       setReminderStatus({
         loading: false,
         count: result.items.length,
@@ -159,6 +172,36 @@ function DueManagerApp() {
     } catch (error) {
       setReminderStatus({ ...EMPTY_REMINDER_STATUS, error: String(error) })
       await Dialog.alert({ title: "授权失败", message: String(error) })
+    }
+  }
+
+  const setReminderCalendarSelection = async (calendarIDs: string[]) => {
+    const next = updateSettings({ reminderCalendarIDs: calendarIDs })
+    refreshState(next)
+
+    if (!next.settings.includeReminders) {
+      await reloadWidgetsAfterStorageWrite()
+      return
+    }
+
+    setReminderStatus(status => ({ ...status, loading: true }))
+    const result = await loadReminderItems(
+      next.settings.reminderHorizonDays,
+      next.settings.reminderCalendarIDs,
+    )
+    setReminderStatus({
+      loading: false,
+      count: result.items.length,
+      fetchedAt: result.fetchedAt,
+      fromCache: result.fromCache,
+      error: result.error,
+    })
+    await reloadWidgetsAfterStorageWrite()
+    if (result.error && !result.fromCache) {
+      await Dialog.alert({
+        title: "无法读取所选列表",
+        message: result.error,
+      })
     }
   }
 
@@ -253,11 +296,32 @@ function DueManagerApp() {
           onChanged={(value: boolean) => { void setReminderIntegration(value) }}
         />
         {state.settings.includeReminders
+          ? <NavigationLink
+            destination={
+              <ReminderCalendarPicker
+                selectedIDs={state.settings.reminderCalendarIDs}
+                onChanged={setReminderCalendarSelection}
+              />
+            }
+          >
+            <HStack spacing={10}>
+              <Image systemName="list.bullet" foregroundStyle="systemBlue" frame={{ width: 24 }} />
+              <Text>提醒事项列表</Text>
+              <Spacer />
+              <Text font="subheadline" foregroundStyle="secondaryLabel" lineLimit={1}>
+                {state.settings.reminderCalendarIDs.length === 0
+                  ? "全部列表"
+                  : `${state.settings.reminderCalendarIDs.length} 个列表`}
+              </Text>
+            </HStack>
+          </NavigationLink>
+          : null}
+        {state.settings.includeReminders
           ? <Button
-            title={reminderStatus.loading ? "正在更新…" : "立即更新"}
-            systemImage="arrow.clockwise"
-            action={() => { if (!reminderStatus.loading) void refreshReminders() }}
-          />
+              title={reminderStatus.loading ? "正在更新…" : "立即更新"}
+              systemImage="arrow.clockwise"
+              action={() => { if (!reminderStatus.loading) void refreshReminders() }}
+            />
           : null}
         {state.settings.includeReminders
           ? <ReminderStatusRow status={reminderStatus} />
@@ -758,6 +822,174 @@ function IconChoiceRow({
       <Text foregroundStyle="label">{title}</Text>
       {detail
         ? <Text font="caption" foregroundStyle="secondaryLabel">{detail}</Text>
+        : null}
+    </VStack>
+    <Spacer />
+    {selected
+      ? <Image systemName="checkmark" foregroundStyle="systemBlue" fontWeight="semibold" />
+      : null}
+  </HStack>
+}
+
+function ReminderCalendarPicker({
+  selectedIDs,
+  onChanged,
+}: {
+  selectedIDs: string[]
+  onChanged: (calendarIDs: string[]) => Promise<void>
+}) {
+  const dismiss = Navigation.useDismiss()
+  const [selection, setSelection] = useState<string[]>(
+    () => normalizeReminderCalendarIDs(selectedIDs),
+  )
+  const [calendars, setCalendars] = useState<ReminderCalendarChoice[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  const loadCalendars = async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const granted = await Script.requestAccess(["calendar", "reminders"])
+      if (!granted.includes("calendar") || !granted.includes("reminders")) {
+        throw new Error("需要日历与提醒事项权限，才能读取可选列表。")
+      }
+      const available = await Calendar.forReminders()
+      const byIdentifier = new Map<string, ReminderCalendarChoice>()
+      for (const calendar of available) {
+        const id = typeof calendar?.identifier === "string"
+          ? calendar.identifier.trim()
+          : ""
+        if (!id || byIdentifier.has(id)) continue
+        byIdentifier.set(id, {
+          id,
+          title: String(calendar.title || "未命名列表").slice(0, 100),
+          sourceTitle: String(calendar.source?.title || "").slice(0, 100),
+        })
+      }
+      setCalendars([...byIdentifier.values()].sort((left, right) => {
+        const sourceOrder = left.sourceTitle.localeCompare(right.sourceTitle, "zh-Hans-CN")
+        return sourceOrder || left.title.localeCompare(right.title, "zh-Hans-CN")
+      }))
+    } catch (error) {
+      setLoadError(String(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadCalendars()
+  }, [])
+
+  const toggleCalendar = (id: string) => {
+    const knownIDs = new Set(calendars.map(calendar => calendar.id))
+    const current = selection.filter(identifier => knownIDs.has(identifier))
+    setSelection(normalizeReminderCalendarIDs(
+      current.includes(id)
+        ? current.filter(identifier => identifier !== id)
+        : [...current, id],
+    ))
+  }
+
+  const save = async () => {
+    if (saving || loading || loadError) return
+    setSaving(true)
+    try {
+      await onChanged(normalizeReminderCalendarIDs(selection))
+      dismiss()
+    } catch (error) {
+      await Dialog.alert({ title: "列表设置保存失败", message: String(error) })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const availableIDs = new Set(calendars.map(calendar => calendar.id))
+  const unavailableCount = selection.filter(identifier => !availableIDs.has(identifier)).length
+
+  return <List
+    listStyle="insetGroup"
+    navigationTitle="提醒事项列表"
+    navigationBarTitleDisplayMode="inline"
+    toolbar={{
+      confirmationAction: <Button
+        title={saving ? "正在保存…" : "完成"}
+        action={() => { void save() }}
+      />,
+    }}
+  >
+    <Section footer={<Text>不选择具体列表时会读取全部列表；也可以同时选择多个列表。</Text>}>
+      <Button buttonStyle="plain" action={() => setSelection([])}>
+        <ReminderCalendarRow
+          title="全部列表"
+          detail="包含所有账户中的提醒事项"
+          selected={selection.length === 0}
+          iconName="tray.full.fill"
+        />
+      </Button>
+    </Section>
+
+    <Section
+      header={<Text>具体列表</Text>}
+      footer={unavailableCount > 0
+        ? <Text foregroundStyle="systemOrange">有 {unavailableCount} 个原先选择的列表已不可用；请选择现有列表或改为全部列表。</Text>
+        : undefined}
+    >
+      {loading
+        ? <HStack spacing={10}>
+          <Image systemName="arrow.clockwise" foregroundStyle="secondaryLabel" />
+          <Text foregroundStyle="secondaryLabel">正在读取列表…</Text>
+        </HStack>
+        : null}
+      {!loading && loadError
+        ? <Button
+          title="读取失败，点此重试"
+          systemImage="exclamationmark.triangle"
+          action={() => { void loadCalendars() }}
+        />
+        : null}
+      {!loading && !loadError && calendars.length === 0
+        ? <Text foregroundStyle="secondaryLabel">没有可用的提醒事项列表</Text>
+        : null}
+      {!loading && !loadError
+        ? calendars.map(calendar => (
+          <Button
+            key={calendar.id}
+            buttonStyle="plain"
+            action={() => toggleCalendar(calendar.id)}
+          >
+            <ReminderCalendarRow
+              title={calendar.title}
+              detail={calendar.sourceTitle || undefined}
+              selected={selection.includes(calendar.id)}
+              iconName="list.bullet.circle.fill"
+            />
+          </Button>
+        ))
+        : null}
+    </Section>
+  </List>
+}
+
+function ReminderCalendarRow({
+  title,
+  detail,
+  selected,
+  iconName,
+}: {
+  title: string
+  detail?: string
+  selected: boolean
+  iconName: string
+}) {
+  return <HStack spacing={12}>
+    <Image systemName={iconName} foregroundStyle="systemBlue" frame={{ width: 26 }} />
+    <VStack alignment="leading" spacing={1}>
+      <Text foregroundStyle="label">{title}</Text>
+      {detail
+        ? <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={1}>{detail}</Text>
         : null}
     </VStack>
     <Spacer />

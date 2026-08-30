@@ -34,6 +34,8 @@ export interface ManualDueItem {
 export interface AppSettings {
   includeReminders: boolean
   reminderHorizonDays: number
+  /** Empty means every Apple Reminders list. Values are Calendar identifiers. */
+  reminderCalendarIDs: string[]
   showAmounts: boolean
 }
 
@@ -59,6 +61,8 @@ export interface CachedReminderItem {
 export interface ReminderSnapshot {
   schemaVersion: 1
   fetchedAt: number
+  /** Query scope for this snapshot. Empty means every reminders list. */
+  calendarFilterIDs: string[]
   items: CachedReminderItem[]
 }
 

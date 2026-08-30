@@ -59,6 +59,10 @@ declare const Reminder: {
   }): Promise<any[]>
 }
 
+declare const Calendar: {
+  forReminders(): Promise<any[]>
+}
+
 declare const Dialog: {
   alert(options: { title?: string; message: string; buttonLabel?: string }): Promise<void>
   confirm(options: {

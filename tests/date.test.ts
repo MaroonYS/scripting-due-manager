@@ -365,6 +365,200 @@ test("reminder integration requests a refresh within three hours", () => {
   assert.equal(refresh.getTime(), now.getTime() + 3 * 60 * 60 * 1000)
 })
 
+test("legacy settings default to all reminder lists and preserve a later selection", () => {
+  const originalStorage = (globalThis as any).Storage
+  let sharedValue: any = {
+    schemaVersion: 1,
+    items: [],
+    settings: {
+      includeReminders: true,
+      reminderHorizonDays: 730,
+      showAmounts: true,
+    },
+    updatedAt: 1,
+  }
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string, options?: { shared: boolean }) => (
+        key === STATE_KEY && options?.shared ? sharedValue : null
+      ),
+      set: (key: string, value: unknown, options?: { shared: boolean }) => {
+        if (key === STATE_KEY && options?.shared) sharedValue = value
+        return true
+      },
+      remove: () => undefined,
+      contains: () => true,
+    }
+
+    const legacy = loadState()
+    assert.deepEqual((legacy.settings as any).reminderCalendarIDs, [])
+
+    const selected = updateSettings({
+      reminderCalendarIDs: ["home", "work"],
+    } as any)
+    assert.deepEqual((selected.settings as any).reminderCalendarIDs, ["home", "work"])
+
+    const unrelatedUpdate = updateSettings({ showAmounts: false })
+    assert.deepEqual(
+      (unrelatedUpdate.settings as any).reminderCalendarIDs,
+      ["home", "work"],
+    )
+    assert.deepEqual(
+      sharedValue.settings.reminderCalendarIDs,
+      ["home", "work"],
+    )
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
+})
+
+test("reminder loading resolves every selected list by Calendar.identifier", async () => {
+  const originalStorage = (globalThis as any).Storage
+  const originalReminder = (globalThis as any).Reminder
+  const originalCalendar = (globalThis as any).Calendar
+  const saved = new Map<string, unknown>()
+  const home = { identifier: "home", title: "家庭" }
+  const personal = { identifier: "personal", title: "个人" }
+  const work = { identifier: "work", title: "工作" }
+  let queriedCalendars: any[] | undefined
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string) => saved.get(key) ?? null,
+      set: (key: string, value: unknown) => { saved.set(key, value); return true },
+      remove: (key: string) => { saved.delete(key) },
+      contains: (key: string) => saved.has(key),
+    }
+    ;(globalThis as any).Calendar = {
+      forReminders: async () => [work, personal, home],
+    }
+    ;(globalThis as any).Reminder = {
+      getIncompletes: async (options?: { calendars?: any[] }) => {
+        queriedCalendars = options?.calendars
+        return [{
+          identifier: "selected-reminder",
+          title: "选中列表的事项",
+          dueDateComponents: {
+            date: new Date(2026, 8, 2, 23, 59, 59, 999),
+            year: 2026,
+            month: 9,
+            day: 2,
+            hour: null,
+            minute: null,
+          },
+          calendar: home,
+          priority: 0,
+        }]
+      },
+    }
+
+    const result = await (loadReminderItems as any)(
+      730,
+      ["home", "work"],
+      new Date(2026, 7, 31, 12, 0),
+    )
+    assert.deepEqual(
+      new Set(queriedCalendars?.map(calendar => calendar.identifier)),
+      new Set(["home", "work"]),
+    )
+    assert.equal(queriedCalendars?.every(calendar => calendar === home || calendar === work), true)
+    assert.equal(result.items.length, 1)
+    assert.deepEqual(
+      (saved.get(REMINDER_SNAPSHOT_KEY) as any).calendarFilterIDs,
+      ["home", "work"],
+    )
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+    ;(globalThis as any).Reminder = originalReminder
+    ;(globalThis as any).Calendar = originalCalendar
+  }
+})
+
+test("any missing selected reminder list prevents a partial or unfiltered query", async () => {
+  const originalStorage = (globalThis as any).Storage
+  const originalReminder = (globalThis as any).Reminder
+  const originalCalendar = (globalThis as any).Calendar
+  let reminderQueries = 0
+  try {
+    ;(globalThis as any).Storage = {
+      get: () => null,
+      set: () => true,
+      remove: () => undefined,
+      contains: () => false,
+    }
+    ;(globalThis as any).Calendar = {
+      forReminders: async () => [{ identifier: "work", title: "工作" }],
+    }
+    ;(globalThis as any).Reminder = {
+      getIncompletes: async () => {
+        reminderQueries += 1
+        return []
+      },
+    }
+
+    const result = await (loadReminderItems as any)(730, ["deleted-list", "work"])
+    assert.equal(reminderQueries, 0)
+    assert.equal(result.items.length, 0)
+    assert.equal(result.fromCache, false)
+    assert.ok(result.error)
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+    ;(globalThis as any).Reminder = originalReminder
+    ;(globalThis as any).Calendar = originalCalendar
+  }
+})
+
+test("reminder cache fallback requires the exact selected-list scope", async () => {
+  const originalStorage = (globalThis as any).Storage
+  const originalReminder = (globalThis as any).Reminder
+  const originalCalendar = (globalThis as any).Calendar
+  const snapshot = {
+    schemaVersion: 1,
+    fetchedAt: Date.now(),
+    calendarFilterIDs: ["home", "work"],
+    items: [{
+      id: "cached-selected",
+      title: "列表内缓存",
+      dueDate: "2026-09-01",
+      includesTime: false,
+      hour: 0,
+      minute: 0,
+      dueTimestamp: new Date(2026, 8, 1, 23, 59, 59, 999).getTime(),
+      calendarTitle: "家庭",
+      priority: 0,
+    }],
+  }
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string) => key === REMINDER_SNAPSHOT_KEY ? snapshot : null,
+      set: () => true,
+      remove: () => undefined,
+      contains: () => true,
+    }
+    ;(globalThis as any).Calendar = {
+      forReminders: async () => [
+        { identifier: "home", title: "家庭" },
+        { identifier: "work", title: "工作" },
+      ],
+    }
+    ;(globalThis as any).Reminder = {
+      getIncompletes: async () => { throw new Error("temporarily unavailable") },
+    }
+
+    const matching = await (loadReminderItems as any)(730, ["home", "work"])
+    assert.equal(matching.fromCache, true)
+    assert.deepEqual(matching.items.map((value: DisplayDueItem) => value.id), ["cached-selected"])
+
+    const different = await (loadReminderItems as any)(730, ["home"])
+    assert.equal(different.fromCache, false)
+    assert.deepEqual(different.items, [])
+    assert.ok(different.error)
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+    ;(globalThis as any).Reminder = originalReminder
+    ;(globalThis as any).Calendar = originalCalendar
+  }
+})
+
 test("stale cached reminders never sort ahead of live items", () => {
   const now = new Date(2026, 7, 30, 12, 0)
   const sorted = sortDueItems([
@@ -767,6 +961,40 @@ test("small widget previews one non-interactive next queue item", () => {
   assert.match(preview, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
   assert.match(preview, /<Link url=\{itemURL\(item\)\}>/)
   assert.doesNotMatch(preview, /CompletionControl|CompleteDueItemIntent/)
+})
+
+test("small widget header shows its current due date while list widgets keep the count", () => {
+  const source = readFileSync(
+    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
+    "utf8",
+  )
+  const header = source.slice(
+    source.indexOf("function WidgetHeader"),
+    source.indexOf("function SmallWidget("),
+  )
+  assert.match(
+    header,
+    /compact\s*&&\s*items\[0\]\s*\?\s*humanDate\(items\[0\]\.dueDate\)\s*:\s*items\.length/,
+  )
+
+  const listWidget = source.slice(
+    source.indexOf("function ListWidget("),
+    source.indexOf("function ListWidgetBody"),
+  )
+  assert.match(listWidget, /<WidgetHeader\s+[\s\S]*?items=\{items\}[\s\S]*?issue=\{issue\}[\s\S]*?\/>/)
+  assert.doesNotMatch(listWidget, /\bcompact\b/)
+})
+
+test("settings expose a native multi-list reminder picker", () => {
+  const source = readFileSync(
+    new URL("../到期管家/index.tsx", import.meta.url),
+    "utf8",
+  )
+  assert.match(source, /function ReminderCalendarPicker/)
+  assert.match(source, /Calendar\.forReminders\(\)/)
+  assert.match(source, /reminderCalendarIDs/)
+  assert.match(source, /提醒事项列表/)
+  assert.match(source, /requestAccess\(\[\s*"calendar"\s*,\s*"reminders"\s*\]\)/)
 })
 
 test("published script updates from the fixed latest-release package", () => {

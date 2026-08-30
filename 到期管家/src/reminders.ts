@@ -5,7 +5,11 @@ import {
   parseDateKey,
 } from "./date"
 import { resolveDueIcon } from "./icons"
-import { REMINDER_SNAPSHOT_KEY, SHARED_STORAGE_OPTIONS } from "./storage"
+import {
+  normalizeReminderCalendarIDs,
+  REMINDER_SNAPSHOT_KEY,
+  SHARED_STORAGE_OPTIONS,
+} from "./storage"
 import type {
   CachedReminderItem,
   DisplayDueItem,
@@ -15,12 +19,19 @@ import type {
 
 export async function loadReminderItems(
   horizonDays: number,
+  calendarIDs: readonly string[] = [],
   now = new Date(),
 ): Promise<ReminderLoadResult> {
+  const calendarFilterIDs = normalizeReminderCalendarIDs(calendarIDs)
   try {
     const endDate = new Date(now)
     endDate.setDate(endDate.getDate() + Math.max(30, Math.min(3650, horizonDays)))
-    const reminders = await Reminder.getIncompletes({ endDate })
+    const calendars = calendarFilterIDs.length > 0
+      ? await resolveReminderCalendars(calendarFilterIDs)
+      : undefined
+    const reminders = await Reminder.getIncompletes(
+      calendars ? { endDate, calendars } : { endDate },
+    )
     const cached = reminders
       .map(reminderToCacheItem)
       .filter((item): item is CachedReminderItem => item != null)
@@ -29,6 +40,7 @@ export async function loadReminderItems(
     const snapshot: ReminderSnapshot = {
       schemaVersion: 1,
       fetchedAt: Date.now(),
+      calendarFilterIDs,
       items: cached,
     }
     Storage.set(REMINDER_SNAPSHOT_KEY, snapshot, SHARED_STORAGE_OPTIONS)
@@ -40,18 +52,46 @@ export async function loadReminderItems(
     }
   } catch (error) {
     const snapshot = readSnapshot()
-    const expired = snapshot != null && isSnapshotStale(snapshot.fetchedAt)
+    const matchingSnapshot = snapshot != null
+      && sameCalendarFilter(snapshot.calendarFilterIDs, calendarFilterIDs)
+      ? snapshot
+      : null
+    const expired = matchingSnapshot != null && isSnapshotStale(matchingSnapshot.fetchedAt)
     return {
-      items: snapshot && !expired
-        ? snapshot.items.map(item => cacheItemToDisplay(item, true))
+      items: matchingSnapshot && !expired
+        ? matchingSnapshot.items.map(item => cacheItemToDisplay(item, true))
         : [],
-      fetchedAt: snapshot?.fetchedAt ?? null,
-      fromCache: snapshot != null,
+      fetchedAt: matchingSnapshot?.fetchedAt ?? null,
+      fromCache: matchingSnapshot != null,
       error: expired
         ? `提醒缓存已过期：${readableError(error)}`
         : readableError(error),
     }
   }
+}
+
+async function resolveReminderCalendars(calendarFilterIDs: string[]): Promise<any[]> {
+  const available = await Calendar.forReminders()
+  const byIdentifier = new Map<string, any>()
+  for (const calendar of available) {
+    const identifier = typeof calendar?.identifier === "string"
+      ? calendar.identifier
+      : ""
+    if (identifier) byIdentifier.set(identifier, calendar)
+  }
+  const calendars = calendarFilterIDs
+    .map(identifier => byIdentifier.get(identifier))
+    .filter(calendar => calendar != null)
+  if (calendars.length !== calendarFilterIDs.length) {
+    const missingCount = calendarFilterIDs.length - calendars.length
+    throw new Error(`有 ${missingCount} 个所选提醒事项列表已不可用，请在主脚本中重新选择。`)
+  }
+  return calendars
+}
+
+function sameCalendarFilter(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false
+  return left.every((identifier, index) => identifier === right[index])
 }
 
 export function sortDueItems(items: DisplayDueItem[], now = new Date()): DisplayDueItem[] {
@@ -225,6 +265,7 @@ function readSnapshot(): ReminderSnapshot | null {
   const snapshot: ReminderSnapshot = {
     schemaVersion: 1,
     fetchedAt: typeof raw.fetchedAt === "number" ? raw.fetchedAt : 0,
+    calendarFilterIDs: normalizeReminderCalendarIDs(raw.calendarFilterIDs),
     items,
   }
   if (shared == null && legacy != null) {

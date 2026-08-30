@@ -12,7 +12,7 @@ import {
   Widget,
 } from "scripting"
 import { CompleteDueItemIntent } from "../app_intents"
-import { dueStatus } from "./date"
+import { dueStatus, humanDate } from "./date"
 import { displayDate } from "./presentation"
 import type { DisplayDueItem } from "./types"
 import {
@@ -116,11 +116,12 @@ function WidgetHeader({
         font={compact ? "caption2" : "caption"}
         foregroundStyle="secondaryLabel"
         lineLimit={1}
+        minScaleFactor={compact ? 0.65 : 1}
         monospacedDigit
         contentTransition="numericTextCountsDown"
         padding={{ trailing: compact ? 5 : 0 }}
       >
-        {items.length}
+        {compact && items[0] ? humanDate(items[0].dueDate) : items.length}
       </Text>
     </HStack>
   </Link>

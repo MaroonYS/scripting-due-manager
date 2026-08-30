@@ -26,6 +26,7 @@ export type ManualCompletionResult = "applied" | "stale" | "missing"
 const DEFAULT_SETTINGS: AppSettings = {
   includeReminders: false,
   reminderHorizonDays: 730,
+  reminderCalendarIDs: [],
   showAmounts: true,
 }
 
@@ -33,7 +34,10 @@ export function defaultState(now = Date.now()): AppState {
   return {
     schemaVersion: 1,
     items: [],
-    settings: { ...DEFAULT_SETTINGS },
+    settings: {
+      ...DEFAULT_SETTINGS,
+      reminderCalendarIDs: [...DEFAULT_SETTINGS.reminderCalendarIDs],
+    },
     updatedAt: now,
   }
 }
@@ -269,10 +273,22 @@ function normalizeSettings(raw: unknown): AppSettings {
       3650,
       DEFAULT_SETTINGS.reminderHorizonDays,
     ),
+    reminderCalendarIDs: normalizeReminderCalendarIDs(value.reminderCalendarIDs),
     showAmounts: typeof value.showAmounts === "boolean"
       ? value.showAmounts
       : DEFAULT_SETTINGS.showAmounts,
   }
+}
+
+export function normalizeReminderCalendarIDs(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  const identifiers = new Set<string>()
+  for (const value of raw.slice(0, 100)) {
+    if (typeof value !== "string") continue
+    const identifier = value.trim().slice(0, 512)
+    if (identifier) identifiers.add(identifier)
+  }
+  return [...identifiers].sort()
 }
 
 function normalizeItem(raw: unknown, index: number): ManualDueItem | null {

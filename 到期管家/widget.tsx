@@ -13,7 +13,10 @@ import { DueManagerWidget } from "./src/widget_view"
 async function main() {
   const state = loadState()
   const reminderResult = state.settings.includeReminders
-    ? await loadReminderItems(state.settings.reminderHorizonDays)
+    ? await loadReminderItems(
+      state.settings.reminderHorizonDays,
+      state.settings.reminderCalendarIDs,
+    )
     : { items: [], fetchedAt: null, fromCache: false, error: null }
   const items = sortDueItems([
     ...manualItemsForDisplay(state),
