@@ -746,7 +746,7 @@ test("small widget previews one non-interactive next queue item", () => {
   assert.equal(smallItem.match(/height: 19, alignment: "leading"/g)?.length, 2)
   assert.equal(smallItem.match(/height: 18, alignment: "leading"/g)?.length, 1)
   assert.doesNotMatch(smallItem, /width: 39/)
-  assert.match(smallItem, /return \[item\.amount, item\.source === "reminder" \? "" : item\.note\]/)
+  assert.match(smallItem, /return \[item\.amount, item\.note\]/)
   assert.match(smallItem, /\.join\(" · "\)/)
   assert.match(smallItem, /<Spacer minLength=\{4\} \/>/)
   assert.match(smallItem, /<Spacer minLength=\{0\} \/>/)

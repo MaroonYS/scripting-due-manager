@@ -242,7 +242,7 @@ function SmallDueItem({
 }
 
 function smallItemDetail(item: DisplayDueItem): string {
-  return [item.amount, item.source === "reminder" ? "" : item.note]
+  return [item.amount, item.note]
     .map((value) => value.replace(/\s+/g, " ").trim())
     .filter(Boolean)
     .join(" · ")
