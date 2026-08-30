@@ -208,7 +208,7 @@ function SmallDueItem({
       <HStack
         alignment="top"
         spacing={7}
-        padding={{ top: 22 }}
+        padding={{ top: 15 }}
         frame={{ maxWidth: "infinity", alignment: "leading" }}
       >
         <CompletionControl
