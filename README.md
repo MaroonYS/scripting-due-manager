@@ -4,7 +4,7 @@
 
 ## 一键安装或更新
 
-[在 iPhone 上安装或更新到期管家](https://www.scripting.fun/import_scripts/?urls=%5B%22https%3A%2F%2Fgithub.com%2FMaroonYS%2Fscripting-due-manager%2Freleases%2Flatest%2Fdownload%2F%E5%88%B0%E6%9C%9F%E7%AE%A1%E5%AE%B6.scripting%22%5D)
+[在 iPhone 上安装或更新到期管家](https://www.scripting.fun/import_scripts/?urls=%5B%22https%3A%2F%2Fgithub.com%2FMaroonYS%2Fscripting-due-manager%2Freleases%2Flatest%2Fdownload%2Fdue-manager.scripting%22%5D)
 
 固定链接始终指向 GitHub 最新发行版中的不可变安装包，避免分支原始文件的 CDN 缓存返回旧版。安装后，脚本还会通过 `remoteResource` 使用同一地址检查更新。
 

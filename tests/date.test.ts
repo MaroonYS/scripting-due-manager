@@ -746,7 +746,7 @@ test("published script updates from the fixed latest-release package", () => {
   ))
   assert.equal(
     manifest.remoteResource.url,
-    "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/到期管家.scripting",
+    "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",
   )
 })
 
