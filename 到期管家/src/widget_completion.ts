@@ -52,7 +52,10 @@ export function writeWidgetCompletionFeedback(
     : current.generation + 1
   const phase: 0 | 1 = current.phase === 0 ? 1 : 0
   const { isCompleting: _ignored, ...itemWithoutCompletionState } = item
-  const snapshot = { ...itemWithoutCompletionState, note: "" }
+  const snapshot = {
+    ...itemWithoutCompletionState,
+    note: itemWithoutCompletionState.note.slice(0, 120),
+  }
   return Storage.set(WIDGET_COMPLETION_FEEDBACK_KEY, {
     schemaVersion: 2,
     generation,

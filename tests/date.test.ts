@@ -580,6 +580,7 @@ test("completion feedback preserves the old occurrence until the animation ends"
     completionKey: "2026-08-31|date|1",
     title: "本期账单",
     dueDate: "2026-08-31",
+    note: "尾号 1234 · 白金套餐",
   })
   const next = displayItem({
     id: "card",
@@ -612,7 +613,7 @@ test("completion feedback preserves the old occurrence until the animation ends"
     assert.equal(feedback.length, 1)
     assert.equal(feedback[0].completionKey, previous.completionKey)
     assert.equal(feedback[0].isCompleting, true)
-    assert.equal(feedback[0].note, "")
+    assert.equal(feedback[0].note, previous.note)
 
     const merged = mergeWidgetCompletionFeedback([next, other], feedback)
     assert.equal(merged.some(item => item.completionKey === next.completionKey), false)
@@ -717,12 +718,17 @@ test("small widget previews one non-interactive next queue item", () => {
     source.indexOf("function SmallDueItem"),
     source.indexOf("function SmallNextItemPreview"),
   )
-  assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", height: 70, alignment: "topLeading" \}\}/)
-  assert.match(smallItem, /padding=\{\{ top: nextItem \? 10 : 12 \}\}/)
-  assert.match(smallItem, /<VStack alignment="leading" spacing=\{2\} frame=\{\{ maxWidth: "infinity" \}\}>/)
+  assert.match(smallItem, /const detail = smallItemDetail\(item\)/)
+  assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", height: 76, alignment: "topLeading" \}\}/)
+  assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", height: 58, alignment: "leading" \}\}/)
+  assert.match(smallItem, /frame=\{\{ maxWidth: 105, alignment: "leading" \}\}/)
   assert.match(smallItem, /font=\{16\}/)
-  assert.match(smallItem, /lineLimit=\{item\.amount \? 2 : 3\}/)
+  assert.match(smallItem, /lineLimit=\{3\}/)
   assert.match(smallItem, /minScaleFactor=\{0\.9\}/)
+  assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", height: 16, alignment: "leading" \}\}/)
+  assert.match(smallItem, /<VStack frame=\{\{ width: 39, height: 1 \}\} \/>/)
+  assert.match(smallItem, /return \[item\.amount, item\.note\]/)
+  assert.match(smallItem, /\.join\(" · "\)/)
   assert.match(smallItem, /<Spacer minLength=\{nextItem \? 4 : 8\} \/>/)
   assert.match(smallItem, /nextItem \? <Spacer minLength=\{0\} \/>/)
   assert.match(source, /font=\{compact \? 13 : "headline"\}/)

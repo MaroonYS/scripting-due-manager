@@ -190,6 +190,8 @@ function SmallDueItem({
   item: DisplayDueItem
   nextItem: DisplayDueItem | undefined
 }) {
+  const detail = smallItemDetail(item)
+
   return <VStack
     alignment="leading"
     spacing={0}
@@ -197,14 +199,13 @@ function SmallDueItem({
   >
     <VStack
       alignment="leading"
-      spacing={0}
-      frame={{ maxWidth: "infinity", height: 70, alignment: "topLeading" }}
+      spacing={2}
+      frame={{ maxWidth: "infinity", height: 76, alignment: "topLeading" }}
     >
       <HStack
-        alignment="top"
+        alignment="center"
         spacing={7}
-        padding={{ top: nextItem ? 10 : 12 }}
-        frame={{ maxWidth: "infinity" }}
+        frame={{ maxWidth: "infinity", height: 58, alignment: "leading" }}
       >
         <CompletionControl
           item={item}
@@ -212,17 +213,37 @@ function SmallDueItem({
           symbolSize={19}
         />
         <Link url={itemURL(item)}>
-          <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
-            <Text font={16} fontWeight="semibold" lineLimit={item.amount ? 2 : 3} minScaleFactor={0.9}>
-              {item.title}
-            </Text>
-            {item.amount
-              ? <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1} minScaleFactor={0.8}>
-                {item.amount}
-              </Text>
-              : null}
-          </VStack>
+          <Text
+            font={16}
+            fontWeight="semibold"
+            lineLimit={3}
+            minScaleFactor={0.9}
+            frame={{ maxWidth: 105, alignment: "leading" }}
+          >
+            {item.title}
+          </Text>
         </Link>
+      </HStack>
+      <HStack
+        alignment="center"
+        spacing={0}
+        frame={{ maxWidth: "infinity", height: 16, alignment: "leading" }}
+      >
+        <VStack frame={{ width: 39, height: 1 }} />
+        {detail
+          ? <Link url={itemURL(item)}>
+            <Text
+              font="caption2"
+              foregroundStyle="secondaryLabel"
+              lineLimit={1}
+              minScaleFactor={0.75}
+              frame={{ maxWidth: 105, alignment: "leading" }}
+            >
+              {detail}
+            </Text>
+          </Link>
+          : null}
+        <Spacer />
       </HStack>
     </VStack>
     <Spacer minLength={nextItem ? 4 : 8} />
@@ -243,6 +264,13 @@ function SmallDueItem({
       </HStack>
     </Link>
   </VStack>
+}
+
+function smallItemDetail(item: DisplayDueItem): string {
+  return [item.amount, item.note]
+    .map((value) => value.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join(" · ")
 }
 
 function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
