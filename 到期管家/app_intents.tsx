@@ -1,10 +1,18 @@
 import { AppIntentManager, AppIntentProtocol } from "scripting"
-import { completeReminderOccurrence } from "./src/reminders"
+import {
+  completeReminderOccurrence,
+  findReminderDisplayItemForCompletion,
+} from "./src/reminders"
 import {
   clearWidgetActionError,
   completeManualOccurrence,
   writeWidgetActionError,
 } from "./src/storage"
+import {
+  clearWidgetCompletionFeedback,
+  findManualDisplayItemForCompletion,
+  writeWidgetCompletionFeedback,
+} from "./src/widget_completion"
 import {
   reloadUserWidgets,
   reloadWidgetsAfterStorageWrite,
@@ -28,17 +36,28 @@ export const CompleteDueItemIntent = AppIntentManager.register<CompleteDueItemPa
   name: "CompleteDueItem",
   protocol: AppIntentProtocol.AppIntent,
   perform: async params => {
+    let validatedParams: CompleteDueItemParams | null = null
     try {
       if (!isCompletionParams(params)) {
         throw new Error("Invalid completion parameters")
       }
+      validatedParams = params
 
-      if (params.source === "manual") {
-        completeManualOccurrence(params.id, params.occurrenceKey)
-      } else {
-        await completeReminderOccurrence(params.id, params.occurrenceKey)
-      }
+      const feedbackItem = params.source === "manual"
+        ? findManualDisplayItemForCompletion(params.id, params.occurrenceKey)
+        : findReminderDisplayItemForCompletion(params.id, params.occurrenceKey)
+
+      const result = params.source === "manual"
+        ? completeManualOccurrence(params.id, params.occurrenceKey)
+        : await completeReminderOccurrence(params.id, params.occurrenceKey)
       clearWidgetActionError()
+
+      if (result === "applied" && feedbackItem && writeWidgetCompletionFeedback(feedbackItem)) {
+        // First reload morphs the outline into a completed checkmark. Keep the
+        // old occurrence briefly before the final reload lets the queue advance.
+        await reloadWidgetsAfterStorageWrite()
+        await new Promise<void>(resolve => setTimeout(resolve, 800))
+      }
     } catch (error) {
       console.error("CompleteDueItem failed", error)
       writeWidgetActionError(
@@ -47,6 +66,13 @@ export const CompleteDueItemIntent = AppIntentManager.register<CompleteDueItemPa
           : "事项完成失败，请打开主脚本检查存储",
       )
     } finally {
+      if (validatedParams) {
+        clearWidgetCompletionFeedback(
+          validatedParams.source,
+          validatedParams.id,
+          validatedParams.occurrenceKey,
+        )
+      }
       await reloadWidgetsAfterStorageWrite()
     }
   },

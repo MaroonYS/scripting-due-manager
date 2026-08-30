@@ -73,6 +73,16 @@ export function sortDueItems(items: DisplayDueItem[], now = new Date()): Display
 
 export type ReminderCompletionResult = "applied" | "stale" | "missing"
 
+export function findReminderDisplayItemForCompletion(
+  id: string,
+  completionKey: string,
+): DisplayDueItem | null {
+  const cached = readSnapshot()?.items.find(item => item.id === id)
+  if (!cached) return null
+  const item = cacheItemToDisplay(cached, false)
+  return item.completionKey === completionKey ? item : null
+}
+
 export function reminderOccurrenceKey(
   item: Pick<CachedReminderItem, "dueDate" | "includesTime" | "dueTimestamp">,
 ): string {

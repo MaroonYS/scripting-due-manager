@@ -5,6 +5,10 @@ import {
   manualItemsForDisplay,
   readWidgetActionError,
 } from "./src/storage"
+import {
+  mergeWidgetCompletionFeedback,
+  readWidgetCompletionFeedback,
+} from "./src/widget_completion"
 import { DueManagerWidget } from "./src/widget_view"
 
 async function main() {
@@ -12,10 +16,13 @@ async function main() {
   const reminderResult = state.settings.includeReminders
     ? await loadReminderItems(state.settings.reminderHorizonDays)
     : { items: [], fetchedAt: null, fromCache: false, error: null }
-  const items = sortDueItems([
-    ...manualItemsForDisplay(state),
-    ...reminderResult.items,
-  ])
+  const items = sortDueItems(mergeWidgetCompletionFeedback(
+    [
+      ...manualItemsForDisplay(state),
+      ...reminderResult.items,
+    ],
+    readWidgetCompletionFeedback(),
+  ))
   const refreshAt = nextWidgetRefresh(items, new Date(), state.settings.includeReminders)
 
   Widget.present(

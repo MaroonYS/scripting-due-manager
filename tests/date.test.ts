@@ -14,6 +14,7 @@ import {
 } from "../到期管家/src/icons.ts"
 import {
   completeReminderOccurrence,
+  findReminderDisplayItemForCompletion,
   isSnapshotStale,
   loadReminderItems,
   nextWidgetRefresh,
@@ -29,6 +30,14 @@ import {
   STATE_KEY,
   updateSettings,
 } from "../到期管家/src/storage.ts"
+import {
+  clearWidgetCompletionFeedback,
+  findManualDisplayItemForCompletion,
+  mergeWidgetCompletionFeedback,
+  readWidgetCompletionFeedback,
+  WIDGET_COMPLETION_FEEDBACK_KEY,
+  writeWidgetCompletionFeedback,
+} from "../到期管家/src/widget_completion.ts"
 import {
   visibleWidgetItems,
   widgetItemCapacity,
@@ -281,6 +290,27 @@ test("manual display items always receive an icon and preserve a manual override
   assert.equal(displayed.find(value => value.id === "water")?.iconName, "drop.fill")
 })
 
+test("manual completion feedback lookup requires the exact visible occurrence", () => {
+  const originalStorage = (globalThis as any).Storage
+  const current = item({ id: "lookup", title: "查询事项", updatedAt: 42 })
+  const state = { ...defaultState(1), items: [current] }
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string, options?: { shared: boolean }) => (
+        key === STATE_KEY && options?.shared ? state : null
+      ),
+      set: () => true,
+      remove: () => undefined,
+      contains: () => true,
+    }
+    const key = manualOccurrenceKey(current)
+    assert.equal(findManualDisplayItemForCompletion(current.id, key)?.title, current.title)
+    assert.equal(findManualDisplayItemForCompletion(current.id, "old-occurrence"), null)
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
+})
+
 test("widget capacities adapt to small, medium, and large heights", () => {
   assert.equal(widgetItemCapacity("systemSmall", 170), 1)
   assert.equal(widgetItemCapacity("systemMedium", 145), 2)
@@ -458,6 +488,10 @@ test("reminder widget completion saves once and removes the cached row", async (
     const loaded = await loadReminderItems(730)
     const key = loaded.items[0].completionKey
     assert.equal((values.get(REMINDER_SNAPSHOT_KEY) as any).items.length, 1)
+    assert.equal(
+      findReminderDisplayItemForCompletion(reminder.identifier, key)?.title,
+      "完成提醒",
+    )
 
     assert.equal(await completeReminderOccurrence(reminder.identifier, key), "applied")
     assert.equal(reminder.isCompleted, true)
@@ -529,6 +563,77 @@ test("private state migrates to shared storage and shared data wins afterward", 
       updatedAt: 2,
     }
     assert.equal(loadState().items[0].title, "旧版私有事项")
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
+})
+
+test("completion feedback preserves the old occurrence until the animation ends", () => {
+  const originalStorage = (globalThis as any).Storage
+  const values = new Map<string, unknown>()
+  const now = new Date(2026, 7, 30, 20, 0).getTime()
+  const previous = displayItem({
+    id: "card",
+    completionKey: "2026-08-31|date|1",
+    title: "本期账单",
+    dueDate: "2026-08-31",
+  })
+  const next = displayItem({
+    id: "card",
+    completionKey: "2026-09-30|date|2",
+    title: "下期账单",
+    dueDate: "2026-09-30",
+  })
+  const other = displayItem({ id: "other", title: "其他事项" })
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string) => values.get(key) ?? null,
+      set: (key: string, value: unknown) => { values.set(key, value); return true },
+      remove: (key: string) => { values.delete(key) },
+      contains: (key: string) => values.has(key),
+    }
+
+    assert.equal(writeWidgetCompletionFeedback(previous, now), true)
+    const feedback = readWidgetCompletionFeedback(now + 100)
+    assert.equal(feedback.length, 1)
+    assert.equal(feedback[0].completionKey, previous.completionKey)
+    assert.equal(feedback[0].isCompleting, true)
+
+    const merged = mergeWidgetCompletionFeedback([next, other], feedback)
+    assert.equal(merged.some(item => item.completionKey === next.completionKey), false)
+    assert.equal(merged.some(item => item.completionKey === previous.completionKey), true)
+    assert.equal(merged.some(item => item.id === other.id), true)
+
+    clearWidgetCompletionFeedback("manual", previous.id, previous.completionKey, now + 200)
+    assert.deepEqual(readWidgetCompletionFeedback(now + 201), [])
+    assert.equal(values.has(WIDGET_COMPLETION_FEEDBACK_KEY), false)
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
+})
+
+test("completion feedback isolates concurrent rows and expires safely", () => {
+  const originalStorage = (globalThis as any).Storage
+  const values = new Map<string, unknown>()
+  const now = Date.now()
+  const first = displayItem({ id: "first", completionKey: "first-occurrence" })
+  const second = displayItem({ id: "second", completionKey: "second-occurrence" })
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string) => values.get(key) ?? null,
+      set: (key: string, value: unknown) => { values.set(key, value); return true },
+      remove: (key: string) => { values.delete(key) },
+      contains: (key: string) => values.has(key),
+    }
+
+    writeWidgetCompletionFeedback(first, now)
+    writeWidgetCompletionFeedback(second, now + 10)
+    clearWidgetCompletionFeedback("manual", first.id, first.completionKey, now + 20)
+    assert.deepEqual(
+      readWidgetCompletionFeedback(now + 21).map(item => item.id),
+      [second.id],
+    )
+    assert.deepEqual(readWidgetCompletionFeedback(now + 5_000), [])
   } finally {
     ;(globalThis as any).Storage = originalStorage
   }

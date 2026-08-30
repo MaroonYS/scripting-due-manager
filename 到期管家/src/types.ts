@@ -80,6 +80,8 @@ export interface DisplayDueItem {
   note: string
   priority: number
   stale: boolean
+  /** Ephemeral widget-only state used while completion feedback is visible. */
+  isCompleting?: boolean
 }
 
 export interface ReminderLoadResult {

@@ -1,4 +1,5 @@
 import {
+  AnimatedFrames,
   Button,
   DateLabel,
   Divider,
@@ -87,6 +88,7 @@ function WidgetHeader({
         font={compact ? 13 : 14}
         foregroundStyle={iconColor}
         symbolRenderingMode="hierarchical"
+        contentTransition="symbolEffectReplace"
         widgetAccentable
       />
       <Text
@@ -110,6 +112,7 @@ function WidgetHeader({
         foregroundStyle="secondaryLabel"
         lineLimit={1}
         monospacedDigit
+        contentTransition="numericTextCountsDown"
         padding={{ trailing: compact ? 5 : 0 }}
       >
         {items.length}
@@ -162,7 +165,7 @@ function SmallDueItem({ item }: { item: DisplayDueItem }) {
       frame={{ maxWidth: "infinity" }}
     >
       <CompletionControl item={item} hitSize={32} symbolSize={19} />
-      <Link url={itemURL(item)}>
+      <Link url={itemURL(item)} opacity={item.isCompleting ? 0.45 : 1}>
         <VStack alignment="leading" spacing={4} frame={{ maxWidth: "infinity" }}>
           <Text font="subheadline" fontWeight="semibold" lineLimit={3} minScaleFactor={0.85}>
             {item.title}
@@ -176,7 +179,7 @@ function SmallDueItem({ item }: { item: DisplayDueItem }) {
       </Link>
     </HStack>
     <Spacer minLength={8} />
-    <Link url={itemURL(item)}>
+    <Link url={itemURL(item)} opacity={item.isCompleting ? 0.45 : 1}>
       <HStack
         alignment="center"
         spacing={6}
@@ -271,7 +274,7 @@ function DueItemRow({
       hitSize={roomy ? 34 : 32}
       symbolSize={roomy ? 20 : 19}
     />
-    <Link url={itemURL(item)}>
+    <Link url={itemURL(item)} opacity={item.isCompleting ? 0.45 : 1}>
       <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
         <Image
           systemName={item.iconName}
@@ -352,22 +355,47 @@ function CompletionControl({
       frame={{ width: hitSize, height: hitSize }}
     />
   }
+  const completing = item.isCompleting === true
   return <Button
     buttonStyle="plain"
+    disabled={completing}
     intent={CompleteDueItemIntent({
       source: item.source,
       id: item.id,
       occurrenceKey: item.completionKey,
     })}
   >
-    <Image
-      systemName="circle"
-      font={symbolSize}
-      foregroundStyle="systemBlue"
-      frame={{ width: hitSize, height: hitSize }}
-      widgetAccentable
-    />
+    {completing
+      ? <AnimatedFrames duration={1.6}>
+        <CompletionSymbol name="circle" hitSize={hitSize} symbolSize={symbolSize} />
+        <CompletionSymbol name="circle.fill" hitSize={hitSize} symbolSize={symbolSize} />
+        <CompletionSymbol name="checkmark.circle.fill" hitSize={hitSize} symbolSize={symbolSize} />
+        <CompletionSymbol name="checkmark.circle.fill" hitSize={hitSize} symbolSize={symbolSize} />
+        <CompletionSymbol name="checkmark.circle.fill" hitSize={hitSize} symbolSize={symbolSize} />
+        <CompletionSymbol name="checkmark.circle.fill" hitSize={hitSize} symbolSize={symbolSize} />
+      </AnimatedFrames>
+      : <CompletionSymbol name="circle" hitSize={hitSize} symbolSize={symbolSize} />}
   </Button>
+}
+
+function CompletionSymbol({
+  name,
+  hitSize,
+  symbolSize,
+}: {
+  name: string
+  hitSize: number
+  symbolSize: number
+}) {
+  return <Image
+    systemName={name}
+    font={symbolSize}
+    foregroundStyle="systemBlue"
+    symbolRenderingMode="hierarchical"
+    frame={{ width: hitSize, height: hitSize }}
+    contentTransition="symbolEffectReplace"
+    widgetAccentable
+  />
 }
 
 function EmptyState({ compact = false }: { compact?: boolean }) {
@@ -453,6 +481,7 @@ function widgetStatusColor(
   days: number,
   remaining: number,
 ): string {
+  if (item.isCompleting) return "tertiaryLabel"
   if (overdue) return "systemRed"
   if (days === 0 || (item.includesTime && remaining > 0 && remaining <= 24 * 60 * 60 * 1000)) {
     return "systemOrange"
