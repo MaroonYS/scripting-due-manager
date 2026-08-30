@@ -206,7 +206,8 @@ function SmallDueItem({
       <HStack
         alignment="center"
         spacing={7}
-        frame={{ maxWidth: "infinity", height: 57, alignment: "leading" }}
+        padding={{ top: 3 }}
+        frame={{ maxWidth: "infinity", alignment: "leading" }}
       >
         <CompletionControl
           item={item}
@@ -225,12 +226,13 @@ function SmallDueItem({
           </Text>
         </Link>
       </HStack>
-      <HStack
-        alignment="center"
+      <VStack
+        alignment="leading"
         spacing={0}
-        padding={{ top: -5, bottom: 5, leading: 5, trailing: 5 }}
-        frame={{ maxWidth: "infinity", height: 14, alignment: "leading" }}
+        padding={{ leading: 5, trailing: 5 }}
+        frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
       >
+        <Spacer />
         {detail
           ? <Link url={itemURL(item)}>
             <Text
@@ -245,7 +247,7 @@ function SmallDueItem({
           </Link>
           : null}
         <Spacer />
-      </HStack>
+      </VStack>
     </VStack>
     <Spacer minLength={nextItem ? 4 : 8} />
     {nextItem ? <SmallNextItemPreview item={nextItem} /> : null}
