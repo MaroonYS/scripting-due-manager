@@ -207,8 +207,8 @@ function SmallDueItem({
         symbolSize={19}
       />
       <Link url={itemURL(item)}>
-        <VStack alignment="leading" spacing={3} frame={{ maxWidth: "infinity" }}>
-          <Text font={15} fontWeight="semibold" lineLimit={nextItem ? 2 : 3} minScaleFactor={0.78}>
+        <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
+          <Text font={17} fontWeight="semibold" lineLimit={3} minScaleFactor={0.9}>
             {item.title}
           </Text>
           {item.amount
@@ -219,7 +219,7 @@ function SmallDueItem({
         </VStack>
       </Link>
     </HStack>
-    <Spacer minLength={nextItem ? 6 : 8} />
+    <Spacer minLength={nextItem ? 4 : 8} />
     {nextItem ? <SmallNextItemPreview item={nextItem} /> : null}
     {nextItem ? <Spacer minLength={0} /> : null}
     <Link url={itemURL(item)}>
@@ -244,7 +244,7 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
   return <VStack
     alignment="leading"
     spacing={2}
-    padding={{ top: 3 }}
+    padding={{ top: 2 }}
     frame={{ maxWidth: "infinity" }}
   >
     <Divider padding={{ leading: 39, trailing: 5 }} />
