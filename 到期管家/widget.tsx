@@ -17,7 +17,7 @@ async function main() {
       state.settings.reminderHorizonDays,
       state.settings.reminderCalendarIDs,
     )
-    : { items: [], fetchedAt: null, fromCache: false, error: null }
+    : { items: [], fetchedAt: null, live: false, fromCache: false, error: null }
   const items = sortDueItems([
     ...manualItemsForDisplay(state),
     ...reminderResult.items,
@@ -30,6 +30,7 @@ async function main() {
       items={items}
       completionGeneration={completionTransition.generation}
       reminderFetchedAt={reminderResult.fetchedAt}
+      remindersLive={reminderResult.live}
       remindersFromCache={reminderResult.fromCache}
       remindersEnabled={state.settings.includeReminders}
       reminderError={reminderResult.error}

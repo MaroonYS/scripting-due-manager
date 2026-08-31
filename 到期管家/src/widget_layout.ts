@@ -1,5 +1,13 @@
 export type HomeWidgetFamily = "systemSmall" | "systemMedium" | "systemLarge"
 
+const LIST_VERTICAL_PADDING = 22
+
+function listMetrics(family: Exclude<HomeWidgetFamily, "systemSmall">) {
+  return family === "systemMedium"
+    ? { headerAndTopGap: 23, minimumRows: 2, maximumRows: 3, minimumRowHeight: 35 }
+    : { headerAndTopGap: 26, minimumRows: 5, maximumRows: 7, minimumRowHeight: 38 }
+}
+
 /**
  * Keeps rows readable on compact devices while filling taller widget variants.
  * The fallbacks match the common iPhone Home Screen sizes.
@@ -12,10 +20,17 @@ export function widgetItemCapacity(
   if (typeof displayHeight !== "number" || !Number.isFinite(displayHeight)) {
     return family === "systemMedium" ? 3 : 7
   }
-  if (family === "systemMedium") {
-    return displayHeight >= 155 ? 3 : 2
+
+  const metrics = listMetrics(family)
+  for (let capacity = metrics.maximumRows; capacity >= metrics.minimumRows; capacity -= 1) {
+    const dividers = Math.max(0, capacity - 1)
+    const requiredHeight = LIST_VERTICAL_PADDING
+      + metrics.headerAndTopGap
+      + capacity * metrics.minimumRowHeight
+      + dividers
+    if (displayHeight >= requiredHeight) return capacity
   }
-  return clamp(Math.floor((displayHeight - 64) / 40), 5, 7)
+  return metrics.minimumRows
 }
 
 /** Uses the actual WidgetKit height so every supported iPhone size fills cleanly. */
@@ -27,13 +42,15 @@ export function widgetRowHeight(
   if (typeof displayHeight !== "number" || !Number.isFinite(displayHeight) || capacity <= 0) {
     return family === "systemMedium" ? 38 : 42
   }
-  const padding = family === "systemMedium" ? 22 : 28
-  const headerAndTopGap = family === "systemMedium" ? 23 : 26
+  const metrics = listMetrics(family)
   const dividers = Math.max(0, capacity - 1)
-  const available = displayHeight - padding - headerAndTopGap - dividers
+  const available = displayHeight
+    - LIST_VERTICAL_PADDING
+    - metrics.headerAndTopGap
+    - dividers
   return family === "systemMedium"
-    ? clamp(Math.floor(available / capacity), 35, 40)
-    : clamp(Math.floor(available / capacity), 38, 44)
+    ? clamp(Math.floor(available / capacity), metrics.minimumRowHeight, 42)
+    : clamp(Math.floor(available / capacity), metrics.minimumRowHeight, 48)
 }
 
 export function visibleWidgetItems<T>(items: readonly T[], capacity: number): T[] {

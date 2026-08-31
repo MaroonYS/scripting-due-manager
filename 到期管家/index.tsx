@@ -64,6 +64,7 @@ type ReminderStatus = {
   loading: boolean
   count: number
   fetchedAt: number | null
+  live: boolean
   fromCache: boolean
   error: string | null
 }
@@ -72,12 +73,14 @@ type ReminderCalendarChoice = {
   id: string
   title: string
   sourceTitle: string
+  readOnly: boolean
 }
 
 const EMPTY_REMINDER_STATUS: ReminderStatus = {
   loading: false,
   count: 0,
   fetchedAt: null,
+  live: false,
   fromCache: false,
   error: null,
 }
@@ -112,6 +115,7 @@ function DueManagerApp() {
       loading: false,
       count: result.items.length,
       fetchedAt: result.fetchedAt,
+      live: result.live,
       fromCache: result.fromCache,
       error: result.error,
     })
@@ -139,12 +143,20 @@ function DueManagerApp() {
 
     setReminderStatus(status => ({ ...status, loading: true }))
     try {
-      const granted = await Script.requestAccess(["reminders"])
-      if (!granted.includes("reminders")) {
-        setReminderStatus({ ...EMPTY_REMINDER_STATUS, error: "未授予提醒事项权限" })
+      const needsCalendarAccess = loadState().settings.reminderCalendarIDs.length > 0
+      const granted = needsCalendarAccess
+        ? await Script.requestAccess(["calendar", "reminders"])
+        : await Script.requestAccess(["reminders"])
+      const missingReminderAccess = !granted.includes("reminders")
+      const missingCalendarAccess = needsCalendarAccess && !granted.includes("calendar")
+      if (missingReminderAccess || missingCalendarAccess) {
+        const permissionName = needsCalendarAccess ? "日历与提醒事项" : "提醒事项"
+        setReminderStatus({ ...EMPTY_REMINDER_STATUS, error: `未授予${permissionName}权限` })
         await Dialog.alert({
-          title: "需要提醒事项权限",
-          message: "请允许该脚本读取提醒事项，再重试此开关。",
+          title: `需要${permissionName}权限`,
+          message: needsCalendarAccess
+            ? "已选择具体提醒事项列表。请允许该脚本访问日历与提醒事项，才能按列表读取。"
+            : "请允许该脚本读取提醒事项，再重试此开关。",
         })
         return
       }
@@ -159,13 +171,19 @@ function DueManagerApp() {
         loading: false,
         count: result.items.length,
         fetchedAt: result.fetchedAt,
+        live: result.live,
         fromCache: result.fromCache,
         error: result.error,
       })
-      if (result.error && !result.fromCache) {
+      if (!result.live && !result.fromCache) {
         await Dialog.alert({
           title: "无法读取提醒事项",
-          message: "请在 iOS 设置中检查 Scripting 的提醒事项权限。\n\n" + result.error,
+          message: `请在 iOS 设置中检查 Scripting 的${needsCalendarAccess ? "日历与提醒事项" : "提醒事项"}权限。\n\n${result.error}`,
+        })
+      } else if (result.live && result.error) {
+        await Dialog.alert({
+          title: "提醒事项已读取，但缓存失败",
+          message: result.error,
         })
       }
       await reloadWidgetsAfterStorageWrite()
@@ -176,30 +194,39 @@ function DueManagerApp() {
   }
 
   const setReminderCalendarSelection = async (calendarIDs: string[]) => {
-    const next = updateSettings({ reminderCalendarIDs: calendarIDs })
-    refreshState(next)
+    const current = loadState()
 
-    if (!next.settings.includeReminders) {
+    if (!current.settings.includeReminders) {
+      const next = updateSettings({ reminderCalendarIDs: calendarIDs })
+      refreshState(next)
       await reloadWidgetsAfterStorageWrite()
       return
     }
 
     setReminderStatus(status => ({ ...status, loading: true }))
     const result = await loadReminderItems(
-      next.settings.reminderHorizonDays,
-      next.settings.reminderCalendarIDs,
+      current.settings.reminderHorizonDays,
+      calendarIDs,
     )
     setReminderStatus({
       loading: false,
       count: result.items.length,
       fetchedAt: result.fetchedAt,
+      live: result.live,
       fromCache: result.fromCache,
       error: result.error,
     })
+    if (!result.live && !result.fromCache) {
+      await reloadWidgetsAfterStorageWrite()
+      throw new Error(result.error ?? "无法读取所选提醒事项列表")
+    }
+
+    const next = updateSettings({ reminderCalendarIDs: calendarIDs })
+    refreshState(next)
     await reloadWidgetsAfterStorageWrite()
-    if (result.error && !result.fromCache) {
+    if (result.live && result.error) {
       await Dialog.alert({
-        title: "无法读取所选列表",
+        title: "列表已保存，但缓存失败",
         message: result.error,
       })
     }
@@ -287,7 +314,7 @@ function DueManagerApp() {
 
       <Section
         header={<Text>系统提醒事项</Text>}
-        footer={<Text>只读取未完成且有到期日期的提醒；数据仅保存在当前 Scripting 脚本中。</Text>}
+        footer={<Text>只读取未完成且有到期日期的提醒；数据缓存在本机 Scripting 共享存储中，不会上传。</Text>}
       >
         <Toggle
           title="显示 Apple 提醒事项"
@@ -392,6 +419,9 @@ function ItemEditor({
   const [amount, setAmount] = useState(item.amount)
   const [note, setNote] = useState(item.note)
   const [enabled, setEnabled] = useState(item.enabled)
+  const [expectedUpdatedAt] = useState<number | undefined>(
+    () => isNew ? undefined : item.updatedAt,
+  )
 
   const buildItem = (): ManualDueItem | null => {
     const trimmedTitle = title.trim().slice(0, 120)
@@ -444,7 +474,7 @@ function ItemEditor({
       return
     }
     try {
-      const nextState = upsertItem(nextItem)
+      const nextState = upsertItem(nextItem, expectedUpdatedAt)
       onChanged(nextState)
       await reloadWidgetsAfterStorageWrite()
       dismiss()
@@ -480,7 +510,7 @@ function ItemEditor({
     if (!confirmed) return
 
     try {
-      const nextState = upsertItem(advanced)
+      const nextState = upsertItem(advanced, expectedUpdatedAt)
       onChanged(nextState)
       await reloadWidgetsAfterStorageWrite()
       dismiss()
@@ -498,7 +528,7 @@ function ItemEditor({
     })
     if (!confirmed) return
     try {
-      const nextState = deleteItem(item.id)
+      const nextState = deleteItem(item.id, expectedUpdatedAt)
       onChanged(nextState)
       await reloadWidgetsAfterStorageWrite()
       dismiss()
@@ -866,6 +896,7 @@ function ReminderCalendarPicker({
           id,
           title: String(calendar.title || "未命名列表").slice(0, 100),
           sourceTitle: String(calendar.source?.title || "").slice(0, 100),
+          readOnly: calendar.allowsContentModifications === false,
         })
       }
       setCalendars([...byIdentifier.values()].sort((left, right) => {
@@ -893,8 +924,18 @@ function ReminderCalendarPicker({
     ))
   }
 
+  const availableIDs = new Set(calendars.map(calendar => calendar.id))
+  const unavailableCount = selection.filter(identifier => !availableIDs.has(identifier)).length
+
   const save = async () => {
     if (saving || loading || loadError) return
+    if (unavailableCount > 0) {
+      await Dialog.alert({
+        title: "无法保存列表选择",
+        message: `有 ${unavailableCount} 个原先选择的列表已不可用。请改选现有列表，或选择“全部列表”后再保存。`,
+      })
+      return
+    }
     setSaving(true)
     try {
       await onChanged(normalizeReminderCalendarIDs(selection))
@@ -905,9 +946,6 @@ function ReminderCalendarPicker({
       setSaving(false)
     }
   }
-
-  const availableIDs = new Set(calendars.map(calendar => calendar.id))
-  const unavailableCount = selection.filter(identifier => !availableIDs.has(identifier)).length
 
   return <List
     listStyle="insetGroup"
@@ -962,7 +1000,10 @@ function ReminderCalendarPicker({
           >
             <ReminderCalendarRow
               title={calendar.title}
-              detail={calendar.sourceTitle || undefined}
+              detail={[
+                calendar.sourceTitle,
+                calendar.readOnly ? "只读" : "",
+              ].filter(Boolean).join(" · ") || undefined}
               selected={selection.includes(calendar.id)}
               iconName="list.bullet.circle.fill"
             />
@@ -1007,9 +1048,11 @@ function ReminderStatusRow({ status }: { status: ReminderStatus }) {
     title = "正在读取提醒事项…"
     icon = "arrow.clockwise"
   } else if (status.error) {
-    title = status.fromCache && status.count > 0
-      ? `使用缓存：${status.count} 项`
-      : "读取失败或缓存已过期，请检查权限"
+    title = status.live
+      ? `已读取 ${status.count} 项，但缓存保存失败`
+      : status.fromCache && status.count > 0
+        ? `使用缓存：${status.count} 项`
+        : "读取失败或缓存已过期，请检查权限"
     color = "systemOrange"
     icon = "exclamationmark.triangle"
   }

@@ -2,10 +2,10 @@
   "name": "到期管家",
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "1.3.22",
-  "description": "Track recurring due dates and selected Apple Reminders lists in native-style widgets with compact interactive controls, current-item dates, animated queue updates, upcoming previews, and local intelligent SF Symbol matching.",
+  "version": "1.3.23",
+  "description": "Track recurring due dates and selected Apple Reminders lists in native-style widgets with consistent safe margins, reliable generation-driven queue transitions, read-only safeguards, and local intelligent SF Symbol matching.",
   "localizedDescriptions": {
-    "zh": "通过原生风格桌面组件管理信用卡、订阅、周期事项与指定提醒事项列表，支持紧凑交互控件、当前事项日期、动态队列补位、下一事项预告和本机智能图标。"
+    "zh": "通过原生风格桌面组件管理信用卡、订阅、周期事项与指定提醒事项列表，支持统一安全边距、代次驱动队列过渡、只读保护和本机智能图标。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

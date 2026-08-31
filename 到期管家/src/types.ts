@@ -56,6 +56,8 @@ export interface CachedReminderItem {
   dueTimestamp: number
   calendarTitle: string
   priority: number
+  /** False for read-only shared reminder lists. */
+  canComplete: boolean
 }
 
 export interface ReminderSnapshot {
@@ -84,13 +86,15 @@ export interface DisplayDueItem {
   note: string
   priority: number
   stale: boolean
-  /** Ephemeral widget-only state used while completion feedback is visible. */
-  isCompleting?: boolean
+  /** Whether the source permits completing this item from the widget. */
+  canComplete: boolean
 }
 
 export interface ReminderLoadResult {
   items: DisplayDueItem[]
   fetchedAt: number | null
+  /** True when this result came from a successful live EventKit query. */
+  live: boolean
   fromCache: boolean
   error: string | null
 }

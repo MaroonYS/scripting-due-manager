@@ -54,19 +54,32 @@ async function performCompleteDueItem(params: CompleteDueItemParams): Promise<vo
     const feedbackItem = params.source === "manual"
       ? findManualDisplayItemForCompletion(params.id, params.occurrenceKey)
       : findReminderDisplayItemForCompletion(params.id, params.occurrenceKey)
+    if (feedbackItem && !feedbackItem.canComplete) {
+      throw new Error("所在的提醒事项列表是只读的")
+    }
 
     const result = params.source === "manual"
       ? completeManualOccurrence(params.id, params.occurrenceKey)
       : await completeReminderOccurrence(params.id, params.occurrenceKey)
     clearWidgetActionError()
 
-    if (result === "applied" && feedbackItem) {
-      // Keep the previous occurrence as a short-lived transition source.
-      // WidgetKit receives one final state update after this intent returns.
-      if (!writeWidgetCompletionFeedback(feedbackItem)) {
-        writeWidgetActionError("事项已完成，但完成动画状态未能保存")
+    const applied = result === "applied" || result === "appliedCacheStale"
+    let completionWarning = result === "appliedCacheStale"
+      ? "提醒已完成，但本地缓存未能更新"
+      : null
+    if (applied && feedbackItem) {
+      // Advance only a lightweight animation generation. Never retain or
+      // reinsert the completed occurrence while WidgetKit refreshes its queue.
+      try {
+        if (!writeWidgetCompletionFeedback(feedbackItem)) {
+          completionWarning = "事项已完成，但完成动画状态未能保存"
+        }
+      } catch (error) {
+        console.error("Completion animation state failed", error)
+        completionWarning = "事项已完成，但完成动画状态未能保存"
       }
     }
+    if (completionWarning) writeWidgetActionError(completionWarning)
   } catch (error) {
     console.error("CompleteDueItem failed", error)
     writeWidgetActionError(

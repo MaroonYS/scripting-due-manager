@@ -43,12 +43,20 @@ export async function loadReminderItems(
       calendarFilterIDs,
       items: cached,
     }
-    Storage.set(REMINDER_SNAPSHOT_KEY, snapshot, SHARED_STORAGE_OPTIONS)
+    let snapshotError: string | null = null
+    try {
+      if (!Storage.set(REMINDER_SNAPSHOT_KEY, snapshot, SHARED_STORAGE_OPTIONS)) {
+        snapshotError = "已读取提醒事项，但无法保存提醒缓存；小组件稍后可能无法离线显示这些事项。"
+      }
+    } catch (error) {
+      snapshotError = `已读取提醒事项，但无法保存提醒缓存：${readableError(error)}`
+    }
     return {
       items: cached.map(item => cacheItemToDisplay(item, false)),
       fetchedAt: snapshot.fetchedAt,
+      live: true,
       fromCache: false,
-      error: null,
+      error: snapshotError,
     }
   } catch (error) {
     const snapshot = readSnapshot()
@@ -57,12 +65,14 @@ export async function loadReminderItems(
       ? snapshot
       : null
     const expired = matchingSnapshot != null && isSnapshotStale(matchingSnapshot.fetchedAt)
+    const canUseCache = matchingSnapshot != null && !expired
     return {
-      items: matchingSnapshot && !expired
+      items: canUseCache
         ? matchingSnapshot.items.map(item => cacheItemToDisplay(item, true))
         : [],
       fetchedAt: matchingSnapshot?.fetchedAt ?? null,
-      fromCache: matchingSnapshot != null,
+      live: false,
+      fromCache: canUseCache,
       error: expired
         ? `提醒缓存已过期：${readableError(error)}`
         : readableError(error),
@@ -111,7 +121,7 @@ export function sortDueItems(items: DisplayDueItem[], now = new Date()): Display
   })
 }
 
-export type ReminderCompletionResult = "applied" | "stale" | "missing"
+export type ReminderCompletionResult = "applied" | "appliedCacheStale" | "stale" | "missing"
 
 export function findReminderDisplayItemForCompletion(
   id: string,
@@ -145,11 +155,13 @@ export async function completeReminderOccurrence(
   if (!current || reminderOccurrenceKey(current) !== completionKey) {
     return "stale"
   }
+  if (!current.canComplete) {
+    throw new Error("所在的提醒事项列表是只读的")
+  }
 
   reminder.isCompleted = true
   await reminder.save()
-  removeReminderFromSnapshot(id)
-  return "applied"
+  return removeReminderFromSnapshot(id) ? "applied" : "appliedCacheStale"
 }
 
 export function nextWidgetRefresh(
@@ -220,6 +232,7 @@ function reminderToCacheItem(reminder: any): CachedReminderItem | null {
     dueTimestamp,
     calendarTitle: String(reminder.calendar?.title ?? "提醒事项").slice(0, 80),
     priority: normalizedReminderPriority(reminder.priority),
+    canComplete: reminder.calendar?.allowsContentModifications !== false,
   }
 }
 
@@ -242,15 +255,24 @@ function cacheItemToDisplay(item: CachedReminderItem, stale: boolean): DisplayDu
     note: item.calendarTitle,
     priority: item.priority,
     stale,
+    canComplete: item.canComplete,
   }
 }
 
-function removeReminderFromSnapshot(id: string): void {
+function removeReminderFromSnapshot(id: string): boolean {
   const snapshot = readSnapshot()
-  if (!snapshot) return
+  if (!snapshot) return true
   const items = snapshot.items.filter(item => item.id !== id)
-  if (items.length === snapshot.items.length) return
-  Storage.set(REMINDER_SNAPSHOT_KEY, { ...snapshot, items }, SHARED_STORAGE_OPTIONS)
+  if (items.length === snapshot.items.length) return true
+  try {
+    return Storage.set(
+      REMINDER_SNAPSHOT_KEY,
+      { ...snapshot, items },
+      SHARED_STORAGE_OPTIONS,
+    )
+  } catch {
+    return false
+  }
 }
 
 function readSnapshot(): ReminderSnapshot | null {
@@ -297,6 +319,7 @@ function normalizeCachedItem(raw: any): CachedReminderItem | null {
     dueTimestamp: raw.dueTimestamp,
     calendarTitle: typeof raw.calendarTitle === "string" ? raw.calendarTitle.slice(0, 80) : "提醒事项",
     priority: boundedInteger(raw.priority, 0, 3, 0),
+    canComplete: typeof raw.canComplete === "boolean" ? raw.canComplete : true,
   }
 }
 

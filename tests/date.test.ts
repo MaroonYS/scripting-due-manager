@@ -23,6 +23,7 @@ import {
 } from "../到期管家/src/reminders.ts"
 import {
   defaultState,
+  deleteItem,
   loadState,
   manualItemsForDisplay,
   manualOccurrenceKey,
@@ -30,6 +31,7 @@ import {
   REMINDER_SNAPSHOT_KEY,
   STATE_KEY,
   updateSettings,
+  upsertItem,
 } from "../到期管家/src/storage.ts"
 import {
   clearWidgetCompletionFeedback,
@@ -98,6 +100,7 @@ function displayItem(overrides: Partial<DisplayDueItem>): DisplayDueItem {
     note: "",
     priority: overrides.priority ?? 1,
     stale: false,
+    canComplete: overrides.canComplete ?? true,
     ...overrides,
   }
 }
@@ -290,6 +293,7 @@ test("manual display items always receive an icon and preserve a manual override
   const displayed = manualItemsForDisplay(state)
   assert.equal(displayed.find(value => value.id === "ai")?.iconName, "sparkles")
   assert.equal(displayed.find(value => value.id === "water")?.iconName, "drop.fill")
+  assert.equal(displayed.every(value => value.canComplete), true)
 })
 
 test("manual completion feedback lookup requires the exact visible occurrence", () => {
@@ -316,17 +320,25 @@ test("manual completion feedback lookup requires the exact visible occurrence", 
 test("widget capacities adapt to small, medium, and large heights", () => {
   assert.equal(widgetItemCapacity("systemSmall", 170), 1)
   assert.equal(widgetItemCapacity("systemMedium", 145), 2)
+  assert.equal(widgetItemCapacity("systemMedium", 151), 2)
+  assert.equal(widgetItemCapacity("systemMedium", 152), 3)
   assert.equal(widgetItemCapacity("systemMedium", 168), 3)
   assert.equal(widgetItemCapacity("systemLarge", 250), 5)
+  assert.equal(widgetItemCapacity("systemLarge", 280), 5)
+  assert.equal(widgetItemCapacity("systemLarge", 281), 6)
+  assert.equal(widgetItemCapacity("systemLarge", 319), 6)
+  assert.equal(widgetItemCapacity("systemLarge", 320), 7)
   assert.equal(widgetItemCapacity("systemLarge", 360), 7)
 })
 
 test("widget rows use Apple's published iPhone widget heights", () => {
   assert.equal(widgetItemCapacity("systemMedium", 170), 3)
-  assert.equal(widgetRowHeight("systemMedium", 170, 3), 40)
+  assert.equal(widgetRowHeight("systemMedium", 170, 3), 41)
+  assert.equal(widgetRowHeight("systemMedium", 145, 2), 42)
   assert.equal(widgetItemCapacity("systemLarge", 382), 7)
-  assert.equal(widgetRowHeight("systemLarge", 382, 7), 44)
+  assert.equal(widgetRowHeight("systemLarge", 382, 7), 46)
   assert.equal(widgetRowHeight("systemLarge", 354, 7), 42)
+  assert.equal(widgetRowHeight("systemLarge", 250, 5), 39)
 })
 
 test("widget refresh targets a near timed due date before midnight", () => {
@@ -462,6 +474,8 @@ test("reminder loading resolves every selected list by Calendar.identifier", asy
     )
     assert.equal(queriedCalendars?.every(calendar => calendar === home || calendar === work), true)
     assert.equal(result.items.length, 1)
+    assert.equal(result.live, true)
+    assert.equal(result.fromCache, false)
     assert.deepEqual(
       (saved.get(REMINDER_SNAPSHOT_KEY) as any).calendarFilterIDs,
       ["home", "work"],
@@ -498,6 +512,7 @@ test("any missing selected reminder list prevents a partial or unfiltered query"
     const result = await (loadReminderItems as any)(730, ["deleted-list", "work"])
     assert.equal(reminderQueries, 0)
     assert.equal(result.items.length, 0)
+    assert.equal(result.live, false)
     assert.equal(result.fromCache, false)
     assert.ok(result.error)
   } finally {
@@ -545,10 +560,13 @@ test("reminder cache fallback requires the exact selected-list scope", async () 
     }
 
     const matching = await (loadReminderItems as any)(730, ["home", "work"])
+    assert.equal(matching.live, false)
     assert.equal(matching.fromCache, true)
     assert.deepEqual(matching.items.map((value: DisplayDueItem) => value.id), ["cached-selected"])
+    assert.equal(matching.items[0].canComplete, true)
 
     const different = await (loadReminderItems as any)(730, ["home"])
+    assert.equal(different.live, false)
     assert.equal(different.fromCache, false)
     assert.deepEqual(different.items, [])
     assert.ok(different.error)
@@ -599,7 +617,8 @@ test("reminder snapshots expire after twenty-four hours", async () => {
 
     const result = await loadReminderItems(730)
     assert.equal(isSnapshotStale(fetchedAt), true)
-    assert.equal(result.fromCache, true)
+    assert.equal(result.live, false)
+    assert.equal(result.fromCache, false)
     assert.equal(result.items.length, 0)
     assert.match(result.error ?? "", /缓存已过期/)
   } finally {
@@ -636,11 +655,109 @@ test("timed reminders use one consistent device-local instant", async () => {
     }
 
     const result = await loadReminderItems(730)
+    assert.equal(result.live, true)
+    assert.equal(result.fromCache, false)
     assert.equal(result.items[0].dueDate, `${instant.getFullYear()}-${String(instant.getMonth() + 1).padStart(2, "0")}-${String(instant.getDate()).padStart(2, "0")}`)
     assert.equal(result.items[0].hour, instant.getHours())
     assert.equal(result.items[0].minute, instant.getMinutes())
     assert.equal(result.items[0].dueTimestamp, instant.getTime())
     assert.equal(result.items[0].priority, 3)
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+    ;(globalThis as any).Reminder = originalReminder
+  }
+})
+
+test("a failed reminder snapshot write still returns the live EventKit result", async () => {
+  const originalStorage = (globalThis as any).Storage
+  const originalReminder = (globalThis as any).Reminder
+  const due = new Date(2026, 8, 4, 23, 59, 59, 999)
+  try {
+    ;(globalThis as any).Storage = {
+      get: () => null,
+      set: (key: string) => key !== REMINDER_SNAPSHOT_KEY,
+      remove: () => undefined,
+      contains: () => false,
+    }
+    ;(globalThis as any).Reminder = {
+      getIncompletes: async () => [{
+        identifier: "live-without-cache",
+        title: "已实时读取",
+        dueDateComponents: {
+          date: due,
+          year: 2026,
+          month: 9,
+          day: 4,
+          hour: null,
+          minute: null,
+        },
+        calendar: { title: "提醒事项" },
+        priority: 0,
+      }],
+    }
+
+    const result = await loadReminderItems(730)
+    assert.equal(result.live, true)
+    assert.equal(result.fromCache, false)
+    assert.deepEqual(result.items.map(value => value.id), ["live-without-cache"])
+    assert.equal(result.items[0].stale, false)
+    assert.match(result.error ?? "", /无法保存提醒缓存/)
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+    ;(globalThis as any).Reminder = originalReminder
+  }
+})
+
+test("reminders from a read-only calendar cannot be completed", async () => {
+  const originalStorage = (globalThis as any).Storage
+  const originalReminder = (globalThis as any).Reminder
+  const due = new Date(2026, 8, 5, 23, 59, 59, 999)
+  let savedSnapshot: any = null
+  let saves = 0
+  const reminder = {
+    identifier: "shared-read-only",
+    title: "共享只读提醒",
+    dueDateComponents: {
+      date: due,
+      year: 2026,
+      month: 9,
+      day: 5,
+      hour: null,
+      minute: null,
+    },
+    calendar: {
+      title: "共享列表",
+      allowsContentModifications: false,
+    },
+    priority: 0,
+    isCompleted: false,
+    save: async () => { saves += 1 },
+  }
+  try {
+    ;(globalThis as any).Storage = {
+      get: () => null,
+      set: (key: string, value: unknown) => {
+        if (key === REMINDER_SNAPSHOT_KEY) savedSnapshot = value
+        return true
+      },
+      remove: () => undefined,
+      contains: () => false,
+    }
+    ;(globalThis as any).Reminder = {
+      getIncompletes: async () => [reminder],
+      get: async () => reminder,
+    }
+
+    const result = await loadReminderItems(730)
+    assert.equal(result.live, true)
+    assert.equal(result.items[0].canComplete, false)
+    assert.equal(savedSnapshot.items[0].canComplete, false)
+    await assert.rejects(
+      completeReminderOccurrence(reminder.identifier, result.items[0].completionKey),
+      /只读/,
+    )
+    assert.equal(reminder.isCompleted, false)
+    assert.equal(saves, 0)
   } finally {
     ;(globalThis as any).Storage = originalStorage
     ;(globalThis as any).Reminder = originalReminder
@@ -696,6 +813,62 @@ test("reminder widget completion saves once and removes the cached row", async (
 
     assert.equal(await completeReminderOccurrence(reminder.identifier, key), "missing")
     assert.equal(saves, 1)
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+    ;(globalThis as any).Reminder = originalReminder
+  }
+})
+
+test("a completed reminder reports a local snapshot update failure accurately", async () => {
+  const originalStorage = (globalThis as any).Storage
+  const originalReminder = (globalThis as any).Reminder
+  const values = new Map<string, unknown>()
+  const instant = new Date(2026, 8, 2, 9, 30)
+  let snapshotWrites = 0
+  let saves = 0
+  const reminder = {
+    identifier: "complete-cache-failure",
+    title: "已完成但缓存失败",
+    dueDateComponents: {
+      date: instant,
+      year: instant.getFullYear(),
+      month: instant.getMonth() + 1,
+      day: instant.getDate(),
+      hour: instant.getHours(),
+      minute: instant.getMinutes(),
+    },
+    calendar: { title: "提醒事项", allowsContentModifications: true },
+    priority: 0,
+    isCompleted: false,
+    save: async () => { saves += 1 },
+  }
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string) => values.get(key) ?? null,
+      set: (key: string, value: unknown) => {
+        if (key === REMINDER_SNAPSHOT_KEY) {
+          snapshotWrites += 1
+          if (snapshotWrites > 1) return false
+        }
+        values.set(key, value)
+        return true
+      },
+      remove: (key: string) => { values.delete(key) },
+      contains: (key: string) => values.has(key),
+    }
+    ;(globalThis as any).Reminder = {
+      getIncompletes: async () => [reminder],
+      get: async () => reminder,
+    }
+
+    const loaded = await loadReminderItems(730)
+    assert.equal(
+      await completeReminderOccurrence(reminder.identifier, loaded.items[0].completionKey),
+      "appliedCacheStale",
+    )
+    assert.equal(reminder.isCompleted, true)
+    assert.equal(saves, 1)
+    assert.equal((values.get(REMINDER_SNAPSHOT_KEY) as any).items.length, 1)
   } finally {
     ;(globalThis as any).Storage = originalStorage
     ;(globalThis as any).Reminder = originalReminder
@@ -764,10 +937,94 @@ test("private state migrates to shared storage and shared data wins afterward", 
   }
 })
 
-test("completion feedback preserves the old occurrence until the animation ends", () => {
+test("a failed private-to-shared state migration is reported without pretending success", () => {
   const originalStorage = (globalThis as any).Storage
-  const sharedValues = new Map<string, unknown>()
-  const privateValues = new Map<string, unknown>()
+  const privateValue = {
+    items: [{ title: "仍在私有存储", dueDate: "2026-09-06" }],
+    settings: {},
+    updatedAt: 1,
+  }
+  let sharedWrites = 0
+  try {
+    ;(globalThis as any).Storage = {
+      get: (_key: string, options?: { shared: boolean }) => (
+        options?.shared ? null : privateValue
+      ),
+      set: (_key: string, _value: unknown, options?: { shared: boolean }) => {
+        if (options?.shared) sharedWrites += 1
+        return false
+      },
+      remove: () => undefined,
+      contains: () => false,
+    }
+
+    assert.throws(() => loadState(), /无法迁移到共享存储/)
+    assert.equal(sharedWrites, 1)
+    assert.equal(privateValue.items[0].title, "仍在私有存储")
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
+})
+
+test("optimistic item revisions reject stale editor saves and deletes", () => {
+  const originalStorage = (globalThis as any).Storage
+  const current = item({
+    id: "concurrent",
+    title: "已由小组件更新",
+    dueDate: "2026-09-30",
+    updatedAt: 200,
+  })
+  let sharedValue: any = {
+    ...defaultState(200),
+    items: [current],
+    updatedAt: 200,
+  }
+  let writes = 0
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string, options?: { shared: boolean }) => (
+        key === STATE_KEY && options?.shared ? sharedValue : null
+      ),
+      set: (key: string, value: unknown, options?: { shared: boolean }) => {
+        if (key === STATE_KEY && options?.shared) {
+          sharedValue = value
+          writes += 1
+        }
+        return true
+      },
+      remove: () => undefined,
+      contains: () => true,
+    }
+
+    const staleEdit = { ...current, title: "旧编辑页内容", updatedAt: 300 }
+    assert.throws(
+      () => upsertItem(staleEdit, 100),
+      /为避免覆盖新数据/,
+    )
+    assert.throws(
+      () => deleteItem(current.id, 100),
+      /为避免覆盖新数据/,
+    )
+    assert.equal(writes, 0)
+    assert.equal(sharedValue.items[0].title, "已由小组件更新")
+
+    const saved = upsertItem(staleEdit, 200)
+    assert.equal(saved.items[0].title, "旧编辑页内容")
+    assert.equal(writes, 1)
+    assert.throws(
+      () => deleteItem(current.id, 200),
+      /为避免覆盖新数据/,
+    )
+    const deleted = deleteItem(current.id, 300)
+    assert.deepEqual(deleted.items, [])
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
+})
+
+test("completion feedback uses schema 3 generation state without retaining an occurrence", () => {
+  const originalStorage = (globalThis as any).Storage
+  const values = new Map<string, unknown>()
   const now = new Date(2026, 7, 30, 20, 0).getTime()
   const previous = displayItem({
     id: "card",
@@ -783,6 +1040,55 @@ test("completion feedback preserves the old occurrence until the animation ends"
     dueDate: "2026-09-30",
   })
   const other = displayItem({ id: "other", title: "其他事项" })
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string) => values.get(key) ?? null,
+      set: (key: string, value: unknown) => { values.set(key, value); return true },
+      remove: (key: string) => { values.delete(key) },
+      contains: (key: string) => values.has(key),
+    }
+
+    assert.equal(writeWidgetCompletionFeedback(previous, now), true)
+    assert.deepEqual(values.get(WIDGET_COMPLETION_FEEDBACK_KEY), {
+      schemaVersion: 3,
+      generation: 1,
+      phase: 1,
+    })
+    assert.deepEqual(readWidgetCompletionFeedback(now + 100), [])
+    assert.deepEqual(readWidgetCompletionTransition(now + 100), {
+      generation: 1,
+      phase: 1,
+      items: [],
+    })
+
+    const merged = mergeWidgetCompletionFeedback([next, other], [previous])
+    assert.deepEqual(merged.map(item => item.completionKey), [
+      next.completionKey,
+      other.completionKey,
+    ])
+
+    clearWidgetCompletionFeedback("manual", previous.id, previous.completionKey, now + 200)
+    assert.deepEqual(values.get(WIDGET_COMPLETION_FEEDBACK_KEY), {
+      schemaVersion: 3,
+      generation: 1,
+      phase: 1,
+    })
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
+})
+
+test("legacy completion feedback migrates without persisting its completed item", () => {
+  const originalStorage = (globalThis as any).Storage
+  const sharedValues = new Map<string, unknown>()
+  const privateValues = new Map<string, unknown>()
+  const completed = displayItem({ id: "legacy-completed", title: "不应重现" })
+  privateValues.set(WIDGET_COMPLETION_FEEDBACK_KEY, {
+    schemaVersion: 2,
+    generation: 7,
+    phase: 1,
+    entries: [{ createdAt: Date.now(), item: completed }],
+  })
   try {
     ;(globalThis as any).Storage = {
       get: (key: string, options?: { shared: boolean }) => (
@@ -802,31 +1108,27 @@ test("completion feedback preserves the old occurrence until the animation ends"
       ).has(key),
     }
 
-    assert.equal(writeWidgetCompletionFeedback(previous, now), true)
-    const feedback = readWidgetCompletionFeedback(now + 100)
-    assert.equal(feedback.length, 1)
-    assert.equal(feedback[0].completionKey, previous.completionKey)
-    assert.equal(feedback[0].isCompleting, true)
-    assert.equal(feedback[0].note, previous.note)
-
-    const merged = mergeWidgetCompletionFeedback([next, other], feedback)
-    assert.equal(merged.some(item => item.completionKey === next.completionKey), false)
-    assert.equal(merged.some(item => item.completionKey === previous.completionKey), true)
-    assert.equal(merged.some(item => item.id === other.id), true)
-
-    clearWidgetCompletionFeedback("manual", previous.id, previous.completionKey, now + 200)
-    assert.deepEqual(readWidgetCompletionFeedback(now + 201), [])
-    const cleared = readWidgetCompletionTransition(now + 201)
-    assert.equal(cleared.generation, 1)
-    assert.equal(cleared.phase, 1)
-    assert.equal(sharedValues.has(WIDGET_COMPLETION_FEEDBACK_KEY), true)
+    assert.deepEqual(readWidgetCompletionTransition(), {
+      generation: 7,
+      phase: 1,
+      items: [],
+    })
+    assert.deepEqual(sharedValues.get(WIDGET_COMPLETION_FEEDBACK_KEY), {
+      schemaVersion: 3,
+      generation: 7,
+      phase: 1,
+    })
     assert.equal(privateValues.has(WIDGET_COMPLETION_FEEDBACK_KEY), false)
+    assert.doesNotMatch(
+      JSON.stringify(sharedValues.get(WIDGET_COMPLETION_FEEDBACK_KEY)),
+      /legacy-completed|不应重现|entries/,
+    )
   } finally {
     ;(globalThis as any).Storage = originalStorage
   }
 })
 
-test("every completion advances the transition generation and replaces older feedback", () => {
+test("every completion advances the generation without storing completed items", () => {
   const originalStorage = (globalThis as any).Storage
   const values = new Map<string, unknown>()
   const now = Date.now()
@@ -844,19 +1146,19 @@ test("every completion advances the transition generation and replaces older fee
     const firstTransition = readWidgetCompletionTransition(now + 1)
     assert.equal(firstTransition.generation, 1)
     assert.equal(firstTransition.phase, 1)
-    assert.deepEqual(firstTransition.items.map(item => item.id), [first.id])
+    assert.deepEqual(firstTransition.items, [])
 
     writeWidgetCompletionFeedback(second, now + 10)
     const secondTransition = readWidgetCompletionTransition(now + 11)
     assert.equal(secondTransition.generation, 2)
     assert.equal(secondTransition.phase, 0)
-    assert.deepEqual(secondTransition.items.map(item => item.id), [second.id])
+    assert.deepEqual(secondTransition.items, [])
 
-    assert.deepEqual(readWidgetCompletionFeedback(now + 30_011), [])
-    const expired = readWidgetCompletionTransition(now + 30_011)
-    assert.equal(expired.generation, 2)
-    assert.equal(expired.phase, 0)
-    assert.deepEqual((values.get(WIDGET_COMPLETION_FEEDBACK_KEY) as any).entries, [])
+    assert.deepEqual(values.get(WIDGET_COMPLETION_FEEDBACK_KEY), {
+      schemaVersion: 3,
+      generation: 2,
+      phase: 0,
+    })
   } finally {
     ;(globalThis as any).Storage = originalStorage
   }
@@ -877,25 +1179,39 @@ test("completion intent keeps one persisted transition and requests one widget r
   assert.doesNotMatch(source, /clearWidgetCompletionFeedback|setTimeout/)
   assert.doesNotMatch(source, /renderedAt|renderGeneration|canRunWidgetCompletionIntent|shouldReload/)
   assert.match(source, /completionIntentQueue/)
+  assert.match(source, /result === "appliedCacheStale"/)
+  assert.match(source, /提醒已完成，但本地缓存未能更新/)
 })
 
-test("widget view mounts one plain completion button tree", () => {
+test("widget view uses native queue transitions, safe controls, and unified list insets", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
   const importBlock = source.slice(0, source.indexOf("from \"scripting\"") + 16)
   assert.doesNotMatch(importBlock, /\bAnimation\b/)
-  assert.match(source, /Animation\.default\(\)/)
+  assert.match(source, /declare const Transition: any/)
+  assert.match(source, /Animation\.smooth\(\{\s*duration: 0\.32,\s*extraBounce: 0,\s*\}\)/)
+  assert.match(source, /const QUEUE_SLOT_TRANSITION = Transition\s*\.asymmetric\(/)
+  assert.match(source, /Transition\.move\("bottom"\)\.combined\(Transition\.opacity\(\)\)/)
+  assert.match(source, /transition=\{QUEUE_SLOT_TRANSITION\}/)
   assert.match(source, /key="completion-active-layer"/)
   assert.match(source, /function CompletionContent/)
   assert.match(source, /contentTransition="opacity"/)
   assert.match(source, /contentTransition="symbolEffectReplace"/)
   assert.doesNotMatch(source, /zIndex=|allowsHitTesting=|<Toggle|toggleStyle=|buttonStyle="bordered"|buttonBorderShape=|clipShape=/)
-  assert.match(source, /return <Button\s+[\s\S]*?buttonStyle="plain"[\s\S]*?CompleteDueItemIntent/)
-  assert.match(source, /key=\{`row-\$\{item\.source\}-\$\{item\.id\}-\$\{item\.completionKey\}`\}/)
+  assert.match(source, /return <Button\s+buttonStyle="plain"\s+contentShape="rectangle"[\s\S]*?CompleteDueItemIntent/)
+  assert.match(source, /key=\{`queue-slot-\$\{index\}`\}/)
   assert.match(source, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
-  assert.match(source, /circle\.inset\.filled/)
+  assert.match(source, /systemName="lock\.circle"/)
+  assert.match(source, /systemName="circle"/)
+  assert.match(source, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
+  assert.match(source, /<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}/)
+  assert.match(
+    source,
+    /<WidgetFrame contentPadding=\{\{\s*top: 11,\s*bottom: 11,\s*leading: 14,\s*trailing: 14,\s*\}\}>/,
+  )
+  assert.doesNotMatch(source, /contentPadding=\{roomy \? 14 : 11\}/)
   assert.doesNotMatch(source, /previousItems|completionPhase|layer0|layer1/)
   assert.equal(source.match(/animation=\{\{ animation: COMPLETION_QUEUE_ANIMATION, value: generation \}\}/g)?.length, 1)
   assert.doesNotMatch(source, /symbolEffect=\{\{ effect: "bounce"/)
@@ -919,7 +1235,8 @@ test("small widget previews one non-interactive next queue item", () => {
   )
   assert.match(smallItem, /const detail = smallItemDetail\(item\)/)
   assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", height: 76, alignment: "topLeading" \}\}/)
-  assert.match(smallItem, /<HStack\s+alignment="top"\s+spacing=\{7\}\s+padding=\{\{ top: 15 \}\}/)
+  assert.match(smallItem, /<HStack\s+alignment="top"\s+spacing=\{0\}\s+padding=\{\{ top: 15 \}\}/)
+  assert.match(smallItem, /<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}/)
   assert.equal(smallItem.match(/padding=\{\{ top: 15 \}\}/g)?.length, 1)
   assert.doesNotMatch(smallItem, /padding=\{\{ top: 22 \}\}/)
   assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)

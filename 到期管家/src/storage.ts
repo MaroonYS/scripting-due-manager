@@ -50,7 +50,11 @@ export function loadState(): AppState {
   // validated snapshot once so future package replacements keep the data.
   const legacy = Storage.get<unknown>(STATE_KEY)
   const state = normalizeState(legacy)
-  if (legacy != null) Storage.set(STATE_KEY, state, SHARED_STORAGE_OPTIONS)
+  if (legacy != null && !Storage.set(STATE_KEY, state, SHARED_STORAGE_OPTIONS)) {
+    throw new Error(
+      "检测到旧版到期管家数据，但无法迁移到共享存储；旧数据仍已保留，请确认设备存储空间后重试。",
+    )
+  }
   return state
 }
 
@@ -72,9 +76,13 @@ export function updateSettings(settings: Partial<AppSettings>): AppState {
   return persistOrThrow(next)
 }
 
-export function upsertItem(item: ManualDueItem): AppState {
+export function upsertItem(
+  item: ManualDueItem,
+  expectedUpdatedAt?: number,
+): AppState {
   const current = loadState()
   const index = current.items.findIndex(candidate => candidate.id === item.id)
+  assertExpectedItemRevision(current, index, expectedUpdatedAt, "保存")
   const items = [...current.items]
   if (index >= 0) items[index] = item
   else items.push(item)
@@ -82,8 +90,10 @@ export function upsertItem(item: ManualDueItem): AppState {
   return persistOrThrow(next)
 }
 
-export function deleteItem(id: string): AppState {
+export function deleteItem(id: string, expectedUpdatedAt?: number): AppState {
   const current = loadState()
+  const index = current.items.findIndex(item => item.id === id)
+  assertExpectedItemRevision(current, index, expectedUpdatedAt, "删除")
   const next = {
     ...current,
     items: current.items.filter(item => item.id !== id),
@@ -140,6 +150,7 @@ export function manualItemsForDisplay(state: AppState): DisplayDueItem[] {
         note: item.note,
         priority: kindPriority(item.kind),
         stale: false,
+        canComplete: true,
       }
     })
 }
@@ -404,4 +415,18 @@ function persistOrThrow(state: AppState): AppState {
     throw new Error("无法保存到期管家数据，请确认设备存储空间后重试。")
   }
   return state
+}
+
+function assertExpectedItemRevision(
+  state: AppState,
+  itemIndex: number,
+  expectedUpdatedAt: number | undefined,
+  action: "保存" | "删除",
+): void {
+  if (expectedUpdatedAt === undefined) return
+  const current = itemIndex >= 0 ? state.items[itemIndex] : null
+  if (current && current.updatedAt === expectedUpdatedAt) return
+  throw new Error(
+    `该事项已在其他位置更新、完成或删除，为避免覆盖新数据，本次${action}已取消。请返回后重新打开该事项。`,
+  )
 }

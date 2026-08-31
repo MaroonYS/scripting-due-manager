@@ -25,6 +25,7 @@ type WidgetDataProps = {
   items: DisplayDueItem[]
   completionGeneration: number
   reminderFetchedAt: number | null
+  remindersLive: boolean
   remindersFromCache: boolean
   remindersEnabled: boolean
   reminderError: string | null
@@ -36,9 +37,19 @@ type WidgetIssue = {
   color: string
 }
 
-// Animation is a Scripting runtime global (like Storage), not a named export.
-// Binding it to the persisted generation lets WidgetKit animate entry changes.
-const COMPLETION_QUEUE_ANIMATION = Animation.default()
+// Animation and Transition are Scripting runtime globals (like Storage), not
+// named exports. A persisted generation drives one WidgetKit timeline diff.
+declare const Transition: any
+const COMPLETION_QUEUE_ANIMATION = Animation.smooth({
+  duration: 0.32,
+  extraBounce: 0,
+})
+const QUEUE_SLOT_TRANSITION = Transition
+  .asymmetric(
+    Transition.move("bottom").combined(Transition.opacity()),
+    Transition.opacity(),
+  )
+  .animation(COMPLETION_QUEUE_ANIMATION)
 
 export function DueManagerWidget(props: WidgetDataProps) {
   const displayHeight = Widget.displaySize?.height
@@ -198,6 +209,7 @@ function SmallDueItem({
   return <VStack
     alignment="leading"
     spacing={0}
+    contentTransition="opacity"
     frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
   >
     <VStack
@@ -207,13 +219,13 @@ function SmallDueItem({
     >
       <HStack
         alignment="top"
-        spacing={7}
+        spacing={0}
         padding={{ top: 15 }}
         frame={{ maxWidth: "infinity", alignment: "leading" }}
       >
         <CompletionControl
           item={item}
-          hitSize={32}
+          hitSize={40}
           symbolSize={19}
         />
         <Link url={itemURL(item)}>
@@ -329,6 +341,7 @@ function ListWidget({
   completionGeneration,
   limit,
   family,
+  remindersLive,
   remindersFromCache,
   reminderError,
   interactionError,
@@ -338,13 +351,23 @@ function ListWidget({
   family: "systemMedium" | "systemLarge"
   displayHeight?: number
 }) {
-  const issue = widgetIssue({ remindersFromCache, reminderError, interactionError })
+  const issue = widgetIssue({
+    remindersLive,
+    remindersFromCache,
+    reminderError,
+    interactionError,
+  })
   const effectiveLimit = issue ? Math.max(1, limit - 1) : limit
   const visible = visibleWidgetItems(items, effectiveLimit)
   const roomy = family === "systemLarge"
   const rowHeight = widgetRowHeight(family, displayHeight, effectiveLimit)
 
-  return <WidgetFrame contentPadding={roomy ? 14 : 11}>
+  return <WidgetFrame contentPadding={{
+    top: 11,
+    bottom: 11,
+    leading: 14,
+    trailing: 14,
+  }}>
     <VStack
       alignment="leading"
       spacing={0}
@@ -393,8 +416,10 @@ function ListWidgetBody({
       >
         {visible.map((item, index) => (
           <VStack
-            key={`row-${item.source}-${item.id}-${item.completionKey}`}
+            key={`queue-slot-${index}`}
             spacing={0}
+            contentTransition="opacity"
+            transition={QUEUE_SLOT_TRANSITION}
             frame={{ maxWidth: "infinity" }}
           >
             <DueItemRow
@@ -453,14 +478,16 @@ function DueItemRow({
   roomy: boolean
   height: number
 }) {
+  const hitSize = Math.min(height, roomy ? 40 : 38)
   return <HStack
     alignment="center"
-    spacing={5}
+    spacing={4}
+    contentTransition="opacity"
     frame={{ maxWidth: "infinity", height }}
   >
     <CompletionControl
       item={item}
-      hitSize={roomy ? 34 : 32}
+      hitSize={hitSize}
       symbolSize={roomy ? 20 : 19}
     />
     <Link url={itemURL(item)}>
@@ -536,18 +563,27 @@ function CompletionControl({
   hitSize: number
   symbolSize: number
 }) {
+  if (!item.canComplete) {
+    return <Image
+      systemName="lock.circle"
+      font={symbolSize - 1}
+      foregroundStyle="tertiaryLabel"
+      frame={{ width: hitSize, height: hitSize }}
+      contentTransition="symbolEffectReplace"
+    />
+  }
   if (item.stale) {
     return <Image
       systemName="clock.arrow.circlepath"
       font={symbolSize - 1}
       foregroundStyle="tertiaryLabel"
       frame={{ width: hitSize, height: hitSize }}
+      contentTransition="symbolEffectReplace"
     />
   }
-  const completing = item.isCompleting === true
   return <Button
     buttonStyle="plain"
-    contentShape="circle"
+    contentShape="rectangle"
     intent={CompleteDueItemIntent({
       source: item.source,
       id: item.id,
@@ -555,7 +591,6 @@ function CompletionControl({
     })}
   >
     <CompletionSymbol
-      name={completing ? "circle.inset.filled" : "circle"}
       hitSize={hitSize}
       symbolSize={symbolSize}
     />
@@ -563,22 +598,19 @@ function CompletionControl({
 }
 
 function CompletionSymbol({
-  name,
   hitSize,
   symbolSize,
 }: {
-  name: string
   hitSize: number
   symbolSize: number
 }) {
   return <Image
-    systemName={name}
+    systemName="circle"
     font={symbolSize}
     foregroundStyle="systemBlue"
     symbolRenderingMode="hierarchical"
     frame={{ width: hitSize, height: hitSize }}
     contentTransition="symbolEffectReplace"
-    animation={{ animation: COMPLETION_QUEUE_ANIMATION, value: name }}
     widgetAccentable
   />
 }
@@ -645,7 +677,12 @@ function WidgetFrame({
   contentPadding = 11,
 }: {
   children: any
-  contentPadding?: number
+  contentPadding?: number | {
+    top: number
+    bottom: number
+    leading: number
+    trailing: number
+  }
 }) {
   return <VStack
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
@@ -666,7 +703,6 @@ function widgetStatusColor(
   days: number,
   remaining: number,
 ): string {
-  if (item.isCompleting) return "tertiaryLabel"
   if (overdue) return "systemRed"
   if (days === 0 || (item.includesTime && remaining > 0 && remaining <= 24 * 60 * 60 * 1000)) {
     return "systemOrange"
@@ -675,6 +711,7 @@ function widgetStatusColor(
 }
 
 function widgetIssue(props: {
+  remindersLive: boolean
   remindersFromCache: boolean
   reminderError: string | null
   interactionError: string | null
@@ -684,7 +721,11 @@ function widgetIssue(props: {
   }
   if (props.reminderError) {
     return {
-      text: props.remindersFromCache ? "提醒事项同步失败，正在显示缓存" : "提醒事项读取失败，请打开主脚本检查",
+      text: props.remindersLive
+        ? "提醒事项已读取，但缓存保存失败"
+        : props.remindersFromCache
+          ? "提醒事项同步失败，正在显示缓存"
+          : "提醒事项读取失败，请打开主脚本检查",
       color: "systemOrange",
     }
   }
