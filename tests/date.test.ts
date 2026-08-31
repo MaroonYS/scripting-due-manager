@@ -10,6 +10,8 @@ import {
   parseDateKey,
 } from "../到期管家/src/date.ts"
 import {
+  DUE_ICON_GROUPS,
+  DUE_ICON_OPTIONS,
   normalizeIconOverride,
   resolveDueIcon,
 } from "../到期管家/src/icons.ts"
@@ -47,7 +49,48 @@ import {
   widgetItemCapacity,
   widgetRowHeight,
 } from "../到期管家/src/widget_layout.ts"
-import type { DisplayDueItem, ManualDueItem } from "../到期管家/src/types.ts"
+import type { DisplayDueItem, ItemKind, ManualDueItem } from "../到期管家/src/types.ts"
+
+const LEGACY_DUE_ICON_NAMES = [
+  "creditcard.fill",
+  "building.columns.fill",
+  "banknote.fill",
+  "cart.fill",
+  "play.rectangle.fill",
+  "music.note",
+  "gamecontroller.fill",
+  "newspaper.fill",
+  "sparkles",
+  "icloud.fill",
+  "globe",
+  "wifi",
+  "iphone",
+  "bolt.fill",
+  "drop.fill",
+  "flame.fill",
+  "house.fill",
+  "car.fill",
+  "shield.fill",
+  "cross.case.fill",
+  "pawprint.fill",
+  "figure.run",
+  "graduationcap.fill",
+  "airplane",
+  "gift.fill",
+  "ticket.fill",
+  "doc.text.fill",
+  "checklist",
+  "repeat.circle.fill",
+  "calendar.badge.clock",
+] as const
+
+type IconCase = readonly [title: string, kind: ItemKind | "reminder", expected: string]
+
+function assertIconCases(cases: readonly IconCase[]): void {
+  for (const [title, kind, expected] of cases) {
+    assert.equal(resolveDueIcon(title, kind).name, expected, title)
+  }
+}
 
 function item(overrides: Partial<ManualDueItem> = {}): ManualDueItem {
   return {
@@ -111,15 +154,90 @@ test("validates local date keys", () => {
   assert.equal(parseDateKey("2026-13-01"), null)
 })
 
-test("intelligent icons match common services locally", () => {
-  assert.equal(resolveDueIcon("Claude Pro", "subscription").name, "sparkles")
-  assert.equal(resolveDueIcon("Ｓｐｏｔｉｆｙ 家庭会员", "subscription").name, "music.note")
-  assert.equal(resolveDueIcon("网易云音乐黑胶会员", "subscription").name, "music.note")
-  assert.equal(resolveDueIcon("Netflix", "subscription").name, "play.rectangle.fill")
-  assert.equal(resolveDueIcon("BANK 03 | SoFi", "reminder").name, "building.columns.fill")
-  assert.equal(resolveDueIcon("CREDIT 03 | Venture", "reminder").name, "creditcard.fill")
-  assert.equal(resolveDueIcon("家庭电费", "bill").name, "bolt.fill")
-  assert.equal(resolveDueIcon("车辆车险", "bill").name, "car.fill")
+test("icon catalog is grouped, unique, and keeps every saved legacy symbol valid", () => {
+  assert.ok(DUE_ICON_OPTIONS.length >= 100)
+  assert.equal(new Set(DUE_ICON_OPTIONS.map(option => option.name)).size, DUE_ICON_OPTIONS.length)
+  assert.equal(new Set(DUE_ICON_OPTIONS.map(option => option.label)).size, DUE_ICON_OPTIONS.length)
+
+  const declaredGroups = new Set(DUE_ICON_GROUPS)
+  for (const group of DUE_ICON_GROUPS) {
+    assert.ok(DUE_ICON_OPTIONS.some(option => option.group === group), `${group} must not be empty`)
+  }
+  for (const option of DUE_ICON_OPTIONS) {
+    assert.ok(declaredGroups.has(option.group), `${option.name} uses an undeclared group`)
+  }
+  for (const legacyName of LEGACY_DUE_ICON_NAMES) {
+    assert.ok(
+      DUE_ICON_OPTIONS.some(option => option.name === legacyName),
+      `${legacyName} must remain available for saved manual overrides`,
+    )
+  }
+})
+
+test("every intelligent icon rule points to a selectable catalog icon", () => {
+  const source = readFileSync(
+    new URL("../到期管家/src/icons.ts", import.meta.url),
+    "utf8",
+  )
+  const rulesStart = source.indexOf("const ICON_RULES")
+  const rulesEnd = source.indexOf("const KIND_FALLBACKS", rulesStart)
+  assert.ok(rulesStart >= 0 && rulesEnd > rulesStart)
+
+  const catalogNames = new Set(DUE_ICON_OPTIONS.map(option => option.name))
+  const ruleIcons = [...source.slice(rulesStart, rulesEnd).matchAll(/\bicon:\s*"([^"]+)"/g)]
+    .map(match => match[1])
+  assert.ok(ruleIcons.length > 0)
+  for (const iconName of ruleIcons) {
+    assert.ok(catalogNames.has(iconName), `${iconName} is referenced by a rule but missing from the picker`)
+  }
+})
+
+test("intelligent icons cover common App Store and subscription directions locally", () => {
+  assertIconCases([
+    ["Claude Pro", "subscription", "sparkles"],
+    ["Ｓｐｏｔｉｆｙ 家庭会员", "subscription", "music.note"],
+    ["网易云音乐黑胶会员", "subscription", "music.note"],
+    ["Netflix", "subscription", "play.rectangle.fill"],
+    ["Audible membership", "subscription", "headphones"],
+    ["Apple Arcade", "subscription", "gamecontroller.fill"],
+    ["NBA League Pass", "subscription", "sportscourt.fill"],
+    ["The New York Times", "subscription", "newspaper.fill"],
+    ["Kindle Unlimited", "subscription", "book.closed.fill"],
+    ["Microsoft 365", "subscription", "briefcase.fill"],
+    ["Todoist Pro", "subscription", "checkmark.circle.fill"],
+    ["1Password Families", "subscription", "key.fill"],
+    ["NordVPN renewal", "subscription", "lock.shield.fill"],
+    ["Backblaze cloud backup", "subscription", "externaldrive.fill"],
+    ["CamScanner Premium", "subscription", "scanner.fill"],
+    ["Headspace annual plan", "subscription", "figure.mind.and.body"],
+    ["AllTrails+", "subscription", "map.fill"],
+    ["BANK 03 | SoFi", "reminder", "building.columns.fill"],
+    ["CREDIT 03 | Venture", "reminder", "creditcard.fill"],
+    ["家庭电费", "bill", "bolt.fill"],
+    ["车辆车险", "bill", "car.fill"],
+  ])
+})
+
+test("specific brands and product families beat broader matching rules", () => {
+  assertIconCases([
+    ["YouTube Music Premium", "subscription", "music.note"],
+    ["Amazon Prime Video", "subscription", "play.rectangle.fill"],
+    ["Amazon Prime", "subscription", "shippingbox.fill"],
+    ["Adobe Creative Cloud", "subscription", "paintpalette.fill"],
+    ["GitHub Copilot", "subscription", "sparkles"],
+    ["GitHub Pro", "subscription", "curlybraces.square.fill"],
+    ["Apple Music", "subscription", "music.note"],
+    ["Apple TV+", "subscription", "play.rectangle.fill"],
+    ["Apple TV Plus", "subscription", "play.rectangle.fill"],
+    ["Apple News+", "subscription", "newspaper.fill"],
+    ["Apple News Plus", "subscription", "newspaper.fill"],
+    ["Apple Fitness+", "subscription", "dumbbell.fill"],
+    ["iCloud+", "subscription", "icloud.fill"],
+    ["iCloud Plus", "subscription", "icloud.fill"],
+    ["Apple One", "subscription", "square.grid.2x2.fill"],
+    ["AppleCare+", "subscription", "shield.lefthalf.filled"],
+    ["Apple Developer Program", "subscription", "curlybraces.square.fill"],
+  ])
 })
 
 test("manual icon override wins and invalid values return to automatic matching", () => {
@@ -128,9 +246,60 @@ test("manual icon override wins and invalid values return to automatic matching"
   assert.equal(resolveDueIcon("Claude Pro", "subscription", "not.a.real.allowed.symbol").name, "sparkles")
 })
 
+test("icon matching avoids broad Chinese substring false positives", () => {
+  assertIconCases([
+    ["会议时间移动到周五", "custom", "calendar.badge.clock"],
+    ["电信诈骗新闻订阅", "custom", "newspaper.fill"],
+    ["天然气候研究", "custom", "calendar.badge.clock"],
+    ["保险箱密码轮换", "custom", "key.fill"],
+    ["银行家杂志订阅", "custom", "newspaper.fill"],
+    ["移动硬盘备份", "custom", "externaldrive.fill"],
+    ["主机游戏会员", "custom", "gamecontroller.fill"],
+    ["加油打气", "custom", "calendar.badge.clock"],
+  ])
+})
+
 test("icon matching uses English word boundaries", () => {
-  assert.equal(resolveDueIcon("Current account review", "custom").name, "calendar.badge.clock")
-  assert.equal(resolveDueIcon("Home internet renewal", "subscription").name, "wifi")
+  assertIconCases([
+    ["Current account review", "custom", "calendar.badge.clock"],
+    ["Home internet renewal", "subscription", "wifi"],
+    ["Steamship maintenance", "custom", "calendar.badge.clock"],
+    ["Bankruptcy article", "custom", "calendar.badge.clock"],
+    ["Notional planning", "custom", "calendar.badge.clock"],
+    ["Netflixify deployment", "custom", "calendar.badge.clock"],
+    ["Canvas replacement", "custom", "calendar.badge.clock"],
+    ["Gymnasium tuition", "custom", "graduationcap.fill"],
+    ["Project X Premium", "custom", "calendar.badge.clock"],
+    ["X Premium", "subscription", "bubble.left.and.bubble.right.fill"],
+    ["Car repair plan", "custom", "calendar.badge.clock"],
+    ["Home repair plan", "subscription", "hammer.fill"],
+  ])
+
+  const source = readFileSync(
+    new URL("../到期管家/src/icons.ts", import.meta.url),
+    "utf8",
+  )
+  assert.doesNotMatch(source, /toLocaleLowerCase\s*\(/)
+})
+
+test("unmatched titles use stable ItemKind fallbacks instead of catalog order", () => {
+  assertIconCases([
+    ["Project Zephyr 8472", "creditCard", "creditcard.fill"],
+    ["Project Zephyr 8472", "subscription", "repeat.circle.fill"],
+    ["Project Zephyr 8472", "bill", "doc.text.fill"],
+    ["Project Zephyr 8472", "custom", "calendar.badge.clock"],
+    ["Project Zephyr 8472", "reminder", "checklist"],
+  ])
+
+  const source = readFileSync(
+    new URL("../到期管家/src/icons.ts", import.meta.url),
+    "utf8",
+  )
+  assert.doesNotMatch(
+    source,
+    /DUE_ICON_OPTIONS\s*\[\s*DUE_ICON_OPTIONS\.length\s*-\s*1\s*\]/,
+  )
+  assert.doesNotMatch(source, /DUE_ICON_OPTIONS\.at\(\s*-1\s*\)/)
 })
 
 test("calendar-day differences do not depend on DST hours", () => {
