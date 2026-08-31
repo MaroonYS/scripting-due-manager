@@ -2,10 +2,10 @@
   "name": "到期管家",
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "1.3.24",
-  "description": "Track due dates and selected Apple Reminders with 130 offline SF Symbols in 11 App Store-inspired groups, expanded subscription matching, manual overrides, and legacy icon compatibility.",
+  "version": "1.3.25",
+  "description": "Track due dates and selected Apple Reminders with 11 centralized due-item types, 130 offline SF Symbols, expanded subscription matching, and protected local data migration.",
   "localizedDescriptions": {
-    "zh": "通过原生风格桌面组件管理信用卡、订阅、周期事项与指定提醒事项列表，内置 130 个离线 SF Symbols、11 个常见方向分组及更丰富的订阅匹配，并保留手动覆盖和旧图标兼容。"
+    "zh": "通过原生风格桌面组件管理信用卡、订阅、账单、还款、保险等 11 种到期事项，内置 130 个离线 SF Symbols、自动匹配和旧数据保护。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

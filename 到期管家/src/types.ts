@@ -1,4 +1,6 @@
-export type ItemKind = "creditCard" | "subscription" | "bill" | "custom"
+import type { ItemKind } from "./item_kinds"
+
+export type { ItemKind } from "./item_kinds"
 
 export type RecurrenceUnit = "day" | "week" | "month" | "year"
 
@@ -40,7 +42,7 @@ export interface AppSettings {
 }
 
 export interface AppState {
-  schemaVersion: 1
+  schemaVersion: 2
   items: ManualDueItem[]
   settings: AppSettings
   updatedAt: number

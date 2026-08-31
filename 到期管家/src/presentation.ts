@@ -1,28 +1,20 @@
 import { dueStatus, humanDate, localDateKey } from "./date"
+import { itemKindDefinition } from "./item_kinds"
 import type { DisplayDueItem, ItemKind, RecurrenceRule } from "./types"
 
 export function kindLabel(kind: ItemKind | "reminder"): string {
-  if (kind === "creditCard") return "信用卡"
-  if (kind === "subscription") return "订阅"
-  if (kind === "bill") return "账单"
   if (kind === "reminder") return "提醒事项"
-  return "其他"
+  return itemKindDefinition(kind).label
 }
 
 export function kindIcon(kind: ItemKind | "reminder"): string {
-  if (kind === "creditCard") return "creditcard.fill"
-  if (kind === "subscription") return "repeat.circle.fill"
-  if (kind === "bill") return "doc.text.fill"
   if (kind === "reminder") return "checklist"
-  return "calendar.badge.clock"
+  return itemKindDefinition(kind).icon
 }
 
 export function kindColor(kind: ItemKind | "reminder"): string {
-  if (kind === "creditCard") return "systemOrange"
-  if (kind === "subscription") return "systemPurple"
-  if (kind === "bill") return "systemBlue"
   if (kind === "reminder") return "systemPink"
-  return "systemTeal"
+  return itemKindDefinition(kind).color
 }
 
 export function recurrenceLabel(rule: RecurrenceRule | null): string {

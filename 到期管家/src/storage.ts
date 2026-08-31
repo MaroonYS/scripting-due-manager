@@ -5,11 +5,11 @@ import {
   parseDateKey,
 } from "./date"
 import { normalizeIconOverride, resolveDueIcon } from "./icons"
+import { isItemKind, itemKindPriority } from "./item_kinds"
 import type {
   AppSettings,
   AppState,
   DisplayDueItem,
-  ItemKind,
   ManualDueItem,
   RecurrenceRule,
   RecurrenceUnit,
@@ -32,7 +32,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 export function defaultState(now = Date.now()): AppState {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     items: [],
     settings: {
       ...DEFAULT_SETTINGS,
@@ -61,7 +61,7 @@ export function loadState(): AppState {
 export function saveState(state: AppState): boolean {
   return Storage.set(STATE_KEY, {
     ...state,
-    schemaVersion: 1,
+    schemaVersion: 2,
     updatedAt: Math.max(Date.now(), state.updatedAt),
   }, SHARED_STORAGE_OPTIONS)
 }
@@ -148,7 +148,7 @@ export function manualItemsForDisplay(state: AppState): DisplayDueItem[] {
         ).getTime(),
         amount: state.settings.showAmounts ? item.amount : "",
         note: item.note,
-        priority: kindPriority(item.kind),
+        priority: itemKindPriority(item.kind),
         stale: false,
         canComplete: true,
       }
@@ -256,6 +256,7 @@ function normalizeState(raw: unknown): AppState {
   if (
     Object.prototype.hasOwnProperty.call(raw, "schemaVersion")
     && raw.schemaVersion !== 1
+    && raw.schemaVersion !== 2
   ) {
     throw new Error("检测到不受支持的数据版本；为保护原数据，本脚本没有修改它。")
   }
@@ -265,7 +266,7 @@ function normalizeState(raw: unknown): AppState {
     .filter((item): item is ManualDueItem => item != null)
   const items = uniqueItemIDs(normalizedItems)
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     items,
     settings: normalizeSettings(raw.settings),
     updatedAt: finiteNumber(raw.updatedAt, Date.now()),
@@ -368,20 +369,6 @@ function normalizeRecurrence(raw: unknown, dueDate: string): RecurrenceRule | nu
     useMonthEnd: raw.useMonthEnd === true,
     leapDayPolicy: raw.leapDayPolicy === "mar1" ? "mar1" : "feb28",
   }
-}
-
-function kindPriority(kind: ItemKind): number {
-  if (kind === "creditCard") return 4
-  if (kind === "bill") return 3
-  if (kind === "subscription") return 2
-  return 1
-}
-
-function isItemKind(value: unknown): value is ItemKind {
-  return value === "creditCard"
-    || value === "subscription"
-    || value === "bill"
-    || value === "custom"
 }
 
 function isRecurrenceUnit(value: unknown): value is RecurrenceUnit {

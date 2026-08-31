@@ -16,6 +16,15 @@ import {
   resolveDueIcon,
 } from "../到期管家/src/icons.ts"
 import {
+  isItemKind,
+  ITEM_KIND_DEFINITIONS,
+} from "../到期管家/src/item_kinds.ts"
+import {
+  kindColor,
+  kindIcon,
+  kindLabel,
+} from "../到期管家/src/presentation.ts"
+import {
   completeReminderOccurrence,
   findReminderDisplayItemForCompletion,
   isSnapshotStale,
@@ -31,6 +40,7 @@ import {
   manualOccurrenceKey,
   planManualCompletion,
   REMINDER_SNAPSHOT_KEY,
+  saveState,
   STATE_KEY,
   updateSettings,
   upsertItem,
@@ -171,6 +181,149 @@ test("icon catalog is grouped, unique, and keeps every saved legacy symbol valid
       DUE_ICON_OPTIONS.some(option => option.name === legacyName),
       `${legacyName} must remain available for saved manual overrides`,
     )
+  }
+})
+
+test("item kinds have one centralized ordered and unique definition", () => {
+  assert.deepEqual(
+    ITEM_KIND_DEFINITIONS.map(definition => definition.value),
+    [
+      "creditCard",
+      "subscription",
+      "bill",
+      "repayment",
+      "insurance",
+      "digitalService",
+      "credential",
+      "maintenance",
+      "appointment",
+      "occasion",
+      "custom",
+    ],
+  )
+  assert.deepEqual(
+    ITEM_KIND_DEFINITIONS.map(definition => definition.label),
+    [
+      "信用卡",
+      "订阅会员",
+      "账单缴费",
+      "贷款分期",
+      "保险保单",
+      "数字服务",
+      "证件合同",
+      "保养维护",
+      "预约日程",
+      "纪念日期",
+      "其他事项",
+    ],
+  )
+  assert.deepEqual(
+    ITEM_KIND_DEFINITIONS.map(definition => definition.priority),
+    [4, 2, 3, 4, 3, 2, 3, 1, 1, 1, 1],
+  )
+  assert.equal(ITEM_KIND_DEFINITIONS.length, 11)
+  assert.equal(
+    new Set(ITEM_KIND_DEFINITIONS.map(definition => definition.value)).size,
+    ITEM_KIND_DEFINITIONS.length,
+  )
+  assert.equal(
+    new Set(ITEM_KIND_DEFINITIONS.map(definition => definition.label)).size,
+    ITEM_KIND_DEFINITIONS.length,
+  )
+})
+
+test("every item kind uses a selectable fallback icon and consistent presentation", () => {
+  const selectableIcons = new Set(DUE_ICON_OPTIONS.map(option => option.name))
+  for (const definition of ITEM_KIND_DEFINITIONS) {
+    assert.ok(
+      selectableIcons.has(definition.icon),
+      `${definition.label} fallback ${definition.icon} must be selectable`,
+    )
+    assert.equal(
+      resolveDueIcon("Project Zephyr 8472", definition.value).name,
+      definition.icon,
+      `${definition.label} must use its centralized fallback`,
+    )
+    assert.equal(kindLabel(definition.value), definition.label)
+    assert.equal(kindIcon(definition.value), definition.icon)
+    assert.equal(kindColor(definition.value), definition.color)
+    const state = {
+      ...defaultState(1),
+      items: [item({ kind: definition.value })],
+    }
+    assert.equal(manualItemsForDisplay(state)[0].priority, definition.priority)
+  }
+
+  assert.equal(kindLabel("reminder"), "提醒事项")
+  assert.equal(kindIcon("reminder"), "checklist")
+  assert.equal(kindColor("reminder"), "systemPink")
+})
+
+test("item kind validation accepts every definition and rejects unknown values", () => {
+  for (const definition of ITEM_KIND_DEFINITIONS) {
+    assert.equal(isItemKind(definition.value), true, definition.value)
+  }
+  assert.equal(isItemKind("reminder"), false)
+  assert.equal(isItemKind("unknown"), false)
+  assert.equal(isItemKind(""), false)
+  assert.equal(isItemKind(null), false)
+})
+
+test("legacy state upgrades to schema 2 and preserves old and new item kinds", () => {
+  const originalStorage = (globalThis as any).Storage
+  const legacyKinds = ["creditCard", "subscription", "bill", "custom"] as const
+  let sharedValue: any = {
+    schemaVersion: 1,
+    items: legacyKinds.map((kind, index) => item({
+      id: `legacy-kind-${index}`,
+      title: `Legacy ${kind}`,
+      kind,
+    })),
+    settings: {},
+    updatedAt: 1,
+  }
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string, options?: { shared: boolean }) => (
+        key === STATE_KEY && options?.shared ? sharedValue : null
+      ),
+      set: (key: string, value: unknown, options?: { shared: boolean }) => {
+        if (key === STATE_KEY && options?.shared) sharedValue = value
+        return true
+      },
+      remove: () => undefined,
+      contains: () => true,
+    }
+
+    const migrated = loadState()
+    assert.equal(migrated.schemaVersion, 2)
+    assert.deepEqual(migrated.items.map(value => value.kind), legacyKinds)
+
+    const next = {
+      ...migrated,
+      items: [...migrated.items, item({
+        id: "new-insurance-kind",
+        title: "Insurance renewal",
+        kind: "insurance",
+      })],
+      updatedAt: 2,
+    }
+    assert.equal(saveState(next), true)
+    assert.equal(sharedValue.schemaVersion, 2)
+    assert.equal(
+      loadState().items.find(value => value.id === "new-insurance-kind")?.kind,
+      "insurance",
+    )
+
+    sharedValue = {
+      ...sharedValue,
+      items: [
+        { ...item({ id: "unknown-kind" }), kind: "future-kind" },
+      ],
+    }
+    assert.equal(loadState().items[0].kind, "custom")
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
   }
 })
 
@@ -1482,6 +1635,20 @@ test("settings expose a native multi-list reminder picker", () => {
   assert.match(source, /reminderCalendarIDs/)
   assert.match(source, /提醒事项列表/)
   assert.match(source, /requestAccess\(\[\s*"calendar"\s*,\s*"reminders"\s*\]\)/)
+})
+
+test("item editor derives its type picker from the centralized definitions", () => {
+  const source = readFileSync(
+    new URL("../到期管家/index.tsx", import.meta.url),
+    "utf8",
+  )
+  assert.match(source, /ITEM_KIND_DEFINITIONS\.map\(definition =>/)
+  assert.match(source, /tag=\{definition\.value\}/)
+  assert.match(source, /if \(isItemKind\(value\)\) setKind\(value\)/)
+  assert.doesNotMatch(source, /<Text tag="creditCard">/)
+  assert.doesNotMatch(source, /<Text tag="subscription">/)
+  assert.doesNotMatch(source, /<Text tag="bill">/)
+  assert.doesNotMatch(source, /<Text tag="custom">/)
 })
 
 test("published script updates from the fixed latest-release package", () => {

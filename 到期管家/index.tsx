@@ -33,6 +33,7 @@ import {
   DUE_ICON_OPTIONS,
   resolveDueIcon,
 } from "./src/icons"
+import { ITEM_KIND_DEFINITIONS, isItemKind } from "./src/item_kinds"
 import { recurrenceLabel } from "./src/presentation"
 import {
   clearReminderSnapshot,
@@ -290,7 +291,7 @@ function DueManagerApp() {
         {activeItems.length === 0
           ? <VStack alignment="leading" spacing={3} padding={{ vertical: 4 }}>
             <Text foregroundStyle="secondaryLabel">还没有手动事项</Text>
-            <Text font="caption" foregroundStyle="tertiaryLabel">添加信用卡、订阅、账单或其他周期日期。</Text>
+            <Text font="caption" foregroundStyle="tertiaryLabel">添加账单、订阅、还款、保险或其他到期事项。</Text>
           </VStack>
           : null}
       </Section>
@@ -565,13 +566,14 @@ function ItemEditor({
       <Picker
         title="类型"
         value={kind}
-        onChanged={setKind as any}
+        onChanged={(value: unknown) => {
+          if (isItemKind(value)) setKind(value)
+        }}
         pickerStyle="menu"
       >
-        <Text tag="creditCard">信用卡</Text>
-        <Text tag="subscription">订阅</Text>
-        <Text tag="bill">账单</Text>
-        <Text tag="custom">其他</Text>
+        {ITEM_KIND_DEFINITIONS.map(definition => (
+          <Text key={definition.value} tag={definition.value}>{definition.label}</Text>
+        ))}
       </Picker>
       <NavigationLink
         destination={

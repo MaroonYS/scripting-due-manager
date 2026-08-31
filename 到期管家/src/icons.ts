@@ -1,3 +1,4 @@
+import { ITEM_KIND_DEFINITIONS } from "./item_kinds"
 import type { ItemKind } from "./types"
 
 export type DueIconGroup =
@@ -645,13 +646,9 @@ const ICON_RULES: IconRule[] = [
   },
 ]
 
-const KIND_FALLBACKS: Record<ItemKind | "reminder", string> = {
-  creditCard: "creditcard.fill",
-  subscription: "repeat.circle.fill",
-  bill: "doc.text.fill",
-  custom: "calendar.badge.clock",
-  reminder: "checklist",
-}
+const KIND_FALLBACKS = new Map<ItemKind, string>(
+  ITEM_KIND_DEFINITIONS.map(definition => [definition.value, definition.icon] as const),
+)
 
 const DEFAULT_ICON: ResolvedDueIcon = {
   name: "calendar.badge.clock",
@@ -680,7 +677,8 @@ export function resolveDueIcon(
   const normalizedOverride = normalizeIconOverride(override)
   const inferredName = normalizedOverride
     ?? bestMatchingIcon(title)
-    ?? KIND_FALLBACKS[kind]
+    ?? (kind === "reminder" ? "checklist" : KIND_FALLBACKS.get(kind))
+    ?? DEFAULT_ICON.name
   const definition = ICON_OPTIONS_BY_NAME.get(inferredName)
     ?? ICON_OPTIONS_BY_NAME.get(DEFAULT_ICON.name)
   if (!definition) return DEFAULT_ICON
