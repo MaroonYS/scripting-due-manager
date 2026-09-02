@@ -14,6 +14,7 @@ import {
   DUE_ICON_OPTIONS,
   normalizeIconOverride,
   resolveDueIcon,
+  resolveReminderIcon,
 } from "../到期管家/src/icons.ts"
 import {
   isItemKind,
@@ -455,6 +456,109 @@ test("unmatched titles use stable ItemKind fallbacks instead of catalog order", 
   assert.doesNotMatch(source, /DUE_ICON_OPTIONS\.at\(\s*-1\s*\)/)
 })
 
+test("reminder icons resolve title, list and notes in strict priority order", () => {
+  const cases = [
+    {
+      title: "家庭电费",
+      calendarTitle: "Adobe Creative Cloud",
+      notes: "NordVPN renewal",
+      expected: "bolt.fill",
+    },
+    {
+      title: "月底处理",
+      calendarTitle: "音乐订阅",
+      notes: "Amazon Prime Video",
+      expected: "music.note",
+    },
+    {
+      title: "月底处理",
+      calendarTitle: "个人",
+      notes: "账号资料\n1Password Families",
+      expected: "key.fill",
+    },
+    {
+      title: "整理书桌",
+      calendarTitle: "个人",
+      notes: "周末完成",
+      expected: "checklist",
+    },
+  ] as const
+
+  for (const value of cases) {
+    assert.equal(
+      resolveReminderIcon(value.title, value.calendarTitle, value.notes).name,
+      value.expected,
+      `${value.title} / ${value.calendarTitle}`,
+    )
+  }
+})
+
+test("reminder icons recognize common task language and list categories", () => {
+  const titleCases = [
+    ["下班买菜", "cart.fill"],
+    ["去驿站取快递", "shippingbox.fill"],
+    ["晚饭后吃药", "pills.fill"],
+    ["晚上健身", "figure.run"],
+    ["参加团队会议", "briefcase.fill"],
+    ["提交数学作业", "graduationcap.fill"],
+    ["给妈妈打电话", "phone.fill"],
+    ["下楼遛狗", "pawprint.fill"],
+    ["晚上倒垃圾", "trash.fill"],
+  ] as const
+  for (const [title, expected] of titleCases) {
+    assert.equal(resolveReminderIcon(title, "个人", "").name, expected, title)
+  }
+
+  const listCases = [
+    ["工作", "briefcase.fill"],
+    ["购物", "cart.fill"],
+    ["家庭", "house.fill"],
+    ["健康", "heart.text.square.fill"],
+    ["学习", "graduationcap.fill"],
+    ["旅行", "suitcase.rolling.fill"],
+    ["订阅", "repeat.circle.fill"],
+    ["账单", "doc.text.fill"],
+    ["🛒 购物清单", "cart.fill"],
+    ["Work Reminders", "briefcase.fill"],
+    ["旅行计划", "suitcase.rolling.fill"],
+  ] as const
+  for (const [calendarTitle, expected] of listCases) {
+    assert.equal(
+      resolveReminderIcon("例行事项", calendarTitle, "").name,
+      expected,
+      calendarTitle,
+    )
+  }
+})
+
+test("reminder icon matching keeps false-positive protection in every source", () => {
+  assert.equal(
+    resolveReminderIcon(
+      "会议时间移动到周五",
+      "天然气候研究",
+      "Steamship maintenance and Netflixify deployment",
+    ).name,
+    "checklist",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "银行家杂志订阅", "家庭电费").name,
+    "newspaper.fill",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "移动硬盘备份", "Amazon Prime Video").name,
+    "externaldrive.fill",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "健康码", "加油打气").name,
+    "checklist",
+  )
+  assert.equal(
+    resolveReminderIcon("Home", "Internet", "renewal").name,
+    "checklist",
+    "separate fields must not combine into the phrase Home internet renewal",
+  )
+})
+
 test("calendar-day differences do not depend on DST hours", () => {
   assert.equal(calendarDayDifference("2026-03-07", "2026-03-09"), 2)
   assert.equal(calendarDayDifference("2026-11-01", "2026-11-02"), 1)
@@ -806,6 +910,129 @@ test("reminder loading resolves every selected list by Calendar.identifier", asy
     ;(globalThis as any).Storage = originalStorage
     ;(globalThis as any).Reminder = originalReminder
     ;(globalThis as any).Calendar = originalCalendar
+  }
+})
+
+test("live reminders cache only a note icon hint and keep List as display note", async () => {
+  const originalStorage = (globalThis as any).Storage
+  const originalReminder = (globalThis as any).Reminder
+  const saved = new Map<string, unknown>()
+  const due = new Date(2026, 8, 5, 23, 59, 59, 999)
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string) => saved.get(key) ?? null,
+      set: (key: string, value: unknown) => { saved.set(key, value); return true },
+      remove: (key: string) => { saved.delete(key) },
+      contains: (key: string) => saved.has(key),
+    }
+    ;(globalThis as any).Reminder = {
+      getIncompletes: async () => [{
+        identifier: "notes-icon-hint",
+        title: "月底处理",
+        notes: "私密账户资料 secret-token-42\n1Password Families",
+        dueDateComponents: {
+          date: due,
+          year: 2026,
+          month: 9,
+          day: 5,
+          hour: null,
+          minute: null,
+        },
+        calendar: { title: "个人", allowsContentModifications: true },
+        priority: 0,
+      }],
+    }
+
+    const result = await loadReminderItems(730)
+    const snapshot = saved.get(REMINDER_SNAPSHOT_KEY) as any
+    assert.equal(result.live, true)
+    assert.equal(result.items[0].iconName, "key.fill")
+    assert.equal(result.items[0].note, "个人")
+    assert.equal(snapshot.items[0].noteIconHint, "key.fill")
+    assert.equal("notes" in snapshot.items[0], false)
+    assert.doesNotMatch(JSON.stringify(snapshot), /secret-token-42|1Password Families/)
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+    ;(globalThis as any).Reminder = originalReminder
+  }
+})
+
+test("cached reminder hints follow title and List priority and accept legacy rows", async () => {
+  const originalStorage = (globalThis as any).Storage
+  const originalReminder = (globalThis as any).Reminder
+  const dueTimestamp = new Date(2026, 8, 6, 23, 59, 59, 999).getTime()
+  const base = {
+    dueDate: "2026-09-06",
+    includesTime: false,
+    hour: 0,
+    minute: 0,
+    dueTimestamp,
+    priority: 0,
+  }
+  const snapshot = {
+    schemaVersion: 1,
+    fetchedAt: Date.now(),
+    calendarFilterIDs: [],
+    items: [
+      {
+        ...base,
+        id: "title-before-hint",
+        title: "家庭电费",
+        calendarTitle: "个人",
+        noteIconHint: "key.fill",
+      },
+      {
+        ...base,
+        id: "list-before-hint",
+        title: "月底处理",
+        calendarTitle: "音乐",
+        noteIconHint: "key.fill",
+      },
+      {
+        ...base,
+        id: "valid-hint",
+        title: "月底处理",
+        calendarTitle: "个人",
+        noteIconHint: "key.fill",
+      },
+      {
+        ...base,
+        id: "invalid-hint",
+        title: "月底处理",
+        calendarTitle: "个人",
+        noteIconHint: "not.a.real.allowed.symbol",
+      },
+      {
+        ...base,
+        id: "legacy-without-hint",
+        title: "月底处理",
+        calendarTitle: "购物",
+      },
+    ],
+  }
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string) => key === REMINDER_SNAPSHOT_KEY ? snapshot : null,
+      set: () => true,
+      remove: () => undefined,
+      contains: () => true,
+    }
+    ;(globalThis as any).Reminder = {
+      getIncompletes: async () => { throw new Error("temporarily unavailable") },
+    }
+
+    const result = await loadReminderItems(730)
+    const icons = new Map(result.items.map(value => [value.id, value.iconName]))
+    assert.equal(result.live, false)
+    assert.equal(result.fromCache, true)
+    assert.equal(icons.get("title-before-hint"), "bolt.fill")
+    assert.equal(icons.get("list-before-hint"), "music.note")
+    assert.equal(icons.get("valid-hint"), "key.fill")
+    assert.equal(icons.get("invalid-hint"), "checklist")
+    assert.equal(icons.get("legacy-without-hint"), "cart.fill")
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+    ;(globalThis as any).Reminder = originalReminder
   }
 })
 

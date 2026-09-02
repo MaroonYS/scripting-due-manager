@@ -4,7 +4,11 @@ import {
   formatDateKey,
   parseDateKey,
 } from "./date"
-import { resolveDueIcon } from "./icons"
+import {
+  inferReminderNoteIcon,
+  normalizeIconOverride,
+  resolveReminderIcon,
+} from "./icons"
 import {
   normalizeReminderCalendarIDs,
   REMINDER_SNAPSHOT_KEY,
@@ -221,23 +225,32 @@ function reminderToCacheItem(reminder: any): CachedReminderItem | null {
   const dueTimestamp = includesTime
     ? computed.getTime()
     : dateKeyToLocalDate(dueDate, false).getTime()
+  const title = String(reminder.title ?? "未命名提醒").slice(0, 200)
+  const calendarTitle = String(reminder.calendar?.title ?? "提醒事项").slice(0, 80)
 
   return {
     id: String(reminder.identifier ?? `${reminder.title}-${dueTimestamp}`),
-    title: String(reminder.title ?? "未命名提醒").slice(0, 200),
+    title,
     dueDate,
     includesTime,
     hour,
     minute,
     dueTimestamp,
-    calendarTitle: String(reminder.calendar?.title ?? "提醒事项").slice(0, 80),
+    calendarTitle,
+    // Keep the widget cache useful without persisting private reminder notes.
+    noteIconHint: inferReminderNoteIcon(reminder.notes),
     priority: normalizedReminderPriority(reminder.priority),
     canComplete: reminder.calendar?.allowsContentModifications !== false,
   }
 }
 
 function cacheItemToDisplay(item: CachedReminderItem, stale: boolean): DisplayDueItem {
-  const icon = resolveDueIcon(item.title, "reminder")
+  const icon = resolveReminderIcon(
+    item.title,
+    item.calendarTitle,
+    null,
+    item.noteIconHint,
+  )
   return {
     id: item.id,
     source: "reminder",
@@ -318,6 +331,7 @@ function normalizeCachedItem(raw: any): CachedReminderItem | null {
     minute: boundedInteger(raw.minute, 0, 59, 0),
     dueTimestamp: raw.dueTimestamp,
     calendarTitle: typeof raw.calendarTitle === "string" ? raw.calendarTitle.slice(0, 80) : "提醒事项",
+    noteIconHint: normalizeIconOverride(raw.noteIconHint),
     priority: boundedInteger(raw.priority, 0, 3, 0),
     canComplete: typeof raw.canComplete === "boolean" ? raw.canComplete : true,
   }

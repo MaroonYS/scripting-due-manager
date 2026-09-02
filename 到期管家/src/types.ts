@@ -57,6 +57,8 @@ export interface CachedReminderItem {
   minute: number
   dueTimestamp: number
   calendarTitle: string
+  /** Icon inferred from Apple Reminders notes; the notes text itself is never cached. */
+  noteIconHint: string | null
   priority: number
   /** False for read-only shared reminder lists. */
   canComplete: boolean

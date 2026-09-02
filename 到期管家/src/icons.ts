@@ -646,6 +646,185 @@ const ICON_RULES: IconRule[] = [
   },
 ]
 
+// Apple Reminders titles are usually short actions rather than product names.
+// Keep these broader daily-life phrases isolated from manually managed due items.
+const REMINDER_CONTENT_RULES: IconRule[] = [
+  {
+    icon: "briefcase.fill",
+    keywords: [
+      "team meeting", "staff meeting", "client meeting", "project review", "weekly report",
+      "团队开会", "团队会议", "客户会议", "项目评审", "提交周报", "工作汇报", "开会",
+    ],
+  },
+  {
+    icon: "phone.fill",
+    keywords: ["phone call", "call back", "return call", "打电话", "回电话", "给家里回电", "回电"],
+  },
+  {
+    icon: "message.fill",
+    keywords: ["send message", "reply to message", "reply message", "发消息", "回消息", "回复消息"],
+  },
+  {
+    icon: "envelope.fill",
+    keywords: ["send email", "reply to email", "reply email", "check email", "发邮件", "回邮件", "回复邮件", "查邮件"],
+  },
+  {
+    icon: "shippingbox.fill",
+    keywords: [
+      "pick up package", "collect package", "send package", "ship package", "pick up parcel",
+      "取快递", "拿快递", "寄快递", "收包裹", "取包裹", "取件", "寄件",
+    ],
+  },
+  {
+    icon: "cart.fill",
+    keywords: [
+      "buy groceries", "grocery run", "go to supermarket", "supermarket shopping",
+      "买菜", "买日用品", "购买日用品", "去超市", "采购生活用品", "采购清单",
+    ],
+  },
+  {
+    icon: "takeoutbag.and.cup.and.straw.fill",
+    keywords: ["pick up takeout", "order takeout", "pick up food", "取外卖", "点外卖", "取餐"],
+  },
+  {
+    icon: "fork.knife",
+    keywords: ["make dinner", "cook dinner", "meal prep", "做饭", "准备早餐", "准备午餐", "准备晚餐", "吃饭"],
+  },
+  {
+    icon: "cup.and.saucer.fill",
+    keywords: ["buy coffee", "coffee break", "买咖啡", "喝咖啡", "买奶茶"],
+  },
+  {
+    icon: "washer.fill",
+    keywords: ["do laundry", "pick up dry cleaning", "clean the house", "洗衣服", "取干洗", "打扫卫生", "大扫除", "清洁房间"],
+  },
+  {
+    icon: "trash.fill",
+    keywords: ["take out trash", "take out rubbish", "recycling day", "倒垃圾", "垃圾分类", "回收垃圾"],
+  },
+  {
+    icon: "wrench.and.screwdriver.fill",
+    keywords: ["repair appointment", "fix appliance", "change filter", "维修预约", "修理家电", "更换滤芯", "修水管"],
+  },
+  {
+    icon: "pills.fill",
+    keywords: ["take medicine", "take medication", "take vitamins", "吃药", "服药", "按时用药", "吃维生素"],
+  },
+  {
+    icon: "stethoscope",
+    keywords: ["see the doctor", "doctor visit", "follow-up visit", "看医生", "去复诊", "医生复诊", "复诊"],
+  },
+  {
+    icon: "cross.case.fill",
+    keywords: ["health checkup", "dental checkup", "see the dentist", "去体检", "做体检", "看牙医", "牙医复诊"],
+  },
+  {
+    icon: "figure.run",
+    keywords: ["go running", "go swimming", "work out", "morning run", "去跑步", "跑步", "游泳", "锻炼", "做瑜伽", "健身"],
+  },
+  {
+    icon: "bed.double.fill",
+    keywords: ["go to bed", "bedtime", "sleep early", "早点睡", "准备睡觉", "按时睡觉"],
+  },
+  {
+    icon: "graduationcap.fill",
+    keywords: ["submit homework", "finish homework", "study for exam", "attend class", "交作业", "提交作业", "写作业", "作业", "准备考试", "复习考试", "去上课"],
+  },
+  {
+    icon: "book.fill",
+    keywords: ["read a book", "return library book", "reading time", "读书", "看书", "阅读", "还书"],
+  },
+  {
+    icon: "airplane",
+    keywords: ["online check-in", "airport check-in", "leave for airport", "航班值机", "线上值机", "出发去机场", "去机场"],
+  },
+  {
+    icon: "suitcase.rolling.fill",
+    keywords: ["pack luggage", "pack suitcase", "travel packing", "收拾行李", "整理行李", "准备旅行", "旅行准备"],
+  },
+  {
+    icon: "car.fill",
+    keywords: ["wash the car", "service the car", "car service", "洗车", "车辆保养", "汽车保养", "送车维修"],
+  },
+  {
+    icon: "fuelpump.fill",
+    keywords: ["refuel the car", "fill up the car", "汽车加油", "车辆加油", "去加油站"],
+  },
+  {
+    icon: "bolt.car.fill",
+    keywords: ["charge the car", "charge ev", "给车充电", "电动车充电", "车辆充电"],
+  },
+  {
+    icon: "parkingsign.circle.fill",
+    keywords: ["pay for parking", "renew parking", "停车缴费", "续停车费", "停车续费"],
+  },
+  {
+    icon: "doc.text.fill",
+    keywords: ["pay the bill", "check the bill", "交账单", "付账单", "账单缴费", "生活缴费"],
+  },
+  {
+    icon: "repeat.circle.fill",
+    keywords: ["renew subscription", "cancel subscription", "review subscriptions", "续订服务", "取消订阅", "检查订阅"],
+  },
+  {
+    icon: "doc.on.doc.fill",
+    keywords: ["sign contract", "renew document", "renew passport", "签合同", "合同续签", "更新证件", "护照续期", "证件续期"],
+  },
+  {
+    icon: "calendar",
+    keywords: ["make appointment", "appointment reminder", "预约理发", "预约办事", "预约时间"],
+  },
+  {
+    icon: "birthday.cake.fill",
+    keywords: ["birthday party", "birthday dinner", "生日聚会", "生日晚餐", "过生日"],
+  },
+  {
+    icon: "gift.fill",
+    keywords: ["buy a gift", "wrap a gift", "买礼物", "准备礼物", "包装礼物"],
+  },
+  {
+    icon: "pawprint.fill",
+    keywords: ["walk the dog", "feed the cat", "feed the dog", "feed the pet", "遛狗", "遛猫", "喂猫", "喂狗", "喂宠物"],
+  },
+]
+
+type ReminderListIconRule = {
+  icon: string
+  aliases: string[]
+}
+
+// Generic category words are trustworthy for a List name, but too broad for an
+// arbitrary title. Matching remains exact after removing decoration and a common
+// trailing “List / 清单 / 提醒” suffix.
+const REMINDER_LIST_ICON_RULES: ReminderListIconRule[] = [
+  { icon: "briefcase.fill", aliases: ["工作", "工作项目", "我的工作", "办公", "work", "work projects", "office", "business"] },
+  { icon: "checkmark.circle.fill", aliases: ["待办", "任务", "差事", "tasks", "to do", "todo", "errands"] },
+  { icon: "cart.fill", aliases: ["购物", "每周购物", "采购", "买东西", "shopping", "shopping groceries", "groceries", "grocery"] },
+  { icon: "house.fill", aliases: ["家庭", "居家", "家务", "home", "family", "household"] },
+  { icon: "heart.text.square.fill", aliases: ["健康", "health", "wellness"] },
+  { icon: "dumbbell.fill", aliases: ["健身", "运动", "fitness", "workout", "sports"] },
+  { icon: "cross.case.fill", aliases: ["医疗", "看病", "medical", "healthcare"] },
+  { icon: "pills.fill", aliases: ["用药", "吃药", "medicine", "medication"] },
+  { icon: "graduationcap.fill", aliases: ["学习", "学校", "课程", "教育", "study", "school", "classes", "education"] },
+  { icon: "book.closed.fill", aliases: ["阅读", "书籍", "读书", "reading", "books"] },
+  { icon: "suitcase.rolling.fill", aliases: ["旅行", "旅行计划", "旅游", "出行", "出行计划", "travel", "travel plans", "trips", "vacation"] },
+  { icon: "repeat.circle.fill", aliases: ["订阅", "会员", "subscriptions", "subscription", "memberships"] },
+  { icon: "doc.text.fill", aliases: ["账单", "账单缴费", "缴费", "费用", "bills", "bills payments", "bill payments", "utilities"] },
+  { icon: "creditcard.fill", aliases: ["信用卡", "还款", "credit cards", "credit card"] },
+  { icon: "building.columns.fill", aliases: ["财务", "金融", "银行", "finance", "banking", "money"] },
+  { icon: "car.fill", aliases: ["车辆", "汽车", "用车", "car", "cars", "vehicle"] },
+  { icon: "pawprint.fill", aliases: ["宠物", "猫狗", "pets", "pet care"] },
+  { icon: "birthday.cake.fill", aliases: ["生日", "纪念日", "birthdays", "anniversaries"] },
+  { icon: "doc.on.doc.fill", aliases: ["证件", "合同", "文件", "documents", "contracts"] },
+  { icon: "wrench.and.screwdriver.fill", aliases: ["维修", "保养", "维护", "maintenance", "repairs"] },
+  { icon: "calendar", aliases: ["预约", "日程", "appointments", "schedule"] },
+  { icon: "play.rectangle.fill", aliases: ["影音", "影视", "电影", "movies", "movies tv", "streaming"] },
+  { icon: "music.note", aliases: ["音乐", "music"] },
+  { icon: "gamecontroller.fill", aliases: ["游戏", "games", "gaming"] },
+  { icon: "sparkles", aliases: ["人工智能", "ai services", "ai"] },
+  { icon: "globe", aliases: ["数字服务", "网络服务", "digital services", "online services"] },
+]
+
 const KIND_FALLBACKS = new Map<ItemKind, string>(
   ITEM_KIND_DEFINITIONS.map(definition => [definition.value, definition.icon] as const),
 )
@@ -658,11 +837,13 @@ const DEFAULT_ICON: ResolvedDueIcon = {
 
 const ICON_OPTION_NAMES = new Set(DUE_ICON_OPTIONS.map(option => option.name))
 const ICON_OPTIONS_BY_NAME = new Map(DUE_ICON_OPTIONS.map(option => [option.name, option]))
-const COMPILED_ICON_RULES: CompiledIconRule[] = ICON_RULES.map(rule => ({
-  icon: rule.icon,
-  keywords: rule.keywords.map(compileKeyword),
-  exactKeywords: (rule.exactKeywords ?? []).map(keyword => normalizeText(keyword).trim()),
-}))
+const COMPILED_ICON_RULES = compileIconRules(ICON_RULES)
+const COMPILED_REMINDER_CONTENT_RULES = compileIconRules(REMINDER_CONTENT_RULES)
+const REMINDER_LIST_ICONS_BY_TITLE = new Map(
+  REMINDER_LIST_ICON_RULES.flatMap(rule => (
+    rule.aliases.map(alias => [normalizeReminderListTitle(alias), rule.icon] as const)
+  )),
+)
 
 export function normalizeIconOverride(value: unknown): string | null {
   if (typeof value !== "string") return null
@@ -679,7 +860,36 @@ export function resolveDueIcon(
     ?? bestMatchingIcon(title)
     ?? (kind === "reminder" ? "checklist" : KIND_FALLBACKS.get(kind))
     ?? DEFAULT_ICON.name
-  const definition = ICON_OPTIONS_BY_NAME.get(inferredName)
+  return resolvedIcon(inferredName)
+}
+
+/** Returns only a local icon hint; reminder notes themselves must not be cached. */
+export function inferReminderNoteIcon(notes: unknown): string | null {
+  if (typeof notes !== "string") return null
+  return bestMatchingReminderTextIcon(notes.slice(0, 1000))
+}
+
+/**
+ * Apple Reminders use their own layered inference so a specific title always
+ * outranks the List name, and the List always outranks optional notes.
+ */
+export function resolveReminderIcon(
+  title: string,
+  calendarTitle: string,
+  notes: string | null = null,
+  cachedNoteIconHint: string | null = null,
+): ResolvedDueIcon {
+  const inferredName = bestMatchingReminderTextIcon(title)
+    ?? bestMatchingIcon(calendarTitle)
+    ?? bestMatchingReminderListIcon(calendarTitle)
+    ?? inferReminderNoteIcon(notes)
+    ?? normalizeIconOverride(cachedNoteIconHint)
+    ?? "checklist"
+  return resolvedIcon(inferredName)
+}
+
+function resolvedIcon(iconName: string): ResolvedDueIcon {
+  const definition = ICON_OPTIONS_BY_NAME.get(iconName)
     ?? ICON_OPTIONS_BY_NAME.get(DEFAULT_ICON.name)
   if (!definition) return DEFAULT_ICON
   return {
@@ -695,11 +905,23 @@ type NormalizedTitle = {
 }
 
 function bestMatchingIcon(title: string): string | null {
+  return bestMatchingIconFromRules(title, COMPILED_ICON_RULES)
+}
+
+function bestMatchingReminderTextIcon(text: string): string | null {
+  return bestMatchingIcon(text)
+    ?? bestMatchingIconFromRules(text, COMPILED_REMINDER_CONTENT_RULES)
+}
+
+function bestMatchingIconFromRules(
+  title: string,
+  rules: readonly CompiledIconRule[],
+): string | null {
   const normalizedTitle = normalizeTitle(title)
   let bestIcon: string | null = null
   let bestScore = -1
 
-  for (const rule of COMPILED_ICON_RULES) {
+  for (const rule of rules) {
     if (!ICON_OPTION_NAMES.has(rule.icon)) continue
     for (const exactKeyword of rule.exactKeywords) {
       if (normalizedTitle.raw.trim() === exactKeyword) {
@@ -722,6 +944,14 @@ function bestMatchingIcon(title: string): string | null {
   return bestIcon
 }
 
+function bestMatchingReminderListIcon(title: string): string | null {
+  for (const candidate of reminderListTitleCandidates(title)) {
+    const iconName = REMINDER_LIST_ICONS_BY_TITLE.get(candidate)
+    if (iconName && ICON_OPTION_NAMES.has(iconName)) return iconName
+  }
+  return null
+}
+
 function normalizeText(value: string): string {
   return value.normalize("NFKC").toLowerCase()
 }
@@ -732,6 +962,30 @@ function normalizeTitle(title: string): NormalizedTitle {
     raw,
     words: asciiWords(raw),
   }
+}
+
+function normalizeReminderListTitle(title: string): string {
+  return normalizeText(title)
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function reminderListTitleCandidates(title: string): string[] {
+  const normalized = normalizeReminderListTitle(title)
+  if (!normalized) return []
+  const candidates = new Set<string>([normalized])
+  let candidate = normalized
+  while (candidate) {
+    const stripped = candidate
+      .replace(/\s+(?:lists?|tasks?|reminders?)$/, "")
+      .replace(/(?:清单|列表|事项|提醒)$/, "")
+      .trim()
+    if (!stripped || stripped === candidate) break
+    candidates.add(stripped)
+    candidate = stripped
+  }
+  return [...candidates]
 }
 
 function asciiWords(value: string): string {
@@ -750,6 +1004,14 @@ function compileKeyword(keyword: string): CompiledKeyword {
     containsNonASCII,
     score: containsNonASCII ? raw.length : words.replaceAll(" ", "").length,
   }
+}
+
+function compileIconRules(rules: readonly IconRule[]): CompiledIconRule[] {
+  return rules.map(rule => ({
+    icon: rule.icon,
+    keywords: rule.keywords.map(compileKeyword),
+    exactKeywords: (rule.exactKeywords ?? []).map(keyword => normalizeText(keyword).trim()),
+  }))
 }
 
 function keywordMatchScore(title: NormalizedTitle, keyword: CompiledKeyword): number | null {
