@@ -788,7 +788,7 @@ const REMINDER_CONTENT_RULES: IconRule[] = [
   },
 ]
 
-type ReminderListIconRule = {
+export type ReminderListIconRule = {
   icon: string
   aliases: string[]
 }
@@ -796,34 +796,152 @@ type ReminderListIconRule = {
 // Generic category words are trustworthy for a List name, but too broad for an
 // arbitrary title. Matching remains exact after removing decoration and a common
 // trailing “List / 清单 / 提醒” suffix.
-const REMINDER_LIST_ICON_RULES: ReminderListIconRule[] = [
-  { icon: "briefcase.fill", aliases: ["工作", "工作项目", "我的工作", "办公", "work", "work projects", "office", "business"] },
-  { icon: "checkmark.circle.fill", aliases: ["待办", "任务", "差事", "tasks", "to do", "todo", "errands"] },
-  { icon: "cart.fill", aliases: ["购物", "每周购物", "采购", "买东西", "shopping", "shopping groceries", "groceries", "grocery"] },
-  { icon: "house.fill", aliases: ["家庭", "居家", "家务", "home", "family", "household"] },
-  { icon: "heart.text.square.fill", aliases: ["健康", "health", "wellness"] },
-  { icon: "dumbbell.fill", aliases: ["健身", "运动", "fitness", "workout", "sports"] },
-  { icon: "cross.case.fill", aliases: ["医疗", "看病", "medical", "healthcare"] },
-  { icon: "pills.fill", aliases: ["用药", "吃药", "medicine", "medication"] },
-  { icon: "graduationcap.fill", aliases: ["学习", "学校", "课程", "教育", "study", "school", "classes", "education"] },
-  { icon: "book.closed.fill", aliases: ["阅读", "书籍", "读书", "reading", "books"] },
-  { icon: "suitcase.rolling.fill", aliases: ["旅行", "旅行计划", "旅游", "出行", "出行计划", "travel", "travel plans", "trips", "vacation"] },
-  { icon: "repeat.circle.fill", aliases: ["订阅", "会员", "subscriptions", "subscription", "memberships"] },
-  { icon: "doc.text.fill", aliases: ["账单", "账单缴费", "缴费", "费用", "bills", "bills payments", "bill payments", "utilities"] },
-  { icon: "creditcard.fill", aliases: ["信用卡", "还款", "credit cards", "credit card"] },
-  { icon: "building.columns.fill", aliases: ["财务", "金融", "银行", "finance", "banking", "money"] },
-  { icon: "shippingbox.fill", aliases: ["快递", "包裹", "物流", "配送", "收货", "delivery", "deliveries", "shipping", "packages", "parcels"] },
-  { icon: "car.fill", aliases: ["车辆", "汽车", "用车", "car", "cars", "vehicle"] },
-  { icon: "pawprint.fill", aliases: ["宠物", "猫狗", "pets", "pet care"] },
-  { icon: "birthday.cake.fill", aliases: ["生日", "纪念日", "birthdays", "anniversaries"] },
-  { icon: "doc.on.doc.fill", aliases: ["证件", "合同", "文件", "documents", "contracts"] },
-  { icon: "wrench.and.screwdriver.fill", aliases: ["维修", "保养", "维护", "maintenance", "repairs"] },
-  { icon: "calendar", aliases: ["预约", "日程", "appointments", "schedule"] },
-  { icon: "play.rectangle.fill", aliases: ["影音", "影视", "电影", "movies", "movies tv", "streaming"] },
-  { icon: "music.note", aliases: ["音乐", "music"] },
-  { icon: "gamecontroller.fill", aliases: ["游戏", "games", "gaming"] },
-  { icon: "sparkles", aliases: ["人工智能", "ai services", "ai"] },
-  { icon: "globe", aliases: ["数字服务", "网络服务", "digital services", "online services"] },
+export const REMINDER_LIST_ICON_RULES: ReminderListIconRule[] = [
+  // Work and productivity
+  { icon: "briefcase.fill", aliases: ["工作", "我的工作", "辦公", "办公", "職場", "职场", "商務", "商务", "work", "office", "business", "career"] },
+  { icon: "rectangle.3.group.fill", aliases: ["項目", "项目", "工作項目", "工作项目", "項目管理", "项目管理", "工作流", "projects", "work projects", "project management", "workflows"] },
+  { icon: "checkmark.circle.fill", aliases: ["待辦", "待办", "任務", "任务", "差事", "雜事", "杂事", "to do", "todo", "tasks", "errands"] },
+  { icon: "checklist", aliases: ["提醒事項", "提醒事项", "提醒", "收件箱", "默認", "默认", "reminders", "my reminders", "inbox", "personal", "personal tasks"] },
+  { icon: "calendar", aliases: ["日程", "安排", "預約", "预约", "行事曆", "日历", "calendar", "schedule", "appointments", "planning"] },
+  { icon: "note.text", aliases: ["筆記", "笔记", "備忘", "备忘", "會議記錄", "会议记录", "notes", "memos", "meeting notes"] },
+  { icon: "envelope.fill", aliases: ["郵件", "邮件", "郵箱", "邮箱", "電子郵件", "电子邮件", "email", "emails", "mail"] },
+  { icon: "phone.fill", aliases: ["電話", "电话", "通話", "通话", "回電", "回电", "calls", "phone calls", "callbacks"] },
+  { icon: "message.fill", aliases: ["通訊", "通讯", "聊天", "消息", "messaging", "chats", "messages", "communications"] },
+  { icon: "person.2.fill", aliases: ["團隊", "团队", "協作", "协作", "同事", "teams", "collaboration", "coworkers"] },
+  { icon: "doc.on.doc.fill", aliases: ["證件", "证件", "文件", "文檔", "文档", "合同", "資料文件", "资料文件", "documents", "files", "contracts", "paperwork"] },
+  { icon: "signature", aliases: ["簽署", "签署", "簽名", "签名", "電子簽名", "电子签名", "signing", "signatures", "e signatures"] },
+  { icon: "printer.fill", aliases: ["打印", "打印機", "打印机", "printing", "printers"] },
+  { icon: "scanner.fill", aliases: ["掃描", "扫描", "掃描件", "扫描件", "scanning", "scans"] },
+
+  // Finance, bills, subscriptions and expirations
+  { icon: "creditcard.fill", aliases: ["信用卡", "卡賬", "卡账", "卡賬單", "卡账单", "信用卡還款", "信用卡还款", "還款", "还款", "credit card", "credit cards", "card bills", "card payments"] },
+  { icon: "building.columns.fill", aliases: ["財務", "财务", "金融", "銀行", "银行", "資金", "资金", "finance", "finances", "banking", "money"] },
+  { icon: "banknote.fill", aliases: ["付款", "待付款", "收付款", "繳款", "缴款", "payment", "payments", "payables", "payments due"] },
+  { icon: "chart.line.uptrend.xyaxis", aliases: ["投資", "投资", "股票", "基金", "證券", "证券", "investment", "investments", "stocks", "funds", "investing"] },
+  { icon: "chart.pie.fill", aliases: ["預算", "预算", "記賬", "记账", "收支", "個人財務", "个人财务", "budget", "budgets", "budgeting", "expense tracking"] },
+  { icon: "doc.text.magnifyingglass", aliases: ["稅務", "税务", "報稅", "报税", "會計", "会计", "發票", "发票", "tax", "taxes", "tax filing", "accounting", "invoices"] },
+  { icon: "percent", aliases: ["利率", "利息", "貸款", "贷款", "分期", "interest", "loans", "installments"] },
+  { icon: "shield.fill", aliases: ["保險", "保险", "保單", "保单", "insurance", "insurance policies"] },
+  { icon: "doc.text.fill", aliases: ["賬單", "帳單", "账单", "賬單繳費", "账单缴费", "繳費", "缴费", "賬務", "账务", "費用", "费用", "生活繳費", "生活缴费", "bills", "bills payments", "bill payments", "utilities", "expenses"] },
+  { icon: "repeat.circle.fill", aliases: ["訂閱", "订阅", "續訂", "续订", "周期服務", "周期服务", "會員", "会员", "subscription", "subscriptions", "renewals", "memberships"] },
+  { icon: "tag.fill", aliases: ["優惠", "优惠", "優惠券", "优惠券", "折扣", "coupons", "discounts", "deals"] },
+  { icon: "crown.fill", aliases: ["高級會員", "高级会员", "會員權益", "会员权益", "vip", "premium"] },
+  { icon: "calendar.badge.clock", aliases: ["到期", "有效期", "續期日期", "续期日期", "expirations", "expiry dates", "renewal dates"] },
+  { icon: "heart.circle.fill", aliases: ["公益", "捐贈", "捐赠", "慈善", "charity", "donations"] },
+
+  // Digital services
+  { icon: "sparkles", aliases: ["人工智能", "ai服務", "ai服务", "ai工具", "ai tools", "artificial intelligence", "ai", "ai services"] },
+  { icon: "icloud.fill", aliases: ["雲存儲", "云存储", "雲盤", "云盘", "網盤", "网盘", "cloud storage", "cloud drive", "online storage"] },
+  { icon: "externaldrive.fill", aliases: ["備份", "备份", "數據備份", "数据备份", "硬盤", "硬盘", "backups", "data backup", "external drives"] },
+  { icon: "globe", aliases: ["網站", "网站", "域名", "網站域名", "网站域名", "websites", "domains"] },
+  { icon: "wifi", aliases: ["寬帶", "宽带", "互聯網", "互联网", "家庭網絡", "家庭网络", "網絡費", "网络费", "broadband", "internet", "home internet", "wifi", "wi fi"] },
+  { icon: "iphone", aliases: ["手機", "手机", "話費", "话费", "手機套餐", "手机套餐", "流量套餐", "mobile", "phone plans", "cellular"] },
+  { icon: "desktopcomputer", aliases: ["軟件", "软件", "軟件許可", "软件许可", "許可證", "许可证", "設備", "设备", "software", "licenses", "devices"] },
+  { icon: "terminal.fill", aliases: ["開發工具", "开发工具", "命令行", "運維", "运维", "developer tools", "command line", "devops"] },
+  { icon: "curlybraces.square.fill", aliases: ["編程", "编程", "代碼", "代码", "開發", "开发", "coding", "code", "development"] },
+  { icon: "lock.shield.fill", aliases: ["vpn", "隱私", "隐私", "網絡隱私", "网络隐私", "privacy", "online privacy"] },
+  { icon: "shield.lefthalf.filled", aliases: ["網絡安全", "网络安全", "殺毒", "杀毒", "安全防護", "安全防护", "security", "cybersecurity", "antivirus"] },
+  { icon: "key.fill", aliases: ["密碼", "密码", "密碼管理", "密码管理", "密鑰", "密钥", "passwords", "password manager", "keys"] },
+  { icon: "network", aliases: ["網絡管理", "网络管理", "局域網", "局域网", "家庭實驗室", "家庭实验室", "network management", "networking", "homelab"] },
+  { icon: "server.rack", aliases: ["服務器", "服务器", "雲主機", "云主机", "主機托管", "主机托管", "servers", "cloud servers", "hosting", "vps"] },
+  { icon: "square.grid.2x2.fill", aliases: ["數字服務", "数字服务", "數位服務", "在线服务", "在線服務", "網絡服務", "网络服务", "應用", "应用", "軟件訂閱", "软件订阅", "digital services", "online services", "apps", "software subscriptions"] },
+  { icon: "puzzlepiece.extension.fill", aliases: ["瀏覽器擴展", "浏览器扩展", "插件", "擴展", "扩展", "browser extensions", "extensions", "plugins"] },
+
+  // Media and social
+  { icon: "play.rectangle.fill", aliases: ["影音", "影視", "影视", "視頻", "视频", "流媒體", "流媒体", "電影", "电影", "video", "streaming", "movies", "movies tv", "movies and tv"] },
+  { icon: "music.note", aliases: ["音樂", "音乐", "music"] },
+  { icon: "headphones", aliases: ["音頻", "音频", "有聲書", "有声书", "聽書", "听书", "audio", "audiobooks"] },
+  { icon: "mic.fill", aliases: ["播客", "podcast", "podcasts"] },
+  { icon: "radio.fill", aliases: ["電台", "电台", "廣播", "广播", "radio"] },
+  { icon: "gamecontroller.fill", aliases: ["遊戲", "游戏", "games", "gaming"] },
+  { icon: "tv.fill", aliases: ["電視", "电视", "追劇", "追剧", "television", "tv", "watchlist"] },
+  { icon: "sportscourt.fill", aliases: ["體育賽事", "体育赛事", "賽事", "赛事", "sports events", "matches"] },
+  { icon: "theatermasks.fill", aliases: ["演出", "戲劇", "戏剧", "綜藝", "综艺", "shows", "theatre", "theater"] },
+  { icon: "ticket.fill", aliases: ["票券", "門票", "门票", "活動票", "活动票", "tickets", "event tickets"] },
+  { icon: "newspaper.fill", aliases: ["新聞", "新闻", "報刊", "报刊", "雜誌", "杂志", "news", "newspapers", "magazines"] },
+  { icon: "bubble.left.and.bubble.right.fill", aliases: ["社交", "社交媒體", "社交媒体", "社交網絡", "社交网络", "social", "social media", "social networks"] },
+  { icon: "video.fill", aliases: ["視頻會議", "视频会议", "線上會議", "线上会议", "video meetings", "video calls", "video conferences"] },
+  { icon: "person.3.fill", aliases: ["社群", "社區", "社区", "俱樂部", "俱乐部", "協會", "协会", "communities", "clubs", "associations"] },
+  { icon: "heart.fill", aliases: ["交友", "約會", "约会", "婚戀", "婚恋", "dating", "relationships"] },
+  { icon: "paperplane.fill", aliases: ["公告", "發布", "发布", "群發", "群发", "announcements", "publishing", "broadcasts"] },
+
+  // Shopping, delivery and home
+  { icon: "cart.fill", aliases: ["購物", "购物", "每周購物", "每周购物", "採購", "采购", "買東西", "买东西", "超市", "雜貨", "杂货", "shopping", "shopping groceries", "groceries", "grocery"] },
+  { icon: "bag.fill", aliases: ["願望單", "愿望单", "心願單", "心愿单", "會員購物", "会员购物", "wishlist", "wish list", "members shopping"] },
+  { icon: "storefront.fill", aliases: ["商店", "門店", "门店", "商超", "零售", "stores", "shops", "retail", "retailers"] },
+  { icon: "shippingbox.fill", aliases: ["快遞", "快递", "包裹", "物流", "配送", "收貨", "收货", "發貨", "发货", "delivery", "deliveries", "shipping", "packages", "parcels"] },
+  { icon: "fork.knife", aliases: ["餐飲", "餐饮", "美食", "吃飯", "吃饭", "食譜", "食谱", "備餐", "备餐", "dining", "food", "recipes", "meal planning"] },
+  { icon: "takeoutbag.and.cup.and.straw.fill", aliases: ["外賣", "外卖", "送餐", "外賣配送", "外卖配送", "takeout", "food delivery", "meal delivery"] },
+  { icon: "cup.and.saucer.fill", aliases: ["咖啡", "茶飲", "茶饮", "飲品", "饮品", "coffee", "tea", "drinks"] },
+  { icon: "tshirt.fill", aliases: ["服飾", "服饰", "衣物", "衣櫥", "衣橱", "clothing", "clothes", "wardrobe"] },
+  { icon: "house.fill", aliases: ["家庭", "居家", "家務", "家务", "住房", "房產", "房产", "home", "family", "household", "housing", "property"] },
+  { icon: "bolt.fill", aliases: ["電費", "电费", "電力", "电力", "electricity", "power bills"] },
+  { icon: "drop.fill", aliases: ["水費", "水费", "用水", "water", "water bills"] },
+  { icon: "flame.fill", aliases: ["燃氣", "燃气", "煤氣", "煤气", "天然氣", "天然气", "gas", "gas bills"] },
+  { icon: "hammer.fill", aliases: ["家修", "家庭維修", "家庭维修", "房屋維護", "房屋维护", "home repairs", "home maintenance"] },
+  { icon: "washer.fill", aliases: ["清潔", "清洁", "洗衣", "家政", "家庭雜務", "家庭杂务", "household chores", "cleaning", "laundry"] },
+  { icon: "trash.fill", aliases: ["垃圾", "回收", "垃圾分類", "垃圾分类", "trash", "rubbish", "recycling"] },
+  { icon: "bell.and.waves.left.and.right.fill", aliases: ["家庭安防", "門禁", "门禁", "報警", "报警", "home security", "alarms"] },
+  { icon: "pawprint.fill", aliases: ["寵物", "宠物", "貓狗", "猫狗", "寵物護理", "宠物护理", "pets", "pet care"] },
+  { icon: "gift.fill", aliases: ["禮物", "礼物", "禮品", "礼品", "gifts"] },
+
+  // Health and fitness
+  { icon: "heart.text.square.fill", aliases: ["健康", "健康管理", "健康記錄", "健康记录", "health", "health tracking", "wellness"] },
+  { icon: "cross.case.fill", aliases: ["醫療", "医疗", "看病", "醫院", "医院", "medical", "healthcare", "hospital"] },
+  { icon: "pills.fill", aliases: ["用藥", "用药", "吃藥", "吃药", "藥物", "药物", "藥品", "药品", "保健品", "medication", "medications", "medicine", "prescriptions", "supplements"] },
+  { icon: "stethoscope", aliases: ["醫生", "医生", "門診", "门诊", "複診", "复诊", "就醫預約", "就医预约", "doctors", "doctor visits", "medical appointments"] },
+  { icon: "figure.run", aliases: ["跑步", "鍛煉", "锻炼", "訓練", "训练", "exercise", "running", "training"] },
+  { icon: "dumbbell.fill", aliases: ["健身", "健身房", "運動", "运动", "fitness", "gym", "workout", "workouts", "sports"] },
+  { icon: "figure.mind.and.body", aliases: ["冥想", "正念", "瑜伽", "meditation", "mindfulness", "yoga"] },
+  { icon: "bed.double.fill", aliases: ["睡眠", "作息", "bedtime", "sleep", "sleep routine"] },
+  { icon: "brain.head.profile", aliases: ["心理健康", "心理", "專注", "专注", "mental health", "focus"] },
+  { icon: "leaf.fill", aliases: ["身心健康", "自我關懷", "自我关怀", "營養", "营养", "wellbeing", "self care", "nutrition"] },
+  { icon: "trophy.fill", aliases: ["比賽", "比赛", "競賽", "竞赛", "運動成就", "运动成就", "competitions", "tournaments", "achievements"] },
+
+  // Transport and travel
+  { icon: "airplane", aliases: ["航班", "飛行", "飞行", "機票", "机票", "flights", "air travel", "airline tickets"] },
+  { icon: "car.fill", aliases: ["車輛", "车辆", "汽車", "汽车", "用車", "用车", "汽車保養", "汽车保养", "car", "cars", "vehicles", "car care"] },
+  { icon: "bus.fill", aliases: ["公交", "公車", "公车", "巴士", "通勤", "bus", "buses", "commute"] },
+  { icon: "tram.fill", aliases: ["公共交通", "地鐵", "地铁", "火車", "火车", "鐵路", "铁路", "transit", "metro", "subway", "trains", "rail"] },
+  { icon: "ferry.fill", aliases: ["船務", "船务", "輪渡", "轮渡", "船票", "ferries", "boats", "cruises"] },
+  { icon: "map.fill", aliases: ["地圖", "地图", "導航", "导航", "路線", "路线", "maps", "navigation", "routes"] },
+  { icon: "location.fill", aliases: ["地點", "地点", "位置", "去處", "去处", "places", "locations", "places to go"] },
+  { icon: "suitcase.rolling.fill", aliases: ["旅行", "旅行計劃", "旅行计划", "旅遊", "旅游", "出行", "出行計劃", "出行计划", "假期", "行李", "travel", "travel plans", "trips", "vacation", "vacations", "packing"] },
+  { icon: "fuelpump.fill", aliases: ["加油", "油費", "油费", "燃油", "fuel", "gas stations"] },
+  { icon: "bolt.car.fill", aliases: ["車輛充電", "车辆充电", "電車充電", "电车充电", "充電樁", "充电桩", "ev charging", "car charging"] },
+  { icon: "parkingsign.circle.fill", aliases: ["停車", "停车", "停車費", "停车费", "路橋費", "路桥费", "通行費", "通行费", "parking", "tolls"] },
+  { icon: "bicycle", aliases: ["騎行", "骑行", "單車", "单车", "自行車", "自行车", "cycling", "bikes", "bicycles"] },
+
+  // Learning and reading
+  { icon: "graduationcap.fill", aliases: ["學習", "学习", "學校", "学校", "課程", "课程", "教育", "作業", "作业", "考試", "考试", "study", "school", "classes", "courses", "education", "homework", "exams"] },
+  { icon: "book.closed.fill", aliases: ["閱讀", "阅读", "書籍", "书籍", "讀書", "读书", "書單", "书单", "電子書", "电子书", "漫畫", "漫画", "reading", "books", "ebooks", "comics", "reading list"] },
+  { icon: "books.vertical.fill", aliases: ["圖書館", "图书馆", "借書", "借书", "還書", "还书", "library", "borrowed books", "library books"] },
+  { icon: "text.book.closed.fill", aliases: ["辭典", "辞典", "參考", "参考", "研究資料", "研究资料", "dictionaries", "reference", "research materials"] },
+  { icon: "character.book.closed.fill", aliases: ["語言", "语言", "外語", "外语", "語言學習", "语言学习", "languages", "language learning"] },
+  { icon: "lightbulb.fill", aliases: ["知識", "知识", "技能", "學習目標", "学习目标", "knowledge", "skills", "learning goals"] },
+  { icon: "function", aliases: ["數學", "数学", "科學", "科学", "理科", "math", "maths", "science", "stem"] },
+  { icon: "globe.asia.australia.fill", aliases: ["地理", "歷史", "历史", "人文", "geography", "history", "humanities"] },
+  { icon: "teddybear.fill", aliases: ["少兒", "少儿", "親子", "亲子", "兒童", "儿童", "kids", "children", "parenting"] },
+
+  // Creation and design
+  { icon: "camera.fill", aliases: ["攝影", "摄影", "拍攝", "拍摄", "相機", "相机", "photography", "camera", "shoots"] },
+  { icon: "photo.fill.on.rectangle.fill", aliases: ["照片", "相冊", "相册", "圖庫", "图库", "photos", "photo library", "gallery"] },
+  { icon: "paintbrush.fill", aliases: ["繪畫", "绘画", "畫畫", "画画", "美術", "美术", "drawing", "painting", "art"] },
+  { icon: "paintpalette.fill", aliases: ["設計", "设计", "設計素材", "设计素材", "視覺設計", "视觉设计", "design", "design assets", "visual design"] },
+  { icon: "pencil.and.ruler.fill", aliases: ["製圖", "制图", "排版", "建築設計", "建筑设计", "drafting", "layout", "architecture"] },
+  { icon: "scissors", aliases: ["剪輯", "剪辑", "裁剪", "編輯素材", "编辑素材", "editing assets", "cutting", "clipping"] },
+  { icon: "wand.and.stars", aliases: ["特效", "美化", "修圖", "修图", "effects", "retouching", "enhancements"] },
+  { icon: "film.fill", aliases: ["影片製作", "影片制作", "視頻製作", "视频制作", "電影製作", "电影制作", "filmmaking", "video production"] },
+  { icon: "cube.transparent.fill", aliases: ["三維", "三维", "建模", "3d", "3d modeling", "modelling"] },
+  { icon: "scribble.variable", aliases: ["創作", "创作", "創意", "创意", "寫作", "写作", "手寫", "手写", "creativity", "creative work", "writing", "handwriting"] },
+
+  // Other common lists
+  { icon: "birthday.cake.fill", aliases: ["生日", "紀念日", "纪念日", "birthdays", "anniversaries"] },
+  { icon: "cloud.sun.fill", aliases: ["天氣", "天气", "氣象", "气象", "weather"] },
+  { icon: "umbrella.fill", aliases: ["雨天", "防雨", "rain", "rainy days"] },
+  { icon: "bell.fill", aliases: ["通知", "提醒通知", "notifications", "alerts"] },
+  { icon: "qrcode", aliases: ["通行碼", "通行码", "二維碼", "二维码", "證碼", "证码", "passes", "qr codes"] },
+  { icon: "wrench.and.screwdriver.fill", aliases: ["維修", "维修", "保養", "保养", "維護", "维护", "repairs", "maintenance"] },
 ]
 
 const KIND_FALLBACKS = new Map<ItemKind, string>(
@@ -840,11 +958,7 @@ const ICON_OPTION_NAMES = new Set(DUE_ICON_OPTIONS.map(option => option.name))
 const ICON_OPTIONS_BY_NAME = new Map(DUE_ICON_OPTIONS.map(option => [option.name, option]))
 const COMPILED_ICON_RULES = compileIconRules(ICON_RULES)
 const COMPILED_REMINDER_CONTENT_RULES = compileIconRules(REMINDER_CONTENT_RULES)
-const REMINDER_LIST_ICONS_BY_TITLE = new Map(
-  REMINDER_LIST_ICON_RULES.flatMap(rule => (
-    rule.aliases.map(alias => [normalizeReminderListTitle(alias), rule.icon] as const)
-  )),
-)
+const REMINDER_LIST_ICONS_BY_TITLE = buildReminderListIconMap(REMINDER_LIST_ICON_RULES)
 
 export function normalizeIconOverride(value: unknown): string | null {
   if (typeof value !== "string") return null
@@ -881,8 +995,8 @@ export function resolveReminderIcon(
   cachedNoteIconHint: string | null = null,
 ): ResolvedDueIcon {
   const inferredName = bestMatchingReminderTextIcon(title)
-    ?? bestMatchingIcon(calendarTitle)
     ?? bestMatchingReminderListIcon(calendarTitle)
+    ?? bestMatchingIcon(calendarTitle)
     ?? inferReminderNoteIcon(notes)
     ?? normalizeIconOverride(cachedNoteIconHint)
     ?? "checklist"
@@ -951,6 +1065,31 @@ function bestMatchingReminderListIcon(title: string): string | null {
     if (iconName && ICON_OPTION_NAMES.has(iconName)) return iconName
   }
   return null
+}
+
+function buildReminderListIconMap(
+  rules: readonly ReminderListIconRule[],
+): Map<string, string> {
+  const result = new Map<string, string>()
+  for (const rule of rules) {
+    if (!ICON_OPTION_NAMES.has(rule.icon)) {
+      throw new Error(`Unknown reminder List icon: ${rule.icon}`)
+    }
+    for (const alias of rule.aliases) {
+      const normalizedAlias = normalizeReminderListTitle(alias)
+      if (!normalizedAlias) {
+        throw new Error(`Empty reminder List alias for ${rule.icon}`)
+      }
+      const previousIcon = result.get(normalizedAlias)
+      if (previousIcon) {
+        throw new Error(
+          `Duplicate reminder List alias "${normalizedAlias}": ${previousIcon} / ${rule.icon}`,
+        )
+      }
+      result.set(normalizedAlias, rule.icon)
+    }
+  }
+  return result
 }
 
 function normalizeText(value: string): string {

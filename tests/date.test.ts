@@ -13,6 +13,7 @@ import {
   DUE_ICON_GROUPS,
   DUE_ICON_OPTIONS,
   normalizeIconOverride,
+  REMINDER_LIST_ICON_RULES,
   resolveDueIcon,
   resolveReminderIcon,
 } from "../到期管家/src/icons.ts"
@@ -534,6 +535,88 @@ test("reminder icons recognize common task language and list categories", () => 
   }
 })
 
+test("reminder List taxonomy covers every declared alias and common suffix", () => {
+  const iconNames = new Set(DUE_ICON_OPTIONS.map(option => option.name))
+  const normalizedAliases = new Set<string>()
+  let aliasCount = 0
+
+  const normalizeAlias = (value: string) => value
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  for (const rule of REMINDER_LIST_ICON_RULES) {
+    assert.equal(iconNames.has(rule.icon), true, rule.icon)
+    for (const alias of rule.aliases) {
+      const normalized = normalizeAlias(alias)
+      assert.notEqual(normalized, "", `${rule.icon} has an empty alias`)
+      assert.equal(
+        normalizedAliases.has(normalized),
+        false,
+        `duplicate normalized reminder List alias: ${normalized}`,
+      )
+      normalizedAliases.add(normalized)
+      aliasCount += 1
+
+      assert.equal(resolveReminderIcon("847291", alias, "").name, rule.icon, alias)
+      assert.equal(resolveReminderIcon("847291", `📌 ${alias} List`, "").name, rule.icon, `${alias} List`)
+      assert.equal(resolveReminderIcon("847291", `📌 ${alias} 清单`, "").name, rule.icon, `${alias} 清单`)
+    }
+  }
+
+  assert.ok(REMINDER_LIST_ICON_RULES.length >= 100)
+  assert.ok(aliasCount >= 1000)
+})
+
+test("reminder List matching keeps exact boundaries and layered priority", () => {
+  const falsePositiveLists = [
+    "工作室",
+    "健康码",
+    "音乐会",
+    "银行家",
+    "快遞員培訓",
+    "購物預算",
+    "Deliverance",
+    "DeliveryOps",
+    "workshop",
+    "Taskmaster",
+    "carpet",
+    "Old Delivery List",
+    "Not Work List",
+  ]
+  for (const calendarTitle of falsePositiveLists) {
+    assert.equal(
+      resolveReminderIcon("847291", calendarTitle, "").name,
+      "checklist",
+      calendarTitle,
+    )
+  }
+
+  assert.equal(
+    resolveReminderIcon("847291", "📦 Ｄｅｌｉｖｅｒｙ—Ｌｉｓｔ ✅", "").name,
+    "shippingbox.fill",
+  )
+  assert.equal(resolveReminderIcon("家庭电费", "Delivery", "").name, "bolt.fill")
+  assert.equal(resolveReminderIcon("去驿站取快递", "Work", "").name, "shippingbox.fill")
+  assert.equal(resolveReminderIcon("Amazon Prime Video", "Delivery", "").name, "play.rectangle.fill")
+
+  const source = readFileSync(
+    new URL("../到期管家/src/icons.ts", import.meta.url),
+    "utf8",
+  )
+  const resolver = source.slice(
+    source.indexOf("export function resolveReminderIcon"),
+    source.indexOf("function resolvedIcon"),
+  )
+  assert.ok(
+    resolver.indexOf("bestMatchingReminderListIcon(calendarTitle)")
+      < resolver.indexOf("bestMatchingIcon(calendarTitle)"),
+    "an exact List category must outrank product-text inference within the List name",
+  )
+})
+
 test("reminder icon matching keeps false-positive protection in every source", () => {
   assert.equal(
     resolveReminderIcon(
@@ -556,9 +639,9 @@ test("reminder icon matching keeps false-positive protection in every source", (
     "checklist",
   )
   assert.equal(
-    resolveReminderIcon("Home", "Internet", "renewal").name,
+    resolveReminderIcon("Amazon", "Prime", "Video").name,
     "checklist",
-    "separate fields must not combine into the phrase Home internet renewal",
+    "separate fields must not combine into the phrase Amazon Prime Video",
   )
 })
 
