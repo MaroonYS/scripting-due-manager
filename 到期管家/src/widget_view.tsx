@@ -223,11 +223,16 @@ function SmallDueItem({
         padding={{ top: 15 }}
         frame={{ maxWidth: "infinity", alignment: "leading" }}
       >
-        <CompletionControl
-          item={item}
-          hitSize={40}
-          symbolSize={19}
-        />
+        <VStack
+          spacing={0}
+          padding={{ top: -5, bottom: 5 }}
+        >
+          <CompletionControl
+            item={item}
+            hitSize={40}
+            symbolSize={19}
+          />
+        </VStack>
         <Link url={itemURL(item)}>
           <Text
             font={16}

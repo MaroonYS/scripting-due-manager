@@ -1785,7 +1785,15 @@ test("small widget previews one non-interactive next queue item", () => {
   assert.match(smallItem, /const detail = smallItemDetail\(item\)/)
   assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", height: 76, alignment: "topLeading" \}\}/)
   assert.match(smallItem, /<HStack\s+alignment="top"\s+spacing=\{0\}\s+padding=\{\{ top: 15 \}\}/)
-  assert.match(smallItem, /<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}/)
+  assert.match(
+    smallItem,
+    /<VStack\s+spacing=\{0\}\s+padding=\{\{ top: -5, bottom: 5 \}\}\s*>\s*<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}\s+symbolSize=\{19\}\s*\/>\s*<\/VStack>/,
+  )
+  assert.equal(
+    source.match(/padding=\{\{ top: -5, bottom: 5 \}\}/g)?.length,
+    1,
+    "the completion lift must remain small-widget-only",
+  )
   assert.equal(smallItem.match(/padding=\{\{ top: 15 \}\}/g)?.length, 1)
   assert.doesNotMatch(smallItem, /padding=\{\{ top: 22 \}\}/)
   assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
@@ -1828,6 +1836,19 @@ test("small widget previews one non-interactive next queue item", () => {
   assert.match(preview, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
   assert.match(preview, /<Link url=\{itemURL\(item\)\}>/)
   assert.doesNotMatch(preview, /CompletionControl|CompleteDueItemIntent/)
+
+  const listRow = source.slice(
+    source.indexOf("function DueItemRow"),
+    source.indexOf("function DueStatusLabel"),
+  )
+  const sharedControl = source.slice(
+    source.indexOf("function CompletionControl"),
+    source.indexOf("function CompletionSymbol"),
+  )
+  assert.match(listRow, /return <HStack\s+alignment="center"/)
+  assert.match(listRow, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
+  assert.doesNotMatch(listRow, /padding=\{\{ top: -5, bottom: 5 \}\}/)
+  assert.doesNotMatch(sharedControl, /padding=\{\{ top: -5, bottom: 5 \}\}/)
 })
 
 test("small widget header shows its current due date while list widgets keep the count", () => {
