@@ -812,6 +812,7 @@ const REMINDER_LIST_ICON_RULES: ReminderListIconRule[] = [
   { icon: "doc.text.fill", aliases: ["账单", "账单缴费", "缴费", "费用", "bills", "bills payments", "bill payments", "utilities"] },
   { icon: "creditcard.fill", aliases: ["信用卡", "还款", "credit cards", "credit card"] },
   { icon: "building.columns.fill", aliases: ["财务", "金融", "银行", "finance", "banking", "money"] },
+  { icon: "shippingbox.fill", aliases: ["快递", "包裹", "物流", "配送", "收货", "delivery", "deliveries", "shipping", "packages", "parcels"] },
   { icon: "car.fill", aliases: ["车辆", "汽车", "用车", "car", "cars", "vehicle"] },
   { icon: "pawprint.fill", aliases: ["宠物", "猫狗", "pets", "pet care"] },
   { icon: "birthday.cake.fill", aliases: ["生日", "纪念日", "birthdays", "anniversaries"] },

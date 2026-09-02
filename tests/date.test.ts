@@ -518,6 +518,9 @@ test("reminder icons recognize common task language and list categories", () => 
     ["旅行", "suitcase.rolling.fill"],
     ["订阅", "repeat.circle.fill"],
     ["账单", "doc.text.fill"],
+    ["Delivery", "shippingbox.fill"],
+    ["📦 Delivery List", "shippingbox.fill"],
+    ["物流清单", "shippingbox.fill"],
     ["🛒 购物清单", "cart.fill"],
     ["Work Reminders", "briefcase.fill"],
     ["旅行计划", "suitcase.rolling.fill"],
@@ -1008,6 +1011,13 @@ test("cached reminder hints follow title and List priority and accept legacy row
         title: "月底处理",
         calendarTitle: "购物",
       },
+      {
+        ...base,
+        id: "delivery-list-with-numeric-title",
+        title: "4994",
+        calendarTitle: "Delivery",
+        noteIconHint: null,
+      },
     ],
   }
   try {
@@ -1030,6 +1040,7 @@ test("cached reminder hints follow title and List priority and accept legacy row
     assert.equal(icons.get("valid-hint"), "key.fill")
     assert.equal(icons.get("invalid-hint"), "checklist")
     assert.equal(icons.get("legacy-without-hint"), "cart.fill")
+    assert.equal(icons.get("delivery-list-with-numeric-title"), "shippingbox.fill")
   } finally {
     ;(globalThis as any).Storage = originalStorage
     ;(globalThis as any).Reminder = originalReminder

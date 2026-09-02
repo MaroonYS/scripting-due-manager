@@ -2,7 +2,7 @@
   "name": "到期管家",
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "1.3.27",
+  "version": "1.3.28",
   "description": "Track due dates and selected Apple Reminders with 11 due-item types, 130 offline SF Symbols, and private layered icon inference from reminder title, List, notes, then fallback.",
   "localizedDescriptions": {
     "zh": "通过原生风格桌面组件管理 11 种到期事项，内置 130 个离线 SF Symbols，并按提醒标题、所属 List、备注和默认值分层识别图标，全程离线。"
