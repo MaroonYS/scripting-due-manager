@@ -91,11 +91,12 @@ function WidgetHeader({
   return <Link url={Script.createRunURLScheme(Script.name)}>
     <HStack
       alignment="center"
-      spacing={compact ? 5 : 6}
+      spacing={5}
       padding={{
-        top: compact ? 8 : 0,
-        bottom: compact ? -6 : 0,
-        leading: compact ? 5 : 0,
+        top: compact ? 8 : 4,
+        bottom: compact ? -6 : -2,
+        leading: 5,
+        trailing: 5,
       }}
       frame={{ maxWidth: "infinity" }}
     >
@@ -108,7 +109,7 @@ function WidgetHeader({
         widgetAccentable
       />
       <Text
-        font={compact ? 13 : "headline"}
+        font={compact ? 13 : 15}
         fontWeight="semibold"
         foregroundStyle="label"
         lineLimit={1}
@@ -124,13 +125,12 @@ function WidgetHeader({
         />
         : null}
       <Text
-        font={compact ? "caption2" : "caption"}
+        font="caption2"
         foregroundStyle="secondaryLabel"
         lineLimit={1}
-        minScaleFactor={compact ? 0.65 : 1}
+        minScaleFactor={compact ? 0.65 : 0.8}
         monospacedDigit
         contentTransition="numericTextCountsDown"
-        padding={{ trailing: compact ? 5 : 0 }}
       >
         {compact && items[0] ? humanDate(items[0].dueDate) : items.length}
       </Text>
@@ -367,15 +367,11 @@ function ListWidget({
   const roomy = family === "systemLarge"
   const rowHeight = widgetRowHeight(family, displayHeight, effectiveLimit)
 
-  return <WidgetFrame contentPadding={{
-    top: 11,
-    bottom: 11,
-    leading: 14,
-    trailing: 14,
-  }}>
+  return <WidgetFrame contentPadding={11}>
     <VStack
       alignment="leading"
       spacing={0}
+      padding={{ leading: 3, trailing: 3 }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
     >
       <WidgetHeader
@@ -407,6 +403,7 @@ function ListWidgetBody({
   rowHeight: number
   issue: WidgetIssue | null
 }) {
+  const dividerLeading = Math.min(rowHeight, roomy ? 40 : 38) + 4
   return <VStack
     alignment="leading"
     spacing={0}
@@ -433,7 +430,7 @@ function ListWidgetBody({
               height={rowHeight}
             />
             {index < visible.length - 1
-              ? <Divider padding={{ leading: roomy ? 62 : 59 }} />
+              ? <Divider padding={{ leading: dividerLeading }} />
               : null}
           </VStack>
         ))}
@@ -484,9 +481,11 @@ function DueItemRow({
   height: number
 }) {
   const hitSize = Math.min(height, roomy ? 40 : 38)
+  const titleInset = roomy ? 6 : 5
+  const detail = listItemDetail(item)
   return <HStack
-    alignment="center"
-    spacing={4}
+    alignment="top"
+    spacing={0}
     contentTransition="opacity"
     frame={{ maxWidth: "infinity", height }}
   >
@@ -494,40 +493,58 @@ function DueItemRow({
       item={item}
       hitSize={hitSize}
       symbolSize={roomy ? 20 : 19}
+      visualOffsetY={-5}
     />
     <Link url={itemURL(item)}>
-      <HStack alignment="center" spacing={6} frame={{ maxWidth: "infinity" }}>
-        <Image
-          systemName={item.iconName}
-          font={roomy ? 14 : 13}
-          foregroundStyle={item.iconColor}
-          symbolRenderingMode="hierarchical"
-          frame={{ width: 17, height: 18 }}
-          widgetAccentable
-        />
-        <VStack alignment="leading" spacing={1} frame={{ maxWidth: "infinity" }}>
-          <HStack alignment="center" spacing={5} frame={{ maxWidth: "infinity" }}>
-            <Text font="subheadline" fontWeight="semibold" lineLimit={1}>
-              {item.title}
-            </Text>
-            <Spacer />
-            <DueStatusLabel item={item} font="caption" />
-          </HStack>
-          <HStack alignment="center" spacing={4} frame={{ maxWidth: "infinity" }}>
-            <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
-              {displayDate(item)}
-            </Text>
-            {item.amount
-              ? <Text font="caption2" foregroundStyle="secondaryLabel" lineLimit={1}>
-                · {item.amount}
-              </Text>
-              : null}
-            <Spacer />
-          </HStack>
-        </VStack>
-      </HStack>
+      <VStack
+        alignment="leading"
+        spacing={0}
+        padding={{ top: titleInset }}
+        frame={{ maxWidth: "infinity" }}
+      >
+        <HStack alignment="top" spacing={5} frame={{ maxWidth: "infinity" }}>
+          <Text
+            font={roomy ? 15 : 14}
+            fontWeight="semibold"
+            lineLimit={1}
+            minScaleFactor={0.85}
+          >
+            {item.title}
+          </Text>
+          <Spacer />
+          <VStack spacing={0}>
+            <DueStatusLabel item={item} font={roomy ? "caption" : "caption2"} />
+          </VStack>
+        </HStack>
+        <HStack alignment="center" spacing={4} frame={{ maxWidth: "infinity" }}>
+          <Image
+            systemName={item.iconName}
+            font={roomy ? 12 : 11}
+            foregroundStyle={item.iconColor}
+            symbolRenderingMode="hierarchical"
+            frame={{ width: 14, height: 13 }}
+            widgetAccentable
+          />
+          <Text
+            font="caption2"
+            foregroundStyle="secondaryLabel"
+            lineLimit={1}
+            minScaleFactor={0.78}
+            frame={{ maxWidth: "infinity", alignment: "leading" }}
+          >
+            {detail}
+          </Text>
+        </HStack>
+      </VStack>
     </Link>
   </HStack>
+}
+
+function listItemDetail(item: DisplayDueItem): string {
+  return [displayDate(item), item.amount, item.note]
+    .map((value) => value.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join(" · ")
 }
 
 function DueStatusLabel({
@@ -563,10 +580,12 @@ function CompletionControl({
   item,
   hitSize,
   symbolSize,
+  visualOffsetY = 0,
 }: {
   item: DisplayDueItem
   hitSize: number
   symbolSize: number
+  visualOffsetY?: number
 }) {
   if (!item.canComplete) {
     return <Image
@@ -574,6 +593,7 @@ function CompletionControl({
       font={symbolSize - 1}
       foregroundStyle="tertiaryLabel"
       frame={{ width: hitSize, height: hitSize }}
+      padding={{ top: visualOffsetY, bottom: -visualOffsetY }}
       contentTransition="symbolEffectReplace"
     />
   }
@@ -583,6 +603,7 @@ function CompletionControl({
       font={symbolSize - 1}
       foregroundStyle="tertiaryLabel"
       frame={{ width: hitSize, height: hitSize }}
+      padding={{ top: visualOffsetY, bottom: -visualOffsetY }}
       contentTransition="symbolEffectReplace"
     />
   }
@@ -598,6 +619,7 @@ function CompletionControl({
     <CompletionSymbol
       hitSize={hitSize}
       symbolSize={symbolSize}
+      visualOffsetY={visualOffsetY}
     />
   </Button>
 }
@@ -605,9 +627,11 @@ function CompletionControl({
 function CompletionSymbol({
   hitSize,
   symbolSize,
+  visualOffsetY,
 }: {
   hitSize: number
   symbolSize: number
+  visualOffsetY: number
 }) {
   return <Image
     systemName="circle"
@@ -615,6 +639,7 @@ function CompletionSymbol({
     foregroundStyle="systemBlue"
     symbolRenderingMode="hierarchical"
     frame={{ width: hitSize, height: hitSize }}
+    padding={{ top: visualOffsetY, bottom: -visualOffsetY }}
     contentTransition="symbolEffectReplace"
     widgetAccentable
   />

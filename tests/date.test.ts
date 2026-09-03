@@ -785,17 +785,57 @@ test("manual widget completion is idempotent for an old occurrence button", () =
   assert.equal(repeated.state.items[0].dueDate, "2026-02-28")
 })
 
-test("completing the visible item lets the next queue item fill its place", () => {
-  const first = item({ id: "first", title: "第一件", dueDate: "2026-08-30", updatedAt: 1 })
-  const second = item({ id: "second", title: "第二件", dueDate: "2026-08-31", updatedAt: 2 })
-  const third = item({ id: "third", title: "第三件", dueDate: "2026-09-01", updatedAt: 3 })
-  const state = { ...defaultState(3), items: [first, second, third], updatedAt: 3 }
-  const before = visibleWidgetItems(sortDueItems(manualItemsForDisplay(state)), 2)
-  assert.deepEqual(before.map(value => value.id), ["first", "second"])
+test("completing the visible item backfills every medium and large widget capacity", () => {
+  const layouts = [
+    ["systemMedium", 145, 2],
+    ["systemMedium", 152, 3],
+    ["systemLarge", 250, 5],
+    ["systemLarge", 281, 6],
+    ["systemLarge", 320, 7],
+  ] as const
 
-  const completed = planManualCompletion(state, first.id, manualOccurrenceKey(first), 10)
-  const after = visibleWidgetItems(sortDueItems(manualItemsForDisplay(completed.state)), 2)
-  assert.deepEqual(after.map(value => value.id), ["second", "third"])
+  for (const [family, displayHeight, expectedCapacity] of layouts) {
+    const queue = Array.from({ length: expectedCapacity + 1 }, (_, index) => item({
+      id: `queue-${index + 1}`,
+      title: `第 ${index + 1} 件`,
+      dueDate: `2026-09-${String(index + 1).padStart(2, "0")}`,
+      updatedAt: index + 1,
+    }))
+    const state = {
+      ...defaultState(queue.length),
+      items: queue,
+      updatedAt: queue.length,
+    }
+    const capacity = widgetItemCapacity(family, displayHeight)
+    assert.equal(capacity, expectedCapacity, `${family} at ${displayHeight} pt`)
+
+    const before = visibleWidgetItems(
+      sortDueItems(manualItemsForDisplay(state)),
+      capacity,
+    )
+    assert.deepEqual(
+      before.map(value => value.id),
+      queue.slice(0, capacity).map(value => value.id),
+      `${family} should initially fill all ${capacity} slots`,
+    )
+
+    const first = queue[0]
+    const completed = planManualCompletion(
+      state,
+      first.id,
+      manualOccurrenceKey(first),
+      100,
+    )
+    const after = visibleWidgetItems(
+      sortDueItems(manualItemsForDisplay(completed.state)),
+      capacity,
+    )
+    assert.deepEqual(
+      after.map(value => value.id),
+      queue.slice(1, capacity + 1).map(value => value.id),
+      `${family} should pull the next item into its last visible slot`,
+    )
+  }
 })
 
 test("manual display items always receive an icon and preserve a manual override", () => {
@@ -1831,6 +1871,10 @@ test("widget view uses native queue transitions, safe controls, and unified list
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
+  const listWidget = source.slice(
+    source.indexOf("function ListWidget("),
+    source.indexOf("function ListWidgetBody"),
+  )
   const importBlock = source.slice(0, source.indexOf("from \"scripting\"") + 16)
   assert.doesNotMatch(importBlock, /\bAnimation\b/)
   assert.match(source, /declare const Transition: any/)
@@ -1851,13 +1895,58 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.match(source, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
   assert.match(source, /<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}/)
   assert.match(
-    source,
-    /<WidgetFrame contentPadding=\{\{\s*top: 11,\s*bottom: 11,\s*leading: 14,\s*trailing: 14,\s*\}\}>/,
+    listWidget,
+    /return <WidgetFrame contentPadding=\{11\}>\s*<VStack\s+alignment="leading"\s+spacing=\{0\}\s+padding=\{\{ leading: 3, trailing: 3 \}\}/,
+    "11 pt frame padding plus 3 pt horizontal inset must keep an effective 14 pt list margin",
   )
+  assert.equal(listWidget.match(/padding=\{\{ leading: 3, trailing: 3 \}\}/g)?.length, 1)
   assert.doesNotMatch(source, /contentPadding=\{roomy \? 14 : 11\}/)
   assert.doesNotMatch(source, /previousItems|completionPhase|layer0|layer1/)
   assert.equal(source.match(/animation=\{\{ animation: COMPLETION_QUEUE_ANIMATION, value: generation \}\}/g)?.length, 1)
   assert.doesNotMatch(source, /symbolEffect=\{\{ effect: "bounce"/)
+})
+
+test("medium and large rows align completion visuals with the first title line", () => {
+  const source = readFileSync(
+    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
+    "utf8",
+  )
+  const listRow = source.slice(
+    source.indexOf("function DueItemRow"),
+    source.indexOf("function listItemDetail"),
+  )
+  const listDetail = source.slice(
+    source.indexOf("function listItemDetail"),
+    source.indexOf("function DueStatusLabel"),
+  )
+  const completionControl = source.slice(
+    source.indexOf("function CompletionControl"),
+    source.indexOf("function EmptyState"),
+  )
+
+  assert.match(listRow, /const titleInset = roomy \? 6 : 5/)
+  assert.match(listRow, /const detail = listItemDetail\(item\)/)
+  assert.match(listRow, /return <HStack\s+alignment="top"\s+spacing=\{0\}/)
+  assert.match(
+    listRow,
+    /<CompletionControl\s+item=\{item\}\s+hitSize=\{hitSize\}\s+symbolSize=\{roomy \? 20 : 19\}\s+visualOffsetY=\{-5\}\s*\/>/,
+  )
+  assert.match(
+    listRow,
+    /<VStack\s+alignment="leading"\s+spacing=\{0\}\s+padding=\{\{ top: titleInset \}\}\s+frame=\{\{ maxWidth: "infinity" \}\}/,
+    "the entire text column should move together so its detail line cannot overlap the title",
+  )
+  assert.doesNotMatch(listRow, /bottom: -titleInset/)
+  assert.match(
+    listDetail,
+    /return \[displayDate\(item\), item\.amount, item\.note\][\s\S]*?\.join\(" · "\)/,
+  )
+  assert.match(completionControl, /visualOffsetY = 0/)
+  assert.equal(
+    completionControl.match(/padding=\{\{ top: visualOffsetY, bottom: -visualOffsetY \}\}/g)?.length,
+    3,
+    "interactive, locked, and stale completion visuals must use the same offset",
+  )
 })
 
 test("small widget previews one non-interactive next queue item", () => {
@@ -1870,6 +1959,10 @@ test("small widget previews one non-interactive next queue item", () => {
   const smallWidget = source.slice(
     source.indexOf("function SmallWidget("),
     source.indexOf("function SmallWidgetBody"),
+  )
+  const widgetHeader = source.slice(
+    source.indexOf("function WidgetHeader"),
+    source.indexOf("function SmallWidget("),
   )
   assert.match(smallWidget, /padding=\{\{ leading: 3, trailing: 3 \}\}/)
   const smallItem = source.slice(
@@ -1884,9 +1977,9 @@ test("small widget previews one non-interactive next queue item", () => {
     /<VStack\s+spacing=\{0\}\s+padding=\{\{ top: -5, bottom: 5 \}\}\s*>\s*<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}\s+symbolSize=\{19\}\s*\/>\s*<\/VStack>/,
   )
   assert.equal(
-    source.match(/padding=\{\{ top: -5, bottom: 5 \}\}/g)?.length,
+    smallItem.match(/padding=\{\{ top: -5, bottom: 5 \}\}/g)?.length,
     1,
-    "the completion lift must remain small-widget-only",
+    "the small completion lift must remain unchanged",
   )
   assert.equal(smallItem.match(/padding=\{\{ top: 15 \}\}/g)?.length, 1)
   assert.doesNotMatch(smallItem, /padding=\{\{ top: 22 \}\}/)
@@ -1915,9 +2008,9 @@ test("small widget previews one non-interactive next queue item", () => {
   assert.match(smallItem, /<Spacer minLength=\{0\} \/>/)
   assert.doesNotMatch(smallItem, /displayDate\(item\)/)
   assert.doesNotMatch(smallItem, /<DueStatusLabel item=\{item\} font="caption" \/>/)
-  assert.match(source, /font=\{compact \? 13 : "headline"\}/)
-  assert.match(source, /top: compact \? 8 : 0/)
-  assert.match(source, /bottom: compact \? -6 : 0/)
+  assert.match(widgetHeader, /font=\{compact \? 13 :/)
+  assert.match(widgetHeader, /top: compact \? 8 :/)
+  assert.match(widgetHeader, /bottom: compact \? -6 :/)
   assert.match(source, /function SmallNextItemPreview/)
   const preview = source.slice(
     source.indexOf("function SmallNextItemPreview"),
@@ -1930,19 +2023,6 @@ test("small widget previews one non-interactive next queue item", () => {
   assert.match(preview, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
   assert.match(preview, /<Link url=\{itemURL\(item\)\}>/)
   assert.doesNotMatch(preview, /CompletionControl|CompleteDueItemIntent/)
-
-  const listRow = source.slice(
-    source.indexOf("function DueItemRow"),
-    source.indexOf("function DueStatusLabel"),
-  )
-  const sharedControl = source.slice(
-    source.indexOf("function CompletionControl"),
-    source.indexOf("function CompletionSymbol"),
-  )
-  assert.match(listRow, /return <HStack\s+alignment="center"/)
-  assert.match(listRow, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
-  assert.doesNotMatch(listRow, /padding=\{\{ top: -5, bottom: 5 \}\}/)
-  assert.doesNotMatch(sharedControl, /padding=\{\{ top: -5, bottom: 5 \}\}/)
 })
 
 test("small widget header shows its current due date while list widgets keep the count", () => {
