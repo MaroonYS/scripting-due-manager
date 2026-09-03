@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.3.5",
-  "description": "Track due dates and Apple Reminders with system-language widgets, trailing-aligned compact details, and readable middle-truncated metadata.",
+  "version": "2.3.6",
+  "description": "Track due dates and Apple Reminders with system-language widgets, left-aligned compact details, and readable middle-truncated metadata.",
   "localizedDescriptions": {
-    "en": "2.3.5 aligns the small widget’s amount and note to its date edge, and keeps long medium/large metadata readable with native tightening and middle truncation.",
-    "zh": "2.3.5 将小号金额与备注右侧对齐日期，并通过原生字距收紧和中间省略优化中、大号过长备注。",
-    "zh-Hans": "2.3.5 将小号金额与备注右侧对齐日期，并通过原生字距收紧和中间省略优化中、大号过长备注。",
-    "zh-Hant": "2.3.5 將小號金額與備註右側對齊日期，並透過原生字距收緊和中間省略優化中、大號過長備註。"
+    "en": "2.3.6 restores left alignment for the small widget’s amount and note, while retaining native tightening and middle truncation for long medium/large metadata.",
+    "zh": "2.3.6 将小号金额与备注恢复为左对齐，并保持中、大号过长备注的原生字距收紧与中间省略优化。",
+    "zh-Hans": "2.3.6 将小号金额与备注恢复为左对齐，并保持中、大号过长备注的原生字距收紧与中间省略优化。",
+    "zh-Hant": "2.3.6 將小號金額與備註恢復為左對齊，並保持中、大號過長備註的原生字距收緊與中間省略優化。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

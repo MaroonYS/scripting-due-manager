@@ -421,9 +421,9 @@ function SmallCurrentDetail({
           minScaleFactor={0.85}
           truncationMode="middle"
           allowsTightening={true}
-          multilineTextAlignment="trailing"
+          multilineTextAlignment="leading"
           fixedSize={{ horizontal: false, vertical: true }}
-          frame={{ maxWidth: "infinity", alignment: "trailing" }}
+          frame={{ maxWidth: "infinity", alignment: "leading" }}
         >
           {detail}
         </Text>

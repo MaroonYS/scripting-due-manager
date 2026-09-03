@@ -2456,12 +2456,12 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
   assert.match(smallDetail, /minScaleFactor=\{0\.85\}/)
   assert.match(smallDetail, /truncationMode="middle"/)
   assert.match(smallDetail, /allowsTightening=\{true\}/)
-  assert.match(smallDetail, /multilineTextAlignment="trailing"/)
-  assert.match(smallDetail, /frame=\{\{ maxWidth: "infinity", alignment: "trailing" \}\}/)
+  assert.match(smallDetail, /multilineTextAlignment="leading"/)
+  assert.match(smallDetail, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
   assert.match(
     widgetHeader,
     /padding=\{\{[\s\S]*?trailing: 5,[\s\S]*?\}\}/,
-    "the compact header date and current detail must share the same 5 pt trailing inset",
+    "the compact header and current detail must keep the same 5 pt horizontal inset",
   )
   assert.match(smallItem, /<SmallCurrentDetail item=\{item\} detail=\{detail\} \/>/)
   assert.equal(smallItem.match(/height: 19, alignment: "leading"/g)?.length, 2)
