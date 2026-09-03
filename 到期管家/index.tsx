@@ -95,6 +95,15 @@ const EMPTY_REMINDER_STATUS: ReminderStatus = {
 
 const LATEST_PACKAGE_URL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
 
+function recurrenceIntervalUnitLabel(unit: RecurrenceUnit): string {
+  switch (unit) {
+    case "day": return "天"
+    case "week": return "周"
+    case "month": return "个月"
+    case "year": return "年"
+  }
+}
+
 function DueManagerApp() {
   const dismiss = Navigation.useDismiss()
   const [state, setState] = useState<AppState>(() => loadState())
@@ -442,6 +451,9 @@ function ItemEditor({
   )
   const recurrenceInterval = parseRecurrenceIntervalInput(intervalInput)
   const remindBeforeDays = parseRemindBeforeDaysInput(remindBeforeInput)
+  const intervalUnitLabel = recurrenceUnit === "none"
+    ? ""
+    : recurrenceIntervalUnitLabel(recurrenceUnit)
 
   const validationError = (): { title: string; message: string } | null => {
     if (!title.trim()) {
@@ -670,13 +682,21 @@ function ItemEditor({
         <Text tag="year">按年</Text>
       </Picker>
       {recurrenceUnit !== "none"
-        ? <TextField
-          title="间隔"
-          value={intervalInput}
-          onChanged={setIntervalInput}
-          prompt={`${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL}`}
-          keyboardType="numberPad"
-        />
+        ? <HStack>
+          <Text>间隔</Text>
+          <Spacer />
+          <TextField
+            title="间隔数值"
+            value={intervalInput}
+            onChanged={setIntervalInput}
+            prompt={`${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL}`}
+            keyboardType="numberPad"
+            labelsHidden={true}
+            multilineTextAlignment="trailing"
+            frame={{ width: 72, alignment: "trailing" }}
+          />
+          <Text foregroundStyle="secondaryLabel">{intervalUnitLabel}</Text>
+        </HStack>
         : null}
       {recurrenceUnit === "month"
         ? <Toggle
@@ -704,13 +724,21 @@ function ItemEditor({
         <Text>{`填写 ${MIN_REMIND_BEFORE_DAYS} 表示按真实到期日处理；填写 3 会从到期前第 3 天进入“需要处理”并提前排序。组件仍显示真实到期日，周期锚点不会改变。最多可提前 ${MAX_REMIND_BEFORE_DAYS} 天。`}</Text>
       }
     >
-      <TextField
-        title="提前天数"
-        value={remindBeforeInput}
-        onChanged={setRemindBeforeInput}
-        prompt={`${MIN_REMIND_BEFORE_DAYS}–${MAX_REMIND_BEFORE_DAYS}`}
-        keyboardType="numberPad"
-      />
+      <HStack>
+        <Text>提前天数</Text>
+        <Spacer />
+        <TextField
+          title="提前天数数值"
+          value={remindBeforeInput}
+          onChanged={setRemindBeforeInput}
+          prompt={`${MIN_REMIND_BEFORE_DAYS}–${MAX_REMIND_BEFORE_DAYS}`}
+          keyboardType="numberPad"
+          labelsHidden={true}
+          multilineTextAlignment="trailing"
+          frame={{ width: 72, alignment: "trailing" }}
+        />
+        <Text foregroundStyle="secondaryLabel">天</Text>
+      </HStack>
     </Section>
 
     <Section header={<Text>可选信息</Text>}>

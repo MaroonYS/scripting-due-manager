@@ -2827,7 +2827,7 @@ test("settings expose a native multi-list reminder picker", () => {
   assert.match(source, /requestAccess\(\[\s*"calendar"\s*,\s*"reminders"\s*\]\)/)
 })
 
-test("item editor uses validated number input for custom recurrence intervals", () => {
+test("item editor gives the recurrence number a visible label and contextual unit", () => {
   const source = readFileSync(
     new URL("../到期管家/index.tsx", import.meta.url),
     "utf8",
@@ -2856,18 +2856,45 @@ test("item editor uses validated number input for custom recurrence intervals", 
     /间隔可输入 \$\{MIN_RECURRENCE_INTERVAL\}–\$\{MAX_RECURRENCE_INTERVAL\} 的正整数。/,
   )
 
-  const intervalTitle = editor.indexOf('title="间隔"')
-  const fieldStart = editor.lastIndexOf("<TextField", intervalTitle)
-  const fieldEnd = editor.indexOf("/>", intervalTitle)
-  assert.ok(intervalTitle >= 0 && fieldStart >= 0 && fieldEnd > intervalTitle)
+  const intervalValue = editor.indexOf("value={intervalInput}")
+  const intervalRowStart = editor.lastIndexOf("<HStack", intervalValue)
+  const intervalRowEnd = editor.indexOf("</HStack>", intervalValue)
+  assert.ok(
+    intervalValue >= 0 && intervalRowStart >= 0 && intervalRowEnd > intervalValue,
+    "the interval editor must use a labeled row instead of rendering a bare number",
+  )
+  const intervalRow = editor.slice(intervalRowStart, intervalRowEnd + "</HStack>".length)
+  assert.match(intervalRow, /<Text(?:\s[^>]*)?>间隔<\/Text>/)
+  assert.match(intervalRow, /<Spacer\s*\/>/)
+  assert.match(intervalRow, /\{intervalUnitLabel\}/)
+
+  const fieldStart = editor.lastIndexOf("<TextField", intervalValue)
+  const fieldEnd = editor.indexOf("/>", intervalValue)
+  assert.ok(fieldStart >= intervalRowStart && fieldEnd > intervalValue && fieldEnd < intervalRowEnd)
   const intervalField = editor.slice(fieldStart, fieldEnd + 2)
   assert.match(intervalField, /value=\{intervalInput\}/)
   assert.match(intervalField, /onChanged=\{setIntervalInput\}/)
   assert.match(intervalField, /keyboardType="numberPad"/)
+  assert.match(intervalField, /labelsHidden=\{true\}/)
+  assert.match(intervalField, /multilineTextAlignment="trailing"/)
+  assert.match(intervalField, /frame=\{\{ width: 72, alignment: "trailing" \}\}/)
   assert.match(
     intervalField,
     /prompt=\{`\$\{MIN_RECURRENCE_INTERVAL\}–\$\{MAX_RECURRENCE_INTERVAL\}`\}/,
   )
+
+  assert.match(
+    editor,
+    /const intervalUnitLabel = recurrenceUnit === "none"\s*\? ""\s*:\s*recurrenceIntervalUnitLabel\(recurrenceUnit\)/,
+  )
+  const unitHelper = source.slice(
+    source.indexOf("function recurrenceIntervalUnitLabel("),
+    source.indexOf("function DueManagerApp("),
+  )
+  assert.match(unitHelper, /case "day": return "天"/)
+  assert.match(unitHelper, /case "week": return "周"/)
+  assert.match(unitHelper, /case "month": return "个月"/)
+  assert.match(unitHelper, /case "year": return "年"/)
 
   const save = editor.slice(
     editor.indexOf("const save = async"),
@@ -2905,7 +2932,7 @@ test("item editor uses validated number input for custom recurrence intervals", 
   assert.match(actions, /\{recurrenceUnit !== "none" && currentStatus\?\.overdue/)
 })
 
-test("item editor exposes a validated early-action day field", () => {
+test("item editor exposes a visibly labeled and validated early-action day field", () => {
   const source = readFileSync(
     new URL("../到期管家/index.tsx", import.meta.url),
     "utf8",
@@ -2935,11 +2962,33 @@ test("item editor exposes a validated early-action day field", () => {
   assert.ok(sectionTitle >= 0 && sectionEnd > sectionTitle)
   const section = editor.slice(sectionTitle, sectionEnd)
   assert.match(section, /组件仍显示真实到期日，周期锚点不会改变/)
-  assert.match(section, /title="提前天数"/)
-  assert.match(section, /value=\{remindBeforeInput\}/)
-  assert.match(section, /onChanged=\{setRemindBeforeInput\}/)
-  assert.match(section, /prompt=\{`\$\{MIN_REMIND_BEFORE_DAYS\}–\$\{MAX_REMIND_BEFORE_DAYS\}`\}/)
-  assert.match(section, /keyboardType="numberPad"/)
+  const remindValue = section.indexOf("value={remindBeforeInput}")
+  const remindRowStart = section.lastIndexOf("<HStack", remindValue)
+  const remindRowEnd = section.indexOf("</HStack>", remindValue)
+  assert.ok(
+    remindValue >= 0 && remindRowStart >= 0 && remindRowEnd > remindValue,
+    "the advance-days editor must use a labeled row instead of rendering a bare number",
+  )
+  const remindRow = section.slice(remindRowStart, remindRowEnd + "</HStack>".length)
+  assert.match(remindRow, /<Text(?:\s[^>]*)?>提前天数<\/Text>/)
+  assert.match(remindRow, /<Spacer\s*\/>/)
+
+  const remindFieldStart = section.lastIndexOf("<TextField", remindValue)
+  const remindFieldEnd = section.indexOf("/>", remindValue)
+  assert.ok(
+    remindFieldStart >= remindRowStart
+      && remindFieldEnd > remindValue
+      && remindFieldEnd < remindRowEnd,
+  )
+  const remindField = section.slice(remindFieldStart, remindFieldEnd + 2)
+  assert.match(remindField, /value=\{remindBeforeInput\}/)
+  assert.match(remindField, /onChanged=\{setRemindBeforeInput\}/)
+  assert.match(remindField, /prompt=\{`\$\{MIN_REMIND_BEFORE_DAYS\}–\$\{MAX_REMIND_BEFORE_DAYS\}`\}/)
+  assert.match(remindField, /keyboardType="numberPad"/)
+  assert.match(remindField, /labelsHidden=\{true\}/)
+  assert.match(remindField, /multilineTextAlignment="trailing"/)
+  assert.match(remindField, /frame=\{\{ width: 72, alignment: "trailing" \}\}/)
+  assert.match(remindRow, /<Text foregroundStyle="secondaryLabel">天<\/Text>/)
 })
 
 test("item editor derives its type picker from the centralized definitions", () => {
@@ -2961,6 +3010,7 @@ test("published script and in-app update entry use the fixed latest-release pack
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
+  assert.equal(manifest.version, "2.4.1")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

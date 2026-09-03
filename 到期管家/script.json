@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Track due dates and Apple Reminders with custom recurrence intervals, per-item advance action dates, and readable system-language widgets.",
   "localizedDescriptions": {
-    "en": "2.4.0 adds custom 1–99 recurrence intervals, 0–365-day per-item advance action dates, action-date sorting/refresh, and an in-app update link. Real due dates remain recurrence anchors and widget dates; schema v1/v2 data migrates compatibly to v3. Small details stay left-aligned, while long medium/large metadata keeps native tightening and middle truncation.",
-    "zh": "2.4.0 新增 1–99 自定义周期间隔、每项 0–365 天提前行动日、行动日排序与刷新，以及应用内更新入口。真实到期日仍是周期锚点和组件日期；schema v1/v2 数据可兼容迁移到 v3。小号详情保持左对齐，中、大号长备注继续使用原生字距收紧与中间省略。",
-    "zh-Hans": "2.4.0 新增 1–99 自定义周期间隔、每项 0–365 天提前行动日、行动日排序与刷新，以及应用内更新入口。真实到期日仍是周期锚点和组件日期；schema v1/v2 数据可兼容迁移到 v3。小号详情保持左对齐，中、大号长备注继续使用原生字距收紧与中间省略。",
-    "zh-Hant": "2.4.0 新增 1–99 自訂週期間隔、每項 0–365 天提前行動日、行動日排序與重新整理，以及 App 內更新入口。真實到期日仍是週期錨點和小工具日期；schema v1/v2 資料可相容遷移到 v3。小號詳情保持左對齊，中、大號長備註繼續使用原生字距收緊與中間省略。"
+    "en": "2.4.1 gives the recurrence interval and advance-days number fields persistent visible labels, and shows a day, week, month, or year unit beside the interval according to the selected recurrence. Existing items, recurrence behavior, advance action dates, and schema v3 storage remain unchanged.",
+    "zh": "2.4.1 为周期间隔和提前天数的数字输入行增加始终可见的名称，并根据所选周期在间隔值旁显示天、周、月或年单位。已有事项、周期规则、提前行动日与 schema v3 存储均保持不变。",
+    "zh-Hans": "2.4.1 为周期间隔和提前天数的数字输入行增加始终可见的名称，并根据所选周期在间隔值旁显示天、周、月或年单位。已有事项、周期规则、提前行动日与 schema v3 存储均保持不变。",
+    "zh-Hant": "2.4.1 為週期間隔和提前天數的數字輸入列增加始終可見的名稱，並根據所選週期在間隔值旁顯示天、週、月或年單位。現有事項、週期規則、提前行動日與 schema v3 儲存均保持不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",
