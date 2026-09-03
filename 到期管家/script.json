@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Track due dates and Apple Reminders with custom recurrence intervals, per-item advance action dates, and readable system-language widgets.",
   "localizedDescriptions": {
-    "en": "2.4.1 gives the recurrence interval and advance-days number fields persistent visible labels, and shows a day, week, month, or year unit beside the interval according to the selected recurrence. Existing items, recurrence behavior, advance action dates, and schema v3 storage remain unchanged.",
-    "zh": "2.4.1 为周期间隔和提前天数的数字输入行增加始终可见的名称，并根据所选周期在间隔值旁显示天、周、月或年单位。已有事项、周期规则、提前行动日与 schema v3 存储均保持不变。",
-    "zh-Hans": "2.4.1 为周期间隔和提前天数的数字输入行增加始终可见的名称，并根据所选周期在间隔值旁显示天、周、月或年单位。已有事项、周期规则、提前行动日与 schema v3 存储均保持不变。",
-    "zh-Hant": "2.4.1 為週期間隔和提前天數的數字輸入列增加始終可見的名稱，並根據所選週期在間隔值旁顯示天、週、月或年單位。現有事項、週期規則、提前行動日與 schema v3 儲存均保持不變。"
+    "en": "2.4.2 places Advance reminder inside the same Recurrence section and uses native LabeledContent rows so Interval and Advance reminder stay visible beside their values. The interval keeps its dynamic day, week, month, or year unit, and manual updates now use a fresh download request. Existing items, recurrence behavior, advance action dates, and schema v3 storage remain unchanged.",
+    "zh": "2.4.2 将提前设置并入同一个「重复」分组，并使用原生 LabeledContent 让「间隔」和「提前提醒」始终显示在数值左侧。间隔值仍按周期动态显示天、周、个月或年，手动更新入口现在会发起新的下载请求。已有事项、周期规则、提前行动日与 schema v3 存储均保持不变。",
+    "zh-Hans": "2.4.2 将提前设置并入同一个「重复」分组，并使用原生 LabeledContent 让「间隔」和「提前提醒」始终显示在数值左侧。间隔值仍按周期动态显示天、周、个月或年，手动更新入口现在会发起新的下载请求。已有事项、周期规则、提前行动日与 schema v3 存储均保持不变。",
+    "zh-Hant": "2.4.2 將提前設定併入同一個「重複」分組，並使用原生 LabeledContent 讓「間隔」和「提前提醒」始終顯示在數值左側。間隔值仍按週期動態顯示天、週、個月或年，手動更新入口現在會發起新的下載請求。現有事項、週期規則、提前行動日與 schema v3 儲存均保持不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

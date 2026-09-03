@@ -15,6 +15,7 @@ declare module "scripting" {
   export const HStack: any
   export const Image: any
   export const Label: any
+  export const LabeledContent: any
   export const Link: any
   export const List: any
   export const Navigation: any

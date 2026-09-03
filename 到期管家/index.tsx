@@ -4,6 +4,7 @@ import {
   HStack,
   Image,
   Label,
+  LabeledContent,
   Link,
   List,
   Navigation,
@@ -94,6 +95,7 @@ const EMPTY_REMINDER_STATUS: ReminderStatus = {
 }
 
 const LATEST_PACKAGE_URL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
+const MANUAL_UPDATE_PACKAGE_URL = `${LATEST_PACKAGE_URL}?from=${encodeURIComponent(Script.metadata.version)}&t=${Date.now()}`
 
 function recurrenceIntervalUnitLabel(unit: RecurrenceUnit): string {
   switch (unit) {
@@ -404,7 +406,7 @@ function DueManagerApp() {
           <Spacer />
           <Text foregroundStyle="secondaryLabel">{Script.metadata.version}</Text>
         </HStack>
-        <Link url={Script.createImportScriptsURLScheme([LATEST_PACKAGE_URL])}>
+        <Link url={Script.createImportScriptsURLScheme([MANUAL_UPDATE_PACKAGE_URL])}>
           <Label title="检查并更新版本" systemImage="arrow.down.circle" />
         </Link>
       </Section>
@@ -666,7 +668,7 @@ function ItemEditor({
     <Section
       header={<Text>重复</Text>}
       footer={
-        <Text>{`间隔可输入 ${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL} 的正整数。月末规则会正确处理 28/29/30/31 号；编辑到期日期会同时把它设为后续周期的新锚点。`}</Text>
+        <Text>{`间隔可输入 ${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL} 的正整数。提前提醒可输入 ${MIN_REMIND_BEFORE_DAYS}–${MAX_REMIND_BEFORE_DAYS} 天，0 表示不提前。提前设置只改变处理排序；真实到期日、月末规则和周期锚点保持不变。`}</Text>
       }
     >
       <Picker
@@ -682,22 +684,37 @@ function ItemEditor({
         <Text tag="year">按年</Text>
       </Picker>
       {recurrenceUnit !== "none"
-        ? <HStack>
-          <Text>间隔</Text>
-          <Spacer />
+        ? <LabeledContent title="间隔">
+          <HStack spacing={6}>
+            <TextField
+              title="间隔数值"
+              value={intervalInput}
+              onChanged={setIntervalInput}
+              prompt={`${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL}`}
+              keyboardType="numberPad"
+              labelsHidden={true}
+              multilineTextAlignment="trailing"
+              frame={{ width: 72, alignment: "trailing" }}
+            />
+            <Text foregroundStyle="secondaryLabel">{intervalUnitLabel}</Text>
+          </HStack>
+        </LabeledContent>
+        : null}
+      <LabeledContent title="提前提醒">
+        <HStack spacing={6}>
           <TextField
-            title="间隔数值"
-            value={intervalInput}
-            onChanged={setIntervalInput}
-            prompt={`${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL}`}
+            title="提前天数"
+            value={remindBeforeInput}
+            onChanged={setRemindBeforeInput}
+            prompt={`${MIN_REMIND_BEFORE_DAYS}–${MAX_REMIND_BEFORE_DAYS}`}
             keyboardType="numberPad"
             labelsHidden={true}
             multilineTextAlignment="trailing"
             frame={{ width: 72, alignment: "trailing" }}
           />
-          <Text foregroundStyle="secondaryLabel">{intervalUnitLabel}</Text>
+          <Text foregroundStyle="secondaryLabel">天</Text>
         </HStack>
-        : null}
+      </LabeledContent>
       {recurrenceUnit === "month"
         ? <Toggle
           title="始终使用月末"
@@ -716,29 +733,6 @@ function ItemEditor({
           <Text tag="mar1">使用 3 月 1 日</Text>
         </Picker>
         : null}
-    </Section>
-
-    <Section
-      header={<Text>提前提醒</Text>}
-      footer={
-        <Text>{`填写 ${MIN_REMIND_BEFORE_DAYS} 表示按真实到期日处理；填写 3 会从到期前第 3 天进入“需要处理”并提前排序。组件仍显示真实到期日，周期锚点不会改变。最多可提前 ${MAX_REMIND_BEFORE_DAYS} 天。`}</Text>
-      }
-    >
-      <HStack>
-        <Text>提前天数</Text>
-        <Spacer />
-        <TextField
-          title="提前天数数值"
-          value={remindBeforeInput}
-          onChanged={setRemindBeforeInput}
-          prompt={`${MIN_REMIND_BEFORE_DAYS}–${MAX_REMIND_BEFORE_DAYS}`}
-          keyboardType="numberPad"
-          labelsHidden={true}
-          multilineTextAlignment="trailing"
-          frame={{ width: 72, alignment: "trailing" }}
-        />
-        <Text foregroundStyle="secondaryLabel">天</Text>
-      </HStack>
     </Section>
 
     <Section header={<Text>可选信息</Text>}>

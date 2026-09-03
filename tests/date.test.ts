@@ -2827,7 +2827,7 @@ test("settings expose a native multi-list reminder picker", () => {
   assert.match(source, /requestAccess\(\[\s*"calendar"\s*,\s*"reminders"\s*\]\)/)
 })
 
-test("item editor gives the recurrence number a visible label and contextual unit", () => {
+test("item editor uses native labeled content for the recurrence interval", () => {
   const source = readFileSync(
     new URL("../到期管家/index.tsx", import.meta.url),
     "utf8",
@@ -2856,22 +2856,32 @@ test("item editor gives the recurrence number a visible label and contextual uni
     /间隔可输入 \$\{MIN_RECURRENCE_INTERVAL\}–\$\{MAX_RECURRENCE_INTERVAL\} 的正整数。/,
   )
 
-  const intervalValue = editor.indexOf("value={intervalInput}")
-  const intervalRowStart = editor.lastIndexOf("<HStack", intervalValue)
-  const intervalRowEnd = editor.indexOf("</HStack>", intervalValue)
+  const repeatSectionStart = editor.indexOf('header={<Text>重复</Text>}')
+  const repeatSectionEnd = editor.indexOf("</Section>", repeatSectionStart)
+  assert.ok(repeatSectionStart >= 0 && repeatSectionEnd > repeatSectionStart)
+  const repeatSection = editor.slice(repeatSectionStart, repeatSectionEnd)
+
+  const intervalValue = repeatSection.indexOf("value={intervalInput}")
+  const intervalRowStart = repeatSection.lastIndexOf(
+    '<LabeledContent title="间隔">',
+    intervalValue,
+  )
+  const intervalRowEnd = repeatSection.indexOf("</LabeledContent>", intervalValue)
   assert.ok(
     intervalValue >= 0 && intervalRowStart >= 0 && intervalRowEnd > intervalValue,
-    "the interval editor must use a labeled row instead of rendering a bare number",
+    "the interval editor must use a native labeled row instead of rendering a bare number",
   )
-  const intervalRow = editor.slice(intervalRowStart, intervalRowEnd + "</HStack>".length)
-  assert.match(intervalRow, /<Text(?:\s[^>]*)?>间隔<\/Text>/)
-  assert.match(intervalRow, /<Spacer\s*\/>/)
+  const intervalRow = repeatSection.slice(
+    intervalRowStart,
+    intervalRowEnd + "</LabeledContent>".length,
+  )
+  assert.match(intervalRow, /<LabeledContent title="间隔">/)
   assert.match(intervalRow, /\{intervalUnitLabel\}/)
 
-  const fieldStart = editor.lastIndexOf("<TextField", intervalValue)
-  const fieldEnd = editor.indexOf("/>", intervalValue)
+  const fieldStart = repeatSection.lastIndexOf("<TextField", intervalValue)
+  const fieldEnd = repeatSection.indexOf("/>", intervalValue)
   assert.ok(fieldStart >= intervalRowStart && fieldEnd > intervalValue && fieldEnd < intervalRowEnd)
-  const intervalField = editor.slice(fieldStart, fieldEnd + 2)
+  const intervalField = repeatSection.slice(fieldStart, fieldEnd + 2)
   assert.match(intervalField, /value=\{intervalInput\}/)
   assert.match(intervalField, /onChanged=\{setIntervalInput\}/)
   assert.match(intervalField, /keyboardType="numberPad"/)
@@ -2932,7 +2942,7 @@ test("item editor gives the recurrence number a visible label and contextual uni
   assert.match(actions, /\{recurrenceUnit !== "none" && currentStatus\?\.overdue/)
 })
 
-test("item editor exposes a visibly labeled and validated early-action day field", () => {
+test("item editor places advance reminders inside the recurrence section", () => {
   const source = readFileSync(
     new URL("../到期管家/index.tsx", import.meta.url),
     "utf8",
@@ -2957,21 +2967,27 @@ test("item editor exposes a visibly labeled and validated early-action day field
   )
   assert.match(editor, /remindBeforeDays: remindBeforeDays!/)
 
-  const sectionTitle = editor.indexOf('header={<Text>提前提醒</Text>}')
+  const sectionTitle = editor.indexOf('header={<Text>重复</Text>}')
   const sectionEnd = editor.indexOf("</Section>", sectionTitle)
   assert.ok(sectionTitle >= 0 && sectionEnd > sectionTitle)
   const section = editor.slice(sectionTitle, sectionEnd)
-  assert.match(section, /组件仍显示真实到期日，周期锚点不会改变/)
+  assert.doesNotMatch(editor, /header=\{<Text>提前提醒<\/Text>\}/)
+  assert.match(section, /真实到期日、月末规则和周期锚点保持不变/)
   const remindValue = section.indexOf("value={remindBeforeInput}")
-  const remindRowStart = section.lastIndexOf("<HStack", remindValue)
-  const remindRowEnd = section.indexOf("</HStack>", remindValue)
+  const remindRowStart = section.lastIndexOf(
+    '<LabeledContent title="提前提醒">',
+    remindValue,
+  )
+  const remindRowEnd = section.indexOf("</LabeledContent>", remindValue)
   assert.ok(
     remindValue >= 0 && remindRowStart >= 0 && remindRowEnd > remindValue,
-    "the advance-days editor must use a labeled row instead of rendering a bare number",
+    "the advance-days editor must be a labeled row inside Recurrence",
   )
-  const remindRow = section.slice(remindRowStart, remindRowEnd + "</HStack>".length)
-  assert.match(remindRow, /<Text(?:\s[^>]*)?>提前天数<\/Text>/)
-  assert.match(remindRow, /<Spacer\s*\/>/)
+  const remindRow = section.slice(
+    remindRowStart,
+    remindRowEnd + "</LabeledContent>".length,
+  )
+  assert.match(remindRow, /<LabeledContent title="提前提醒">/)
 
   const remindFieldStart = section.lastIndexOf("<TextField", remindValue)
   const remindFieldEnd = section.indexOf("/>", remindValue)
@@ -3005,12 +3021,12 @@ test("item editor derives its type picker from the centralized definitions", () 
   assert.doesNotMatch(source, /<Text tag="custom">/)
 })
 
-test("published script and in-app update entry use the fixed latest-release package", () => {
+test("published script keeps a fixed remote URL and cache-busts manual updates", () => {
   const manifest = JSON.parse(readFileSync(
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.4.1")
+  assert.equal(manifest.version, "2.4.2")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 
@@ -3022,6 +3038,10 @@ test("published script and in-app update entry use the fixed latest-release pack
     source,
     /const LATEST_PACKAGE_URL = "https:\/\/github\.com\/MaroonYS\/scripting-due-manager\/releases\/latest\/download\/due-manager\.scripting"/,
   )
+  assert.match(
+    source,
+    /const MANUAL_UPDATE_PACKAGE_URL = `\$\{LATEST_PACKAGE_URL\}\?from=\$\{encodeURIComponent\(Script\.metadata\.version\)\}&t=\$\{Date\.now\(\)\}`/,
+  )
   const versionSectionStart = source.indexOf("本机持久存储已启用")
   const versionSectionEnd = source.indexOf("</Section>", versionSectionStart)
   assert.ok(versionSectionStart >= 0 && versionSectionEnd > versionSectionStart)
@@ -3029,7 +3049,7 @@ test("published script and in-app update entry use the fixed latest-release pack
   assert.match(versionSection, /<Text>版本<\/Text>[\s\S]*?\{Script\.metadata\.version\}/)
   assert.match(
     versionSection,
-    /<Link url=\{Script\.createImportScriptsURLScheme\(\[LATEST_PACKAGE_URL\]\)\}>[\s\S]*?<Label title="检查并更新版本" systemImage="arrow\.down\.circle" \/>[\s\S]*?<\/Link>/,
+    /<Link url=\{Script\.createImportScriptsURLScheme\(\[MANUAL_UPDATE_PACKAGE_URL\]\)\}>[\s\S]*?<Label title="检查并更新版本" systemImage="arrow\.down\.circle" \/>[\s\S]*?<\/Link>/,
   )
   assert.ok(
     versionSection.indexOf("Script.metadata.version")
