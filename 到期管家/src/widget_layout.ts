@@ -1,6 +1,7 @@
 export type HomeWidgetFamily = "systemSmall" | "systemMedium" | "systemLarge"
 
 const LIST_VERTICAL_PADDING = 22
+const SMALL_WIDGET_FALLBACK_WIDTH = 170
 const LIST_WIDGET_FALLBACK_WIDTH = 364
 const TITLE_WRAP_TOLERANCE = 2
 const TITLE_WIDTH_SAFETY_FACTOR = 1.015
@@ -29,6 +30,31 @@ export function largeWidgetLayout(displayHeight?: number): LargeWidgetLayout {
     return { summaryHeight: 70, sectionHeaderHeight: 28, maximumSections: 1, maximumRows: 4 }
   }
   return { summaryHeight: 66, sectionHeaderHeight: 24, maximumSections: 1, maximumRows: 3 }
+}
+
+/** Selects 16/15/14 pt for the small widget's one-, two-, or three-line title. */
+export function smallItemTitleFontSize(title: string, displayWidth?: number): number {
+  const baseFontSize = 16
+  const compactFontSize = 15
+  const extraCompactFontSize = 14
+  const explicitLineCount = Math.min(3, title.split(/[\r\n\u2028\u2029]/).length)
+  const widgetWidth = typeof displayWidth === "number"
+    && Number.isFinite(displayWidth)
+    && displayWidth > 0
+    ? displayWidth
+    : SMALL_WIDGET_FALLBACK_WIDTH
+  // WidgetFrame (22) + content inset (6) + the unchanged 40 pt hit area.
+  const availableWidth = Math.min(105, Math.max(72, widgetWidth - 68))
+  const baseWidth = estimatedTitleWidth(title, baseFontSize)
+
+  if (explicitLineCount === 1 && baseWidth <= availableWidth + TITLE_WRAP_TOLERANCE) {
+    return baseFontSize
+  }
+
+  const compactWidth = estimatedTitleWidth(title, compactFontSize)
+  return explicitLineCount <= 2 && compactWidth <= availableWidth * 1.9
+    ? compactFontSize
+    : extraCompactFontSize
 }
 
 /**

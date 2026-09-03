@@ -13,11 +13,13 @@ import {
 } from "scripting"
 import { CompleteDueItemIntent } from "../app_intents"
 import { dueStatus, humanDate } from "./date"
+import { dueIconLabel } from "./icons"
 import { displayDate, kindLabel } from "./presentation"
 import type { DisplayDueItem } from "./types"
 import {
   largeWidgetLayout,
   listItemTitleFontSize,
+  smallItemTitleFontSize,
   visibleWidgetItems,
   widgetItemCapacity,
   widgetRowHeight,
@@ -58,7 +60,7 @@ export function DueManagerWidget(props: WidgetDataProps) {
   const displayHeight = displaySize?.height
   const displayWidth = displaySize?.width
   if (Widget.family === "systemSmall") {
-    return <SmallWidget {...props} />
+    return <SmallWidget {...props} displayWidth={displayWidth} />
   }
   if (Widget.family === "systemMedium") {
     return <ListWidget
@@ -87,12 +89,14 @@ function WidgetHeader({
   issue,
   iconName = "calendar.badge.clock",
   iconColor = "systemOrange",
+  compactTitle,
 }: {
   items: DisplayDueItem[]
   compact?: boolean
   issue: WidgetIssue | null
   iconName?: string
   iconColor?: string
+  compactTitle?: string
 }) {
   return <Link url={Script.createRunURLScheme(Script.name)}>
     <HStack
@@ -119,8 +123,9 @@ function WidgetHeader({
         fontWeight="semibold"
         foregroundStyle="label"
         lineLimit={1}
+        minScaleFactor={compact ? 0.65 : 1}
       >
-        {compact ? "到期" : "到期管家"}
+        {compact ? compactTitle ?? "到期" : "到期管家"}
       </Text>
       <Spacer />
       {issue
@@ -136,6 +141,7 @@ function WidgetHeader({
           foregroundStyle="secondaryLabel"
           lineLimit={1}
           minScaleFactor={0.65}
+          fixedSize={{ horizontal: true, vertical: false }}
           monospacedDigit
           contentTransition="numericTextCountsDown"
         >
@@ -239,10 +245,11 @@ function largeSummaryContext(item: DisplayDueItem | undefined): string {
   return kindLabel(item.kind)
 }
 
-function SmallWidget(props: WidgetDataProps) {
+function SmallWidget(props: WidgetDataProps & { displayWidth?: number }) {
   const {
     items,
     completionGeneration,
+    displayWidth,
   } = props
   const item = items[0]
   const nextItem = items[1]
@@ -261,6 +268,7 @@ function SmallWidget(props: WidgetDataProps) {
         issue={issue}
         iconName={item?.iconName}
         iconColor={item?.iconColor}
+        compactTitle={item ? dueIconLabel(item.iconName) : "到期"}
       />
       <CompletionContent
         generation={completionGeneration}
@@ -269,6 +277,7 @@ function SmallWidget(props: WidgetDataProps) {
           item={item}
           nextItem={nextItem}
           issue={issue}
+          displayWidth={displayWidth}
         />
       </CompletionContent>
     </VStack>
@@ -279,15 +288,18 @@ function SmallWidgetBody({
   item,
   nextItem,
   issue,
+  displayWidth,
 }: {
   item: DisplayDueItem | undefined
   nextItem: DisplayDueItem | undefined
   issue: WidgetIssue | null
+  displayWidth?: number
 }) {
   return item
     ? <SmallDueItem
       item={item}
       nextItem={nextItem}
+      displayWidth={displayWidth}
     />
     : <Link url={Script.createRunURLScheme(Script.name)}>
       <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
@@ -301,11 +313,14 @@ function SmallWidgetBody({
 function SmallDueItem({
   item,
   nextItem,
+  displayWidth,
 }: {
   item: DisplayDueItem
   nextItem: DisplayDueItem | undefined
+  displayWidth?: number
 }) {
   const detail = smallItemDetail(item)
+  const titleFontSize = smallItemTitleFontSize(item.title, displayWidth)
 
   return <VStack
     alignment="leading"
@@ -328,15 +343,15 @@ function SmallDueItem({
           spacing={0}
           padding={{ top: -5, bottom: 5 }}
         >
-          <CompletionControl
+          <ListCompletionIcon
             item={item}
             hitSize={40}
-            symbolSize={19}
+            symbolSize={17}
           />
         </VStack>
         <Link url={itemURL(item)}>
           <Text
-            font={16}
+            font={titleFontSize}
             fontWeight="semibold"
             lineLimit={3}
             minScaleFactor={0.9}
@@ -926,75 +941,6 @@ function DueStatusLabel({
   return <Text font={font} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>
     {status.label}
   </Text>
-}
-
-function CompletionControl({
-  item,
-  hitSize,
-  symbolSize,
-  visualOffsetY = 0,
-}: {
-  item: DisplayDueItem
-  hitSize: number
-  symbolSize: number
-  visualOffsetY?: number
-}) {
-  if (!item.canComplete) {
-    return <Image
-      systemName="lock.circle"
-      font={symbolSize - 1}
-      foregroundStyle="tertiaryLabel"
-      frame={{ width: hitSize, height: hitSize }}
-      padding={{ top: visualOffsetY, bottom: -visualOffsetY }}
-      contentTransition="symbolEffectReplace"
-    />
-  }
-  if (item.stale) {
-    return <Image
-      systemName="clock.arrow.circlepath"
-      font={symbolSize - 1}
-      foregroundStyle="tertiaryLabel"
-      frame={{ width: hitSize, height: hitSize }}
-      padding={{ top: visualOffsetY, bottom: -visualOffsetY }}
-      contentTransition="symbolEffectReplace"
-    />
-  }
-  return <Button
-    buttonStyle="plain"
-    contentShape="rectangle"
-    intent={CompleteDueItemIntent({
-      source: item.source,
-      id: item.id,
-      occurrenceKey: item.completionKey,
-    })}
-  >
-    <CompletionSymbol
-      hitSize={hitSize}
-      symbolSize={symbolSize}
-      visualOffsetY={visualOffsetY}
-    />
-  </Button>
-}
-
-function CompletionSymbol({
-  hitSize,
-  symbolSize,
-  visualOffsetY,
-}: {
-  hitSize: number
-  symbolSize: number
-  visualOffsetY: number
-}) {
-  return <Image
-    systemName="circle"
-    font={symbolSize}
-    foregroundStyle="systemBlue"
-    symbolRenderingMode="hierarchical"
-    frame={{ width: hitSize, height: hitSize }}
-    padding={{ top: visualOffsetY, bottom: -visualOffsetY }}
-    contentTransition="symbolEffectReplace"
-    widgetAccentable
-  />
 }
 
 function EmptyState({ compact = false }: { compact?: boolean }) {

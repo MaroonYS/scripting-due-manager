@@ -2,10 +2,10 @@
   "name": "到期管家",
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.3.2",
-  "description": "Track due dates and Apple Reminders with an unchanged small widget, compact completion icons, width-aware two-line title sizing, and a display-size-aware Reminders-style large layout.",
+  "version": "2.3.3",
+  "description": "Track due dates and Apple Reminders with icon-based completion in every widget size, width-aware title sizing, and a display-size-aware Reminders-style large layout.",
   "localizedDescriptions": {
-    "zh": "2.3.2 保持小号完全不变；中、大号行图标缩小为 17/18 pt 且点击热区不变，并按显示宽度与中英文视觉宽度自适应两行标题字号。"
+    "zh": "2.3.3 小号改用 17 pt 当前事项图标作为完成按钮，保留 40 pt 点击热区，主体标题按实际宽度以 16/15/14 pt 适配一、二、三行；中、大号保持 2.3.2 行为。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

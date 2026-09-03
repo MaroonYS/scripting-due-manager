@@ -965,6 +965,11 @@ export function normalizeIconOverride(value: unknown): string | null {
   return ICON_OPTION_NAMES.has(value) ? value : null
 }
 
+/** Human-readable catalog label for a resolved SF Symbol used by widgets. */
+export function dueIconLabel(iconName: string | null | undefined): string {
+  return resolvedIcon(iconName ?? DEFAULT_ICON.name).label
+}
+
 export function resolveDueIcon(
   title: string,
   kind: ItemKind | "reminder",

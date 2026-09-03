@@ -1,5 +1,4 @@
 import assert from "node:assert/strict"
-import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import test from "node:test"
 import {
@@ -13,6 +12,7 @@ import {
 import {
   DUE_ICON_GROUPS,
   DUE_ICON_OPTIONS,
+  dueIconLabel,
   normalizeIconOverride,
   REMINDER_LIST_ICON_RULES,
   resolveDueIcon,
@@ -60,6 +60,7 @@ import {
 import {
   largeWidgetLayout,
   listItemTitleFontSize,
+  smallItemTitleFontSize,
   visibleWidgetItems,
   widgetItemCapacity,
   widgetRowHeight,
@@ -187,6 +188,15 @@ test("icon catalog is grouped, unique, and keeps every saved legacy symbol valid
       `${legacyName} must remain available for saved manual overrides`,
     )
   }
+})
+
+test("every due icon exposes its human-readable widget label", () => {
+  for (const option of DUE_ICON_OPTIONS) {
+    assert.equal(dueIconLabel(option.name), option.label, option.name)
+  }
+  assert.equal(dueIconLabel("not.a.real.symbol"), "日期")
+  assert.equal(dueIconLabel(null), "日期")
+  assert.equal(dueIconLabel(undefined), "日期")
 })
 
 test("item kinds have one centralized ordered and unique definition", () => {
@@ -979,6 +989,32 @@ test("list item title fonts adapt to widget width and estimated wrapping", () =>
   for (const invalidWidth of [Number.NaN, Number.POSITIVE_INFINITY, 0, -1]) {
     assert.equal(
       listItemTitleFontSize(fallbackTitle, "systemLarge", invalidWidth),
+      fallbackSize,
+    )
+  }
+})
+
+test("small item title fonts adapt across one, two, and three lines", () => {
+  assert.equal(smallItemTitleFontSize("Claude Pro", 170), 16)
+  assert.equal(smallItemTitleFontSize("Claude Pro - Monthly", 170), 15)
+  assert.equal(
+    smallItemTitleFontSize("BANK 06 | Ally 后备资格与一次性申请", 170),
+    14,
+  )
+
+  // A narrower published small-widget width can move the same title down one
+  // typography step without changing the fixed three-line title slot.
+  assert.equal(smallItemTitleFontSize("Claude Pro", 141), 15)
+  assert.equal(smallItemTitleFontSize("Claude Pro - Monthly", 141), 14)
+
+  assert.equal(smallItemTitleFontSize("Claude Pro\nMonthly", 170), 15)
+  assert.equal(smallItemTitleFontSize("One\nTwo\nThree", 170), 14)
+
+  const fallbackSize = smallItemTitleFontSize("Claude Pro - Monthly")
+  assert.equal(fallbackSize, 15)
+  for (const invalidWidth of [Number.NaN, Number.POSITIVE_INFINITY, 0, -1]) {
+    assert.equal(
+      smallItemTitleFontSize("Claude Pro - Monthly", invalidWidth),
       fallbackSize,
     )
   }
@@ -2000,18 +2036,15 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.match(source, /return <Button\s+buttonStyle="plain"\s+contentShape="rectangle"[\s\S]*?CompleteDueItemIntent/)
   assert.match(source, /key=\{`queue-slot-\$\{index\}`\}/)
   assert.match(source, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
-  assert.match(source, /systemName="lock\.circle"/)
-  assert.match(source, /systemName="circle"/)
   assert.match(source, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
-  assert.match(source, /<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}/)
   assert.match(
     widgetEntry,
     /const displaySize = Widget\.displaySize\s+const displayHeight = displaySize\?\.height\s+const displayWidth = displaySize\?\.width/,
   )
   assert.equal(
     widgetEntry.match(/displayWidth=\{displayWidth\}/g)?.length,
-    2,
-    "both medium and large widget entry points must forward their actual width",
+    3,
+    "small, medium, and large widget entry points must forward their actual width",
   )
   assert.match(
     listWidget,
@@ -2069,10 +2102,6 @@ test("medium and large rows use compact item icons as completion controls withou
   const listDetail = source.slice(
     source.indexOf("function listItemSupportingText"),
     source.indexOf("function DueStatusLabel"),
-  )
-  const completionControl = source.slice(
-    source.indexOf("function CompletionControl"),
-    source.indexOf("function EmptyState"),
   )
 
   assert.doesNotMatch(listRow, /\btitleInset\b|\bsubjectTextOffset\b/)
@@ -2153,18 +2182,6 @@ test("medium and large rows use compact item icons as completion controls withou
     listCompletionIcon,
     /CompleteDueItemIntent\(\{\s*source: item\.source,\s*id: item\.id,\s*occurrenceKey: item\.completionKey,\s*\}\)/,
   )
-
-  assert.match(completionControl, /visualOffsetY = 0/)
-  assert.equal(
-    completionControl.match(/padding=\{\{ top: visualOffsetY, bottom: -visualOffsetY \}\}/g)?.length,
-    3,
-    "interactive, locked, and stale completion visuals must use the same offset",
-  )
-  assert.match(
-    completionControl,
-    /function CompletionSymbol[\s\S]*?systemName="circle"[\s\S]*?foregroundStyle="systemBlue"/,
-    "the small widget completion control must keep its circle symbol",
-  )
 })
 
 test("large widgets use adaptive Reminders-style summary and section spacing", () => {
@@ -2226,19 +2243,14 @@ test("large widgets use adaptive Reminders-style summary and section spacing", (
   assert.doesNotMatch(mediumBody, /<Divider/)
 })
 
-test("small widget previews one non-interactive next queue item", () => {
+test("small widget uses adaptive item icons and fixed preview geometry", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
-  const smallWidgetSource = source.slice(
-    source.indexOf("function SmallWidget("),
-    source.indexOf("function ListWidget("),
-  )
-  assert.equal(
-    createHash("sha256").update(smallWidgetSource).digest("hex"),
-    "cc8302944f9475a3706e39973a24decbbc07f44826e1416a2bdf7693890e4982",
-    "medium and large layout changes must not alter the small widget source",
+  const widgetEntry = source.slice(
+    source.indexOf("export function DueManagerWidget"),
+    source.indexOf("function WidgetHeader"),
   )
   assert.match(source, /const nextItem = items\[1\]/)
   assert.equal(source.match(/<SmallWidgetBody/g)?.length, 1)
@@ -2246,33 +2258,71 @@ test("small widget previews one non-interactive next queue item", () => {
     source.indexOf("function SmallWidget("),
     source.indexOf("function SmallWidgetBody"),
   )
+  const smallBody = source.slice(
+    source.indexOf("function SmallWidgetBody"),
+    source.indexOf("function SmallDueItem"),
+  )
   const widgetHeader = source.slice(
     source.indexOf("function WidgetHeader"),
     source.indexOf("function SmallWidget("),
   )
+  const listCompletionIcon = source.slice(
+    source.indexOf("function ListCompletionIcon"),
+    source.indexOf("function listItemSupportingText"),
+  )
+
+  assert.match(
+    widgetEntry,
+    /if \(Widget\.family === "systemSmall"\) \{\s*return <SmallWidget \{\.\.\.props\} displayWidth=\{displayWidth\} \/>/,
+    "the real small-widget width must enter the compact layout",
+  )
+  assert.match(smallWidget, /function SmallWidget\(props: WidgetDataProps & \{ displayWidth\?: number \}\)/)
+  assert.match(smallWidget, /completionGeneration,\s*displayWidth,/)
+  assert.match(
+    smallWidget,
+    /<SmallWidgetBody\s+item=\{item\}\s+nextItem=\{nextItem\}\s+issue=\{issue\}\s+displayWidth=\{displayWidth\}\s*\/>/,
+  )
+  assert.match(
+    smallBody,
+    /<SmallDueItem\s+item=\{item\}\s+nextItem=\{nextItem\}\s+displayWidth=\{displayWidth\}\s*\/>/,
+  )
+  assert.match(
+    smallWidget,
+    /compactTitle=\{item \? dueIconLabel\(item\.iconName\) : "到期"\}/,
+    "the top-left compact title must use the current icon's catalog name",
+  )
+  assert.match(widgetHeader, /compactTitle\?: string/)
+  assert.match(widgetHeader, /\{compact \? compactTitle \?\? "到期" : "到期管家"\}/)
   assert.match(smallWidget, /padding=\{\{ leading: 3, trailing: 3 \}\}/)
   const smallItem = source.slice(
     source.indexOf("function SmallDueItem"),
     source.indexOf("function SmallNextItemPreview"),
   )
   assert.match(smallItem, /const detail = smallItemDetail\(item\)/)
+  assert.match(
+    smallItem,
+    /const titleFontSize = smallItemTitleFontSize\(item\.title, displayWidth\)/,
+  )
   assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", height: 76, alignment: "topLeading" \}\}/)
   assert.match(smallItem, /<HStack\s+alignment="top"\s+spacing=\{0\}\s+padding=\{\{ top: 15 \}\}/)
   assert.match(
     smallItem,
-    /<VStack\s+spacing=\{0\}\s+padding=\{\{ top: -5, bottom: 5 \}\}\s*>\s*<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}\s+symbolSize=\{19\}\s*\/>\s*<\/VStack>/,
+    /<VStack\s+spacing=\{0\}\s+padding=\{\{ top: -5, bottom: 5 \}\}\s*>\s*<ListCompletionIcon\s+item=\{item\}\s+hitSize=\{40\}\s+symbolSize=\{17\}\s*\/>\s*<\/VStack>/,
+    "the small item icon must replace the old circle without shrinking its tap target",
   )
+  assert.doesNotMatch(smallItem, /CompletionControl|systemName="circle"/)
   assert.equal(
     smallItem.match(/padding=\{\{ top: -5, bottom: 5 \}\}/g)?.length,
     1,
-    "the small completion lift must remain unchanged",
+    "the small completion icon lift must remain unchanged",
   )
   assert.equal(smallItem.match(/padding=\{\{ top: 15 \}\}/g)?.length, 1)
   assert.doesNotMatch(smallItem, /padding=\{\{ top: 22 \}\}/)
   assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
   assert.doesNotMatch(smallItem, /height: 57/)
   assert.match(smallItem, /frame=\{\{ maxWidth: 105, alignment: "leading" \}\}/)
-  assert.match(smallItem, /font=\{16\}/)
+  assert.match(smallItem, /font=\{titleFontSize\}/)
+  assert.doesNotMatch(smallItem, /font=\{16\}/)
   assert.match(smallItem, /lineLimit=\{3\}/)
   assert.match(smallItem, /minScaleFactor=\{0\.9\}/)
   assert.match(smallItem, /padding=\{\{ top: 6, bottom: -6 \}\}/)
@@ -2297,6 +2347,14 @@ test("small widget previews one non-interactive next queue item", () => {
   assert.match(widgetHeader, /font=\{compact \? 13 :/)
   assert.match(widgetHeader, /top: compact \? 8 :/)
   assert.match(widgetHeader, /bottom: compact \? -6 :/)
+  assert.match(listCompletionIcon, /systemName=\{item\.iconName\}/)
+  assert.match(listCompletionIcon, /foregroundStyle=\{enabled \? item\.iconColor : "tertiaryLabel"\}/)
+  assert.match(listCompletionIcon, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
+  assert.match(
+    listCompletionIcon,
+    /CompleteDueItemIntent\(\{\s*source: item\.source,\s*id: item\.id,\s*occurrenceKey: item\.completionKey,\s*\}\)/,
+    "tapping the small item icon must complete only the displayed occurrence",
+  )
   assert.match(source, /function SmallNextItemPreview/)
   const preview = source.slice(
     source.indexOf("function SmallNextItemPreview"),
@@ -2308,7 +2366,7 @@ test("small widget previews one non-interactive next queue item", () => {
   assert.doesNotMatch(preview, />下一项<\/Text>/)
   assert.match(preview, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
   assert.match(preview, /<Link url=\{itemURL\(item\)\}>/)
-  assert.doesNotMatch(preview, /CompletionControl|CompleteDueItemIntent/)
+  assert.doesNotMatch(preview, /ListCompletionIcon|CompleteDueItemIntent/)
 })
 
 test("small widget header keeps its date while list widgets omit item statistics", () => {
