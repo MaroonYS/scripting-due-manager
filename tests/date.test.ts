@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import test from "node:test"
 import {
@@ -1906,17 +1907,17 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.doesNotMatch(source, /symbolEffect=\{\{ effect: "bounce"/)
 })
 
-test("medium and large rows align completion visuals with the first title line", () => {
+test("medium and large rows align completion visuals and split content into two columns", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
   const listRow = source.slice(
     source.indexOf("function DueItemRow"),
-    source.indexOf("function listItemDetail"),
+    source.indexOf("function listItemSupportingText"),
   )
   const listDetail = source.slice(
-    source.indexOf("function listItemDetail"),
+    source.indexOf("function listItemSupportingText"),
     source.indexOf("function DueStatusLabel"),
   )
   const completionControl = source.slice(
@@ -1925,7 +1926,8 @@ test("medium and large rows align completion visuals with the first title line",
   )
 
   assert.match(listRow, /const titleInset = roomy \? 6 : 5/)
-  assert.match(listRow, /const detail = listItemDetail\(item\)/)
+  assert.match(listRow, /const metadataWidth = roomy \? 124 : 116/)
+  assert.match(listRow, /const supportingText = listItemSupportingText\(item\)/)
   assert.match(listRow, /return <HStack\s+alignment="top"\s+spacing=\{0\}/)
   assert.match(
     listRow,
@@ -1933,14 +1935,17 @@ test("medium and large rows align completion visuals with the first title line",
   )
   assert.match(
     listRow,
-    /<VStack\s+alignment="leading"\s+spacing=\{0\}\s+padding=\{\{ top: titleInset \}\}\s+frame=\{\{ maxWidth: "infinity" \}\}/,
-    "the entire text column should move together so its detail line cannot overlap the title",
+    /<HStack\s+alignment="center"\s+spacing=\{4\}\s+frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}\s*>[\s\S]*?systemName=\{item\.iconName\}[\s\S]*?\{item\.title\}[\s\S]*?<\/HStack>\s*<VStack\s+alignment="trailing"/,
+    "the icon and title should occupy the flexible leading column",
   )
-  assert.doesNotMatch(listRow, /bottom: -titleInset/)
   assert.match(
-    listDetail,
-    /return \[displayDate\(item\), item\.amount, item\.note\][\s\S]*?\.join\(" · "\)/,
+    listRow,
+    /<VStack\s+alignment="trailing"\s+spacing=\{0\}\s+frame=\{\{ width: metadataWidth, alignment: "trailing" \}\}\s*>[\s\S]*?\{supportingText[\s\S]*?\{displayDate\(item\)\}[\s\S]*?<DueStatusLabel item=\{item\} font=\{roomy \? "caption" : "caption2"\} \/>/,
+    "supporting text, date, and status should occupy the trailing metadata column",
   )
+  assert.equal(listRow.match(/displayDate\(item\)/g)?.length, 1)
+  assert.match(listDetail, /return \[item\.amount, item\.note\][\s\S]*?\.join\(" · "\)/)
+  assert.doesNotMatch(listDetail, /displayDate\(item\)/)
   assert.match(completionControl, /visualOffsetY = 0/)
   assert.equal(
     completionControl.match(/padding=\{\{ top: visualOffsetY, bottom: -visualOffsetY \}\}/g)?.length,
@@ -1953,6 +1958,15 @@ test("small widget previews one non-interactive next queue item", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
+  )
+  const smallWidgetSource = source.slice(
+    source.indexOf("function SmallWidget("),
+    source.indexOf("function ListWidget("),
+  )
+  assert.equal(
+    createHash("sha256").update(smallWidgetSource).digest("hex"),
+    "cc8302944f9475a3706e39973a24decbbc07f44826e1416a2bdf7693890e4982",
+    "medium and large layout changes must not alter the small widget source",
   )
   assert.match(source, /const nextItem = items\[1\]/)
   assert.equal(source.match(/<SmallWidgetBody/g)?.length, 1)
@@ -2025,7 +2039,7 @@ test("small widget previews one non-interactive next queue item", () => {
   assert.doesNotMatch(preview, /CompletionControl|CompleteDueItemIntent/)
 })
 
-test("small widget header shows its current due date while list widgets keep the count", () => {
+test("small widget header keeps its date while list widgets omit item statistics", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
@@ -2036,8 +2050,10 @@ test("small widget header shows its current due date while list widgets keep the
   )
   assert.match(
     header,
-    /compact\s*&&\s*items\[0\]\s*\?\s*humanDate\(items\[0\]\.dueDate\)\s*:\s*items\.length/,
+    /\{compact\s*\?\s*<Text[\s\S]*?\{items\[0\]\s*\?\s*humanDate\(items\[0\]\.dueDate\)\s*:\s*items\.length\}[\s\S]*?<\/Text>\s*:\s*null\}/,
+    "only compact headers should render the current date or the empty-state zero",
   )
+  assert.equal(header.match(/items\.length/g)?.length, 1)
 
   const listWidget = source.slice(
     source.indexOf("function ListWidget("),

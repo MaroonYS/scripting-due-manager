@@ -124,16 +124,18 @@ function WidgetHeader({
           foregroundStyle={issue.color}
         />
         : null}
-      <Text
-        font="caption2"
-        foregroundStyle="secondaryLabel"
-        lineLimit={1}
-        minScaleFactor={compact ? 0.65 : 0.8}
-        monospacedDigit
-        contentTransition="numericTextCountsDown"
-      >
-        {compact && items[0] ? humanDate(items[0].dueDate) : items.length}
-      </Text>
+      {compact
+        ? <Text
+          font="caption2"
+          foregroundStyle="secondaryLabel"
+          lineLimit={1}
+          minScaleFactor={0.65}
+          monospacedDigit
+          contentTransition="numericTextCountsDown"
+        >
+          {items[0] ? humanDate(items[0].dueDate) : items.length}
+        </Text>
+        : null}
     </HStack>
   </Link>
 }
@@ -482,7 +484,8 @@ function DueItemRow({
 }) {
   const hitSize = Math.min(height, roomy ? 40 : 38)
   const titleInset = roomy ? 6 : 5
-  const detail = listItemDetail(item)
+  const metadataWidth = roomy ? 124 : 116
+  const supportingText = listItemSupportingText(item)
   return <HStack
     alignment="top"
     spacing={0}
@@ -496,27 +499,17 @@ function DueItemRow({
       visualOffsetY={-5}
     />
     <Link url={itemURL(item)}>
-      <VStack
-        alignment="leading"
-        spacing={0}
+      <HStack
+        alignment="top"
+        spacing={8}
         padding={{ top: titleInset }}
         frame={{ maxWidth: "infinity" }}
       >
-        <HStack alignment="top" spacing={5} frame={{ maxWidth: "infinity" }}>
-          <Text
-            font={roomy ? 15 : 14}
-            fontWeight="semibold"
-            lineLimit={1}
-            minScaleFactor={0.85}
-          >
-            {item.title}
-          </Text>
-          <Spacer />
-          <VStack spacing={0}>
-            <DueStatusLabel item={item} font={roomy ? "caption" : "caption2"} />
-          </VStack>
-        </HStack>
-        <HStack alignment="center" spacing={4} frame={{ maxWidth: "infinity" }}>
+        <HStack
+          alignment="center"
+          spacing={4}
+          frame={{ maxWidth: "infinity", alignment: "leading" }}
+        >
           <Image
             systemName={item.iconName}
             font={roomy ? 12 : 11}
@@ -526,22 +519,59 @@ function DueItemRow({
             widgetAccentable
           />
           <Text
-            font="caption2"
-            foregroundStyle="secondaryLabel"
+            font={roomy ? 15 : 14}
+            fontWeight="semibold"
             lineLimit={1}
-            minScaleFactor={0.78}
-            frame={{ maxWidth: "infinity", alignment: "leading" }}
+            minScaleFactor={0.85}
           >
-            {detail}
+            {item.title}
           </Text>
         </HStack>
-      </VStack>
+        <VStack
+          alignment="trailing"
+          spacing={0}
+          frame={{ width: metadataWidth, alignment: "trailing" }}
+        >
+          <VStack
+            alignment="trailing"
+            spacing={0}
+            frame={{ maxWidth: "infinity", height: 13, alignment: "trailing" }}
+          >
+            {supportingText
+              ? <Text
+                font="caption2"
+                foregroundStyle="secondaryLabel"
+                lineLimit={1}
+                minScaleFactor={0.72}
+                frame={{ maxWidth: "infinity", alignment: "trailing" }}
+              >
+                {supportingText}
+              </Text>
+              : null}
+          </VStack>
+          <HStack
+            alignment="center"
+            spacing={4}
+            frame={{ maxWidth: "infinity", alignment: "trailing" }}
+          >
+            <Text
+              font="caption2"
+              foregroundStyle="secondaryLabel"
+              lineLimit={1}
+              minScaleFactor={0.72}
+            >
+              {displayDate(item)}
+            </Text>
+            <DueStatusLabel item={item} font={roomy ? "caption" : "caption2"} />
+          </HStack>
+        </VStack>
+      </HStack>
     </Link>
   </HStack>
 }
 
-function listItemDetail(item: DisplayDueItem): string {
-  return [displayDate(item), item.amount, item.note]
+function listItemSupportingText(item: DisplayDueItem): string {
+  return [item.amount, item.note]
     .map((value) => value.replace(/\s+/g, " ").trim())
     .filter(Boolean)
     .join(" · ")
