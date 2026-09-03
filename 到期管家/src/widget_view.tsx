@@ -16,6 +16,7 @@ import { dueStatus, humanDate } from "./date"
 import { displayDate, kindLabel } from "./presentation"
 import type { DisplayDueItem } from "./types"
 import {
+  largeWidgetLayout,
   visibleWidgetItems,
   widgetItemCapacity,
   widgetRowHeight,
@@ -143,9 +144,11 @@ function WidgetHeader({
 function LargeSummaryHeader({
   item,
   issue,
+  height,
 }: {
   item: DisplayDueItem | undefined
   issue: WidgetIssue | null
+  height: number
 }) {
   const date = largeSummaryDate(item)
   const context = largeSummaryContext(item)
@@ -154,7 +157,7 @@ function LargeSummaryHeader({
     <VStack
       alignment="leading"
       spacing={0}
-      frame={{ maxWidth: "infinity", height: 62, alignment: "topLeading" }}
+      frame={{ maxWidth: "infinity", height, alignment: "topLeading" }}
     >
       <HStack
         alignment="center"
@@ -196,15 +199,16 @@ function LargeSummaryHeader({
           : null}
         <Image
           systemName={item?.iconName ?? "calendar.badge.clock"}
-          font={30}
+          font={26}
           foregroundStyle={item?.iconColor ?? "systemOrange"}
           symbolRenderingMode="hierarchical"
-          frame={{ width: 42, height: 42 }}
+          frame={{ width: 40, height: 40 }}
           contentTransition="symbolEffectReplace"
           widgetAccentable
         />
       </HStack>
-      <Divider />
+      <Spacer minLength={0} />
+      <Divider padding={{ leading: 5, trailing: 5 }} />
     </VStack>
   </Link>
 }
@@ -457,10 +461,14 @@ function ListWidget({
   const effectiveLimit = issue ? Math.max(1, limit - 1) : limit
   const visible = visibleWidgetItems(items, effectiveLimit)
   const roomy = family === "systemLarge"
+  const largeLayout = roomy ? largeWidgetLayout(displayHeight) : null
+  const largeSectionCount = largeLayout
+    ? largeWidgetSectionCount(visible, largeLayout.maximumSections)
+    : undefined
   // Keep the row rhythm stable when one slot is reserved for an issue message.
-  const rowHeight = widgetRowHeight(family, displayHeight, limit)
+  const rowHeight = widgetRowHeight(family, displayHeight, limit, largeSectionCount)
 
-  if (roomy) {
+  if (roomy && largeLayout) {
     return <WidgetFrame contentPadding={11}>
       <VStack
         alignment="leading"
@@ -474,11 +482,17 @@ function ListWidget({
             spacing={0}
             frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
           >
-            <LargeSummaryHeader item={items[0]} issue={issue} />
+            <LargeSummaryHeader
+              item={items[0]}
+              issue={issue}
+              height={largeLayout.summaryHeight}
+            />
             <LargeListWidgetBody
               visible={visible}
               rowHeight={rowHeight}
               issue={issue}
+              maximumSections={largeLayout.maximumSections}
+              sectionHeaderHeight={largeLayout.sectionHeaderHeight}
             />
           </VStack>
         </CompletionContent>
@@ -519,7 +533,6 @@ function ListWidgetBody({
   rowHeight: number
   issue: WidgetIssue | null
 }) {
-  const dividerLeading = Math.min(rowHeight, 38) + 4
   return <VStack
     alignment="leading"
     spacing={0}
@@ -528,7 +541,7 @@ function ListWidgetBody({
     {visible.length > 0
       ? <VStack
         alignment="leading"
-        spacing={0}
+        spacing={1}
         padding={{ top: 3 }}
         frame={{ maxWidth: "infinity" }}
       >
@@ -545,9 +558,6 @@ function ListWidgetBody({
               roomy={false}
               height={rowHeight}
             />
-            {index < visible.length - 1
-              ? <Divider padding={{ leading: dividerLeading }} />
-              : null}
           </VStack>
         ))}
       </VStack>
@@ -571,10 +581,14 @@ function LargeListWidgetBody({
   visible,
   rowHeight,
   issue,
+  maximumSections,
+  sectionHeaderHeight,
 }: {
   visible: DisplayDueItem[]
   rowHeight: number
   issue: WidgetIssue | null
+  maximumSections: 1 | 2
+  sectionHeaderHeight: number
 }) {
   const indexedItems = visible.map((item, index) => {
     const status = dueStatus(item)
@@ -582,6 +596,18 @@ function LargeListWidgetBody({
   })
   const needsAction = indexedItems.filter(row => row.needsAction)
   const upcoming = indexedItems.filter(row => !row.needsAction)
+  const sections: Array<{
+    title: string
+    rows: Array<{ item: DisplayDueItem; index: number }>
+  }> = maximumSections === 1
+    ? [{ title: "近期事项", rows: indexedItems }]
+    : []
+  if (maximumSections === 2 && needsAction.length > 0) {
+    sections.push({ title: "需要处理", rows: needsAction })
+  }
+  if (maximumSections === 2 && upcoming.length > 0) {
+    sections.push({ title: "接下来", rows: upcoming })
+  }
 
   return <VStack
     alignment="leading"
@@ -590,20 +616,15 @@ function LargeListWidgetBody({
   >
     {visible.length > 0
       ? <VStack alignment="leading" spacing={0} frame={{ maxWidth: "infinity" }}>
-        {needsAction.length > 0
-          ? <LargeWidgetSection
-            title="需要处理"
-            rows={needsAction}
+        {sections.map(section => (
+          <LargeWidgetSection
+            key={`large-section-${section.title}`}
+            title={section.title}
+            rows={section.rows}
             rowHeight={rowHeight}
+            headerHeight={sectionHeaderHeight}
           />
-          : null}
-        {upcoming.length > 0
-          ? <LargeWidgetSection
-            title="接下来"
-            rows={upcoming}
-            rowHeight={rowHeight}
-          />
-          : null}
+        ))}
       </VStack>
       : <Link url={Script.createRunURLScheme(Script.name)}>
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
@@ -625,17 +646,19 @@ function LargeWidgetSection({
   title,
   rows,
   rowHeight,
+  headerHeight,
 }: {
   title: string
   rows: Array<{ item: DisplayDueItem; index: number }>
   rowHeight: number
+  headerHeight: number
 }) {
   return <VStack alignment="leading" spacing={0} frame={{ maxWidth: "infinity" }}>
     <HStack
       alignment="center"
       spacing={0}
-      padding={{ leading: 5, trailing: 5 }}
-      frame={{ maxWidth: "infinity", height: 22, alignment: "leading" }}
+      padding={{ bottom: 3, leading: 5, trailing: 5 }}
+      frame={{ maxWidth: "infinity", height: headerHeight, alignment: "bottomLeading" }}
     >
       <Text font={13} fontWeight="semibold" foregroundStyle="label" lineLimit={1}>
         {title}
@@ -654,6 +677,21 @@ function LargeWidgetSection({
       </VStack>
     ))}
   </VStack>
+}
+
+function largeWidgetSectionCount(
+  items: DisplayDueItem[],
+  maximumSections: 1 | 2,
+): number {
+  if (maximumSections === 1 || items.length === 0) return 1
+  let hasNeedsAction = false
+  let hasUpcoming = false
+  for (const item of items) {
+    const status = dueStatus(item)
+    if (status.overdue || status.days === 0) hasNeedsAction = true
+    else hasUpcoming = true
+  }
+  return hasNeedsAction && hasUpcoming ? 2 : 1
 }
 
 function CompletionContent({
@@ -685,7 +723,7 @@ function DueItemRow({
   roomy: boolean
   height: number
 }) {
-  const hitSize = Math.min(height, roomy ? 42 : 38)
+  const hitSize = Math.min(height, roomy ? 40 : 38)
   const metadataWidth = roomy ? 124 : 116
   const supportingText = listItemSupportingText(item)
   return <HStack
@@ -697,7 +735,7 @@ function DueItemRow({
     <ListCompletionIcon
       item={item}
       hitSize={hitSize}
-      symbolSize={roomy ? 22 : 20}
+      symbolSize={roomy ? 20 : 19}
     />
     <Link url={itemURL(item)}>
       <HStack

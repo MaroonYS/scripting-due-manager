@@ -58,6 +58,7 @@ import {
   writeWidgetCompletionFeedback,
 } from "../到期管家/src/widget_completion.ts"
 import {
+  largeWidgetLayout,
   visibleWidgetItems,
   widgetItemCapacity,
   widgetRowHeight,
@@ -879,27 +880,65 @@ test("widget capacities adapt to small, medium, and large heights", () => {
   assert.equal(widgetItemCapacity("systemMedium", 152), 3)
   assert.equal(widgetItemCapacity("systemMedium", 168), 3)
   assert.equal(widgetItemCapacity("systemLarge", 250), 3)
-  assert.equal(widgetItemCapacity("systemLarge", 279), 3)
-  assert.equal(widgetItemCapacity("systemLarge", 280), 4)
-  assert.equal(widgetItemCapacity("systemLarge", 281), 4)
-  assert.equal(widgetItemCapacity("systemLarge", 317), 4)
-  assert.equal(widgetItemCapacity("systemLarge", 318), 5)
-  assert.equal(widgetItemCapacity("systemLarge", 320), 5)
+  assert.equal(widgetItemCapacity("systemLarge", 271), 3)
+  assert.equal(widgetItemCapacity("systemLarge", 272), 4)
+  assert.equal(widgetItemCapacity("systemLarge", 309), 4)
+  assert.equal(widgetItemCapacity("systemLarge", 310), 5)
+  assert.equal(widgetItemCapacity("systemLarge", 349), 5)
+  assert.equal(widgetItemCapacity("systemLarge", 350), 5)
   assert.equal(widgetItemCapacity("systemLarge", 354), 5)
   assert.equal(widgetItemCapacity("systemLarge", 382), 5)
   assert.equal(widgetItemCapacity("systemLarge"), 5)
 })
 
-test("widget rows use Apple's published iPhone widget heights", () => {
+test("large widget layout adapts its summary, sections, and rows to each height tier", () => {
+  assert.deepEqual(largeWidgetLayout(250), {
+    summaryHeight: 66,
+    sectionHeaderHeight: 24,
+    maximumSections: 1,
+    maximumRows: 3,
+  })
+  assert.deepEqual(largeWidgetLayout(281), {
+    summaryHeight: 70,
+    sectionHeaderHeight: 28,
+    maximumSections: 1,
+    maximumRows: 4,
+  })
+  assert.deepEqual(largeWidgetLayout(320), {
+    summaryHeight: 70,
+    sectionHeaderHeight: 28,
+    maximumSections: 1,
+    maximumRows: 5,
+  })
+  for (const height of [354, 382]) {
+    assert.deepEqual(largeWidgetLayout(height), {
+      summaryHeight: 74,
+      sectionHeaderHeight: 32,
+      maximumSections: 2,
+      maximumRows: 5,
+    })
+  }
+  assert.deepEqual(largeWidgetLayout(), {
+    summaryHeight: 74,
+    sectionHeaderHeight: 32,
+    maximumSections: 2,
+    maximumRows: 5,
+  })
+})
+
+test("widget rows fill published iPhone heights and account for large sections", () => {
   assert.equal(widgetItemCapacity("systemMedium", 170), 3)
   assert.equal(widgetRowHeight("systemMedium", 170, 3), 41)
   assert.equal(widgetRowHeight("systemMedium", 145, 2), 42)
-  assert.equal(widgetRowHeight("systemLarge", 250, 3), 40)
-  assert.equal(widgetRowHeight("systemLarge", 281, 4), 38)
-  assert.equal(widgetRowHeight("systemLarge", 320, 5), 38)
-  assert.equal(widgetRowHeight("systemLarge", 354, 5), 45)
-  assert.equal(widgetRowHeight("systemLarge", 382, 5), 48)
-  assert.equal(widgetRowHeight("systemLarge", undefined, 5), 45)
+  assert.equal(widgetRowHeight("systemLarge", 250, 3, 1), 46)
+  assert.equal(widgetRowHeight("systemLarge", 281, 4, 1), 40)
+  assert.equal(widgetRowHeight("systemLarge", 320, 5, 1), 40)
+  assert.equal(widgetRowHeight("systemLarge", 354, 5, 1), 45)
+  assert.equal(widgetRowHeight("systemLarge", 354, 5, 2), 38)
+  assert.equal(widgetRowHeight("systemLarge", 382, 5, 1), 50)
+  assert.equal(widgetRowHeight("systemLarge", 382, 5, 2), 44)
+  assert.equal(widgetRowHeight("systemLarge", undefined, 5, 1), 50)
+  assert.equal(widgetRowHeight("systemLarge", undefined, 5, 2), 44)
 })
 
 test("widget refresh targets a near timed due date before midnight", () => {
@@ -1901,10 +1940,16 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.match(source, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
   assert.match(source, /systemName="lock\.circle"/)
   assert.match(source, /systemName="circle"/)
-  assert.match(source, /const hitSize = Math\.min\(height, roomy \? 42 : 38\)/)
+  assert.match(source, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
   assert.match(source, /<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}/)
-  assert.match(listWidget, /const rowHeight = widgetRowHeight\(family, displayHeight, limit\)/)
-  assert.doesNotMatch(listWidget, /widgetRowHeight\(family, displayHeight, effectiveLimit\)/)
+  assert.match(
+    listWidget,
+    /const rowHeight = widgetRowHeight\(family, displayHeight, limit, largeSectionCount\)/,
+  )
+  assert.doesNotMatch(
+    listWidget,
+    /widgetRowHeight\(family, displayHeight, effectiveLimit, largeSectionCount\)/,
+  )
   assert.match(
     listWidget,
     /return <WidgetFrame contentPadding=\{11\}>\s*<VStack\s+alignment="leading"\s+spacing=\{0\}\s+padding=\{\{ leading: 3, trailing: 3 \}\}/,
@@ -1921,7 +1966,7 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.doesNotMatch(source, /symbolEffect=\{\{ effect: "bounce"/)
 })
 
-test("medium and large rows use item icons as completion controls without duplicating title icons", () => {
+test("medium and large rows use compact item icons as completion controls without duplicating title icons", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
@@ -1953,10 +1998,10 @@ test("medium and large rows use item icons as completion controls without duplic
   )
   assert.match(
     listRow,
-    /<ListCompletionIcon\s+item=\{item\}\s+hitSize=\{hitSize\}\s+symbolSize=\{roomy \? 22 : 20\}\s*\/>/,
-    "medium and large rows should use 20 pt and 22 pt item icons",
+    /<ListCompletionIcon\s+item=\{item\}\s+hitSize=\{hitSize\}\s+symbolSize=\{roomy \? 20 : 19\}\s*\/>/,
+    "medium and large rows should use 19 pt and 20 pt item icons",
   )
-  assert.match(listRow, /const hitSize = Math\.min\(height, roomy \? 42 : 38\)/)
+  assert.match(listRow, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
   assert.match(
     listRow,
     /<Link url=\{itemURL\(item\)\}>\s*<HStack\s+alignment="center"\s+spacing=\{8\}\s+frame=\{\{ maxWidth: "infinity" \}\}/,
@@ -2019,7 +2064,7 @@ test("medium and large rows use item icons as completion controls without duplic
   )
 })
 
-test("large widgets keep a 62 pt summary and two divider-free 22 pt sections", () => {
+test("large widgets use adaptive Reminders-style summary and section spacing", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
@@ -2041,21 +2086,41 @@ test("large widgets keep a 62 pt summary and two divider-free 22 pt sections", (
     source.indexOf("function largeSummaryDate"),
   )
 
-  assert.match(largeHeader, /height: 62, alignment: "topLeading"/)
+  assert.match(largeHeader, /height: number/)
+  assert.match(largeHeader, /height, alignment: "topLeading"/)
+  assert.match(largeHeader, /frame=\{\{ maxWidth: "infinity", height: 61 \}\}/)
+  assert.match(
+    largeHeader,
+    /<Spacer minLength=\{0\} \/>\s*<Divider padding=\{\{ leading: 5, trailing: 5 \}\} \/>/,
+  )
+  assert.match(largeHeader, /font=\{26\}/)
+  assert.match(largeHeader, /frame=\{\{ width: 40, height: 40 \}\}/)
+  assert.match(largeHeader, /<Divider padding=\{\{ leading: 5, trailing: 5 \}\} \/>/)
   assert.match(
     listWidget,
-    /<CompletionContent generation=\{completionGeneration\}>[\s\S]*?<LargeSummaryHeader item=\{items\[0\]\} issue=\{issue\} \/>/,
+    /<CompletionContent generation=\{completionGeneration\}>[\s\S]*?<LargeSummaryHeader\s+item=\{items\[0\]\}\s+issue=\{issue\}\s+height=\{largeLayout\.summaryHeight\}\s*\/>/,
     "the large header must animate with the completion queue",
   )
-  assert.match(largeBody, /title="需要处理"/)
-  assert.match(largeBody, /title="接下来"/)
-  assert.match(largeBody, /height: 22, alignment: "leading"/)
-  assert.doesNotMatch(largeBody, /<Divider/)
   assert.match(
-    mediumBody,
-    /index < visible\.length - 1\s*\? <Divider padding=\{\{ leading: dividerLeading \}\} \/>/,
-    "medium rows should retain their dividers",
+    listWidget,
+    /const largeSectionCount = largeLayout[\s\S]*?largeWidgetSectionCount\(visible, largeLayout\.maximumSections\)/,
   )
+  assert.match(
+    listWidget,
+    /widgetRowHeight\(family, displayHeight, limit, largeSectionCount\)/,
+  )
+  assert.match(listWidget, /maximumSections=\{largeLayout\.maximumSections\}/)
+  assert.match(listWidget, /sectionHeaderHeight=\{largeLayout\.sectionHeaderHeight\}/)
+  assert.match(largeBody, /maximumSections === 1\s*\? \[\{ title: "近期事项", rows: indexedItems \}\]/)
+  assert.match(largeBody, /title: "需要处理"/)
+  assert.match(largeBody, /title: "接下来"/)
+  assert.match(largeBody, /maximumSections === 2 && needsAction\.length > 0/)
+  assert.match(largeBody, /maximumSections === 2 && upcoming\.length > 0/)
+  assert.match(largeBody, /padding=\{\{ bottom: 3, leading: 5, trailing: 5 \}\}/)
+  assert.match(largeBody, /height: headerHeight, alignment: "bottomLeading"/)
+  assert.doesNotMatch(largeBody, /<Divider/)
+  assert.match(mediumBody, /<VStack\s+alignment="leading"\s+spacing=\{1\}/)
+  assert.doesNotMatch(mediumBody, /<Divider/)
 })
 
 test("small widget previews one non-interactive next queue item", () => {
