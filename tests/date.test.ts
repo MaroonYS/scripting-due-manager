@@ -2257,6 +2257,25 @@ test("medium and large rows use compact item icons as completion controls withou
     /<VStack\s+alignment="trailing"\s+spacing=\{0\}\s+frame=\{\{ width: metadataWidth, alignment: "trailing" \}\}\s*>[\s\S]*?\{supportingText[\s\S]*?\{formatWidgetItemDate\(item, WIDGET_LOCALE\)\}/,
     "supporting text and localized absolute date should occupy the trailing metadata column",
   )
+  const supportingTextIndex = listRow.indexOf("{supportingText}")
+  assert.ok(supportingTextIndex >= 0)
+  const supportingTextBlock = listRow.slice(
+    listRow.lastIndexOf("<Text", supportingTextIndex),
+    listRow.indexOf("</Text>", supportingTextIndex) + "</Text>".length,
+  )
+  assert.match(supportingTextBlock, /lineLimit=\{1\}/)
+  assert.match(supportingTextBlock, /minScaleFactor=\{0\.85\}/)
+  assert.match(supportingTextBlock, /truncationMode="middle"/)
+  assert.match(supportingTextBlock, /allowsTightening=\{true\}/)
+  assert.match(supportingTextBlock, /multilineTextAlignment="trailing"/)
+  assert.match(supportingTextBlock, /frame=\{\{ maxWidth: "infinity", alignment: "trailing" \}\}/)
+  assert.match(
+    listRow,
+    /frame=\{\{ maxWidth: "infinity", height: 13, alignment: "trailing" \}\}/,
+    "a long note must remain in its reserved one-line slot above the date",
+  )
+  const dateIndex = listRow.indexOf("{formatWidgetItemDate(item, WIDGET_LOCALE)}")
+  assert.ok(dateIndex > supportingTextIndex, "the absolute date must remain a separate row after the note")
   assert.equal(listRow.match(/formatWidgetItemDate\(item, WIDGET_LOCALE\)/g)?.length, 1)
   assert.doesNotMatch(listRow, /DueStatusLabel|DateLabel|status\.label|style="timer"/)
   assert.match(listDetail, /return \[item\.amount, item\.note\][\s\S]*?\.join\(" · "\)/)
@@ -2354,6 +2373,10 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
     source.indexOf("function WidgetHeader"),
     source.indexOf("function SmallWidget("),
   )
+  const smallDetail = source.slice(
+    source.indexOf("function SmallCurrentDetail"),
+    source.indexOf("function SmallNextItemPreview"),
+  )
   const listCompletionIcon = source.slice(
     source.indexOf("function ListCompletionIcon"),
     source.indexOf("function listItemSupportingText"),
@@ -2426,7 +2449,20 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
   assert.match(smallItem, /function SmallCurrentDetail/)
   assert.match(smallItem, /padding=\{\{ top: 4, leading: 5, trailing: 5 \}\}/)
   assert.match(smallItem, /font=\{13\}/)
-  assert.match(smallItem, /frame=\{\{ maxWidth: 135, alignment: "leading" \}\}/)
+  assert.match(smallDetail, /frame=\{\{ maxWidth: "infinity", height: 19, alignment: "leading" \}\}/)
+  assert.match(smallDetail, /padding=\{\{ top: 4, leading: 5, trailing: 5 \}\}/)
+  assert.doesNotMatch(smallDetail, /<Spacer/)
+  assert.match(smallDetail, /lineLimit=\{1\}/)
+  assert.match(smallDetail, /minScaleFactor=\{0\.85\}/)
+  assert.match(smallDetail, /truncationMode="middle"/)
+  assert.match(smallDetail, /allowsTightening=\{true\}/)
+  assert.match(smallDetail, /multilineTextAlignment="trailing"/)
+  assert.match(smallDetail, /frame=\{\{ maxWidth: "infinity", alignment: "trailing" \}\}/)
+  assert.match(
+    widgetHeader,
+    /padding=\{\{[\s\S]*?trailing: 5,[\s\S]*?\}\}/,
+    "the compact header date and current detail must share the same 5 pt trailing inset",
+  )
   assert.match(smallItem, /<SmallCurrentDetail item=\{item\} detail=\{detail\} \/>/)
   assert.equal(smallItem.match(/height: 19, alignment: "leading"/g)?.length, 2)
   assert.equal(smallItem.match(/height: 18, alignment: "leading"/g)?.length, 1)

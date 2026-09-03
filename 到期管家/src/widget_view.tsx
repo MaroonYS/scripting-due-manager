@@ -418,13 +418,15 @@ function SmallCurrentDetail({
           font={13}
           foregroundStyle="secondaryLabel"
           lineLimit={1}
-          minScaleFactor={0.8}
+          minScaleFactor={0.85}
+          truncationMode="middle"
+          allowsTightening={true}
+          multilineTextAlignment="trailing"
           fixedSize={{ horizontal: false, vertical: true }}
-          frame={{ maxWidth: 135, alignment: "leading" }}
+          frame={{ maxWidth: "infinity", alignment: "trailing" }}
         >
           {detail}
         </Text>
-        <Spacer />
       </HStack>
     </Link>
   </VStack>
@@ -831,7 +833,10 @@ function DueItemRow({
                 font="caption2"
                 foregroundStyle="secondaryLabel"
                 lineLimit={1}
-                minScaleFactor={0.72}
+                minScaleFactor={0.85}
+                truncationMode="middle"
+                allowsTightening={true}
+                multilineTextAlignment="trailing"
                 frame={{ maxWidth: "infinity", alignment: "trailing" }}
               >
                 {supportingText}

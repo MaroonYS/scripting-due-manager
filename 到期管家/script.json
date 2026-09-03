@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.3.4",
-  "description": "Track due dates and Apple Reminders with system-language widget text, locale-aware absolute dates, and icon-based completion in every widget size.",
+  "version": "2.3.5",
+  "description": "Track due dates and Apple Reminders with system-language widgets, trailing-aligned compact details, and readable middle-truncated metadata.",
   "localizedDescriptions": {
-    "en": "2.3.4 follows the iPhone language and date locale across every widget, removes the duplicate icon from the small header, and replaces relative or live countdowns with absolute dates.",
-    "zh": "2.3.4 让所有小组件跟随 iPhone 系统语言和日期格式，去掉小号左上角的重复图标，并以明确日期取代相对天数及实时倒计时。",
-    "zh-Hans": "2.3.4 让所有小组件跟随 iPhone 系统语言和日期格式，去掉小号左上角的重复图标，并以明确日期取代相对天数及实时倒计时。",
-    "zh-Hant": "2.3.4 讓所有小工具跟隨 iPhone 系統語言和日期格式，移除小號左上角的重複圖示，並以明確日期取代相對天數及即時倒數。"
+    "en": "2.3.5 aligns the small widget’s amount and note to its date edge, and keeps long medium/large metadata readable with native tightening and middle truncation.",
+    "zh": "2.3.5 将小号金额与备注右侧对齐日期，并通过原生字距收紧和中间省略优化中、大号过长备注。",
+    "zh-Hans": "2.3.5 将小号金额与备注右侧对齐日期，并通过原生字距收紧和中间省略优化中、大号过长备注。",
+    "zh-Hant": "2.3.5 將小號金額與備註右側對齊日期，並透過原生字距收緊和中間省略優化中、大號過長備註。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",
