@@ -17,6 +17,7 @@ import { displayDate, kindLabel } from "./presentation"
 import type { DisplayDueItem } from "./types"
 import {
   largeWidgetLayout,
+  listItemTitleFontSize,
   visibleWidgetItems,
   widgetItemCapacity,
   widgetRowHeight,
@@ -53,7 +54,9 @@ const QUEUE_SLOT_TRANSITION = Transition
   .animation(COMPLETION_QUEUE_ANIMATION)
 
 export function DueManagerWidget(props: WidgetDataProps) {
-  const displayHeight = Widget.displaySize?.height
+  const displaySize = Widget.displaySize
+  const displayHeight = displaySize?.height
+  const displayWidth = displaySize?.width
   if (Widget.family === "systemSmall") {
     return <SmallWidget {...props} />
   }
@@ -63,6 +66,7 @@ export function DueManagerWidget(props: WidgetDataProps) {
       limit={widgetItemCapacity("systemMedium", displayHeight)}
       family="systemMedium"
       displayHeight={displayHeight}
+      displayWidth={displayWidth}
     />
   }
   if (Widget.family === "systemLarge") {
@@ -71,6 +75,7 @@ export function DueManagerWidget(props: WidgetDataProps) {
       limit={widgetItemCapacity("systemLarge", displayHeight)}
       family="systemLarge"
       displayHeight={displayHeight}
+      displayWidth={displayWidth}
     />
   }
   return <AccessoryFallback items={props.items} />
@@ -447,10 +452,12 @@ function ListWidget({
   reminderError,
   interactionError,
   displayHeight,
+  displayWidth,
 }: WidgetDataProps & {
   limit: number
   family: "systemMedium" | "systemLarge"
   displayHeight?: number
+  displayWidth?: number
 }) {
   const issue = widgetIssue({
     remindersLive,
@@ -493,6 +500,7 @@ function ListWidget({
               issue={issue}
               maximumSections={largeLayout.maximumSections}
               sectionHeaderHeight={largeLayout.sectionHeaderHeight}
+              displayWidth={displayWidth}
             />
           </VStack>
         </CompletionContent>
@@ -518,6 +526,7 @@ function ListWidget({
           visible={visible}
           rowHeight={rowHeight}
           issue={issue}
+          displayWidth={displayWidth}
         />
       </CompletionContent>
     </VStack>
@@ -528,10 +537,12 @@ function ListWidgetBody({
   visible,
   rowHeight,
   issue,
+  displayWidth,
 }: {
   visible: DisplayDueItem[]
   rowHeight: number
   issue: WidgetIssue | null
+  displayWidth?: number
 }) {
   return <VStack
     alignment="leading"
@@ -557,6 +568,7 @@ function ListWidgetBody({
               item={item}
               roomy={false}
               height={rowHeight}
+              displayWidth={displayWidth}
             />
           </VStack>
         ))}
@@ -583,12 +595,14 @@ function LargeListWidgetBody({
   issue,
   maximumSections,
   sectionHeaderHeight,
+  displayWidth,
 }: {
   visible: DisplayDueItem[]
   rowHeight: number
   issue: WidgetIssue | null
   maximumSections: 1 | 2
   sectionHeaderHeight: number
+  displayWidth?: number
 }) {
   const indexedItems = visible.map((item, index) => {
     const status = dueStatus(item)
@@ -623,6 +637,7 @@ function LargeListWidgetBody({
             rows={section.rows}
             rowHeight={rowHeight}
             headerHeight={sectionHeaderHeight}
+            displayWidth={displayWidth}
           />
         ))}
       </VStack>
@@ -647,11 +662,13 @@ function LargeWidgetSection({
   rows,
   rowHeight,
   headerHeight,
+  displayWidth,
 }: {
   title: string
   rows: Array<{ item: DisplayDueItem; index: number }>
   rowHeight: number
   headerHeight: number
+  displayWidth?: number
 }) {
   return <VStack alignment="leading" spacing={0} frame={{ maxWidth: "infinity" }}>
     <HStack
@@ -673,7 +690,12 @@ function LargeWidgetSection({
         transition={QUEUE_SLOT_TRANSITION}
         frame={{ maxWidth: "infinity" }}
       >
-        <DueItemRow item={item} roomy height={rowHeight} />
+        <DueItemRow
+          item={item}
+          roomy
+          height={rowHeight}
+          displayWidth={displayWidth}
+        />
       </VStack>
     ))}
   </VStack>
@@ -718,14 +740,21 @@ function DueItemRow({
   item,
   roomy,
   height,
+  displayWidth,
 }: {
   item: DisplayDueItem
   roomy: boolean
   height: number
+  displayWidth?: number
 }) {
   const hitSize = Math.min(height, roomy ? 40 : 38)
   const metadataWidth = roomy ? 124 : 116
   const supportingText = listItemSupportingText(item)
+  const titleFontSize = listItemTitleFontSize(
+    item.title,
+    roomy ? "systemLarge" : "systemMedium",
+    displayWidth,
+  )
   return <HStack
     alignment="center"
     spacing={0}
@@ -735,7 +764,7 @@ function DueItemRow({
     <ListCompletionIcon
       item={item}
       hitSize={hitSize}
-      symbolSize={roomy ? 20 : 19}
+      symbolSize={roomy ? 18 : 17}
     />
     <Link url={itemURL(item)}>
       <HStack
@@ -744,7 +773,7 @@ function DueItemRow({
         frame={{ maxWidth: "infinity" }}
       >
         <Text
-          font={roomy ? 15 : 14}
+          font={titleFontSize}
           fontWeight="semibold"
           lineLimit={2}
           minScaleFactor={0.85}

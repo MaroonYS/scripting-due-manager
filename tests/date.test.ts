@@ -59,6 +59,7 @@ import {
 } from "../到期管家/src/widget_completion.ts"
 import {
   largeWidgetLayout,
+  listItemTitleFontSize,
   visibleWidgetItems,
   widgetItemCapacity,
   widgetRowHeight,
@@ -924,6 +925,63 @@ test("large widget layout adapts its summary, sections, and rows to each height 
     maximumSections: 2,
     maximumRows: 5,
   })
+})
+
+test("list item title fonts adapt to widget width and estimated wrapping", () => {
+  // Short titles retain each widget family's normal list typography.
+  assert.equal(listItemTitleFontSize("Claude Pro", "systemMedium", 364), 14)
+  assert.equal(listItemTitleFontSize("Claude Pro", "systemLarge", 364), 15)
+
+  // Real compact and roomy widget widths affect whether the same English title
+  // is expected to wrap and therefore needs the first compact font step.
+  assert.equal(listItemTitleFontSize("Equifax Complete Premier", "systemMedium", 364), 14)
+  assert.equal(listItemTitleFontSize("Equifax Complete Premier", "systemMedium", 320), 13)
+  assert.equal(listItemTitleFontSize("Equifax Complete Premier", "systemLarge", 364), 14)
+
+  // Mixed CJK and Latin glyphs use visual width rather than UTF-16 length.
+  assert.equal(
+    listItemTitleFontSize("BANK 06 | Ally 后备资格与一次性申请", "systemMedium", 364),
+    13,
+  )
+  assert.equal(
+    listItemTitleFontSize("BANK 06 | Ally 后备资格与一次性申请", "systemLarge", 364),
+    14,
+  )
+
+  // Incidental whitespace must not change the predicted line count.
+  assert.equal(
+    listItemTitleFontSize("  Claude   Pro \t -   Monthly  ", "systemMedium", 364),
+    listItemTitleFontSize("Claude Pro - Monthly", "systemMedium", 364),
+  )
+
+  // A pasted explicit line break is already a two-line title.
+  assert.equal(listItemTitleFontSize("Claude Pro\nMonthly", "systemMedium", 364), 13)
+  assert.equal(listItemTitleFontSize("Claude Pro\nMonthly", "systemLarge", 364), 14)
+
+  // Wide Latin glyphs, repeated digits, supplementary CJK, and emoji modifiers
+  // keep their visual-width behavior at compact widget boundaries.
+  assert.equal(listItemTitleFontSize("W".repeat(10), "systemLarge", 338), 14)
+  assert.equal(listItemTitleFontSize("1".repeat(20), "systemLarge", 338), 14)
+  assert.equal(listItemTitleFontSize("𠀀".repeat(12), "systemMedium", 340), 13)
+  assert.equal(listItemTitleFontSize("👍".repeat(10), "systemMedium", 340), 14)
+  assert.equal(listItemTitleFontSize("👍🏽".repeat(10), "systemMedium", 340), 14)
+
+  // Titles that still exceed roughly two lines after the first reduction use
+  // the second compact step.
+  const extraLongTitle = "A".repeat(100)
+  assert.equal(listItemTitleFontSize(extraLongTitle, "systemMedium", 364), 12)
+  assert.equal(listItemTitleFontSize(extraLongTitle, "systemLarge", 364), 13)
+
+  // Missing and invalid widths use the same published fallback width.
+  const fallbackTitle = "BANK 06 | Ally 后备资格与一次性申请"
+  const fallbackSize = listItemTitleFontSize(fallbackTitle, "systemLarge")
+  assert.equal(fallbackSize, 14)
+  for (const invalidWidth of [Number.NaN, Number.POSITIVE_INFINITY, 0, -1]) {
+    assert.equal(
+      listItemTitleFontSize(fallbackTitle, "systemLarge", invalidWidth),
+      fallbackSize,
+    )
+  }
 })
 
 test("widget rows fill published iPhone heights and account for large sections", () => {
@@ -1923,6 +1981,10 @@ test("widget view uses native queue transitions, safe controls, and unified list
     source.indexOf("function ListWidget("),
     source.indexOf("function ListWidgetBody"),
   )
+  const widgetEntry = source.slice(
+    source.indexOf("export function DueManagerWidget"),
+    source.indexOf("function WidgetHeader"),
+  )
   const importBlock = source.slice(0, source.indexOf("from \"scripting\"") + 16)
   assert.doesNotMatch(importBlock, /\bAnimation\b/)
   assert.match(source, /declare const Transition: any/)
@@ -1943,8 +2005,25 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.match(source, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
   assert.match(source, /<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}/)
   assert.match(
+    widgetEntry,
+    /const displaySize = Widget\.displaySize\s+const displayHeight = displaySize\?\.height\s+const displayWidth = displaySize\?\.width/,
+  )
+  assert.equal(
+    widgetEntry.match(/displayWidth=\{displayWidth\}/g)?.length,
+    2,
+    "both medium and large widget entry points must forward their actual width",
+  )
+  assert.match(
     listWidget,
     /const rowHeight = widgetRowHeight\(family, displayHeight, limit, largeSectionCount\)/,
+  )
+  assert.match(
+    listWidget,
+    /<LargeListWidgetBody[\s\S]*?displayWidth=\{displayWidth\}/,
+  )
+  assert.match(
+    listWidget,
+    /<ListWidgetBody[\s\S]*?displayWidth=\{displayWidth\}/,
   )
   assert.doesNotMatch(
     listWidget,
@@ -1975,6 +2054,14 @@ test("medium and large rows use compact item icons as completion controls withou
     source.indexOf("function DueItemRow"),
     source.indexOf("function ListCompletionIcon"),
   )
+  const mediumBody = source.slice(
+    source.indexOf("function ListWidgetBody"),
+    source.indexOf("function LargeListWidgetBody"),
+  )
+  const largeBody = source.slice(
+    source.indexOf("function LargeListWidgetBody"),
+    source.indexOf("function CompletionContent"),
+  )
   const listCompletionIcon = source.slice(
     source.indexOf("function ListCompletionIcon"),
     source.indexOf("function listItemSupportingText"),
@@ -1998,10 +2085,20 @@ test("medium and large rows use compact item icons as completion controls withou
   )
   assert.match(
     listRow,
-    /<ListCompletionIcon\s+item=\{item\}\s+hitSize=\{hitSize\}\s+symbolSize=\{roomy \? 20 : 19\}\s*\/>/,
-    "medium and large rows should use 19 pt and 20 pt item icons",
+    /<ListCompletionIcon\s+item=\{item\}\s+hitSize=\{hitSize\}\s+symbolSize=\{roomy \? 18 : 17\}\s*\/>/,
+    "medium and large rows should use 17 pt and 18 pt item icons",
   )
   assert.match(listRow, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
+  assert.match(
+    mediumBody,
+    /<DueItemRow\s+item=\{item\}\s+roomy=\{false\}\s+height=\{rowHeight\}\s+displayWidth=\{displayWidth\}\s*\/>/,
+    "medium rows must receive the actual widget width",
+  )
+  assert.match(
+    largeBody,
+    /<LargeWidgetSection[\s\S]*?displayWidth=\{displayWidth\}[\s\S]*?<DueItemRow\s+item=\{item\}\s+roomy\s+height=\{rowHeight\}\s+displayWidth=\{displayWidth\}\s*\/>/,
+    "large sections and rows must preserve the actual widget width",
+  )
   assert.match(
     listRow,
     /<Link url=\{itemURL\(item\)\}>\s*<HStack\s+alignment="center"\s+spacing=\{8\}\s+frame=\{\{ maxWidth: "infinity" \}\}/,
@@ -2023,6 +2120,12 @@ test("medium and large rows use compact item icons as completion controls withou
     listRow.lastIndexOf("<Text", titleIndex),
     listRow.indexOf("</Text>", titleIndex) + "</Text>".length,
   )
+  assert.match(
+    listRow,
+    /const titleFontSize = listItemTitleFontSize\(\s*item\.title,\s*roomy \? "systemLarge" : "systemMedium",\s*displayWidth,\s*\)/,
+    "list title typography must be selected from its title, family, and actual width",
+  )
+  assert.match(titleBlock, /font=\{titleFontSize\}/)
   assert.match(titleBlock, /lineLimit=\{2\}/)
   assert.match(titleBlock, /multilineTextAlignment="leading"/)
   assert.match(titleBlock, /fixedSize=\{\{ horizontal: false, vertical: true \}\}/)
