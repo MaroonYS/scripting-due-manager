@@ -5,7 +5,7 @@ const LIST_VERTICAL_PADDING = 22
 function listMetrics(family: Exclude<HomeWidgetFamily, "systemSmall">) {
   return family === "systemMedium"
     ? { headerAndTopGap: 23, minimumRows: 2, maximumRows: 3, minimumRowHeight: 35 }
-    : { headerAndTopGap: 26, minimumRows: 5, maximumRows: 7, minimumRowHeight: 38 }
+    : { headerAndTopGap: 106, minimumRows: 3, maximumRows: 5, minimumRowHeight: 38 }
 }
 
 /**
@@ -18,12 +18,12 @@ export function widgetItemCapacity(
 ): number {
   if (family === "systemSmall") return 1
   if (typeof displayHeight !== "number" || !Number.isFinite(displayHeight)) {
-    return family === "systemMedium" ? 3 : 7
+    return family === "systemMedium" ? 3 : 5
   }
 
   const metrics = listMetrics(family)
   for (let capacity = metrics.maximumRows; capacity >= metrics.minimumRows; capacity -= 1) {
-    const dividers = Math.max(0, capacity - 1)
+    const dividers = family === "systemMedium" ? Math.max(0, capacity - 1) : 0
     const requiredHeight = LIST_VERTICAL_PADDING
       + metrics.headerAndTopGap
       + capacity * metrics.minimumRowHeight
@@ -40,10 +40,10 @@ export function widgetRowHeight(
   capacity: number,
 ): number {
   if (typeof displayHeight !== "number" || !Number.isFinite(displayHeight) || capacity <= 0) {
-    return family === "systemMedium" ? 38 : 42
+    return family === "systemMedium" ? 38 : 45
   }
   const metrics = listMetrics(family)
-  const dividers = Math.max(0, capacity - 1)
+  const dividers = family === "systemMedium" ? Math.max(0, capacity - 1) : 0
   const available = displayHeight
     - LIST_VERTICAL_PADDING
     - metrics.headerAndTopGap

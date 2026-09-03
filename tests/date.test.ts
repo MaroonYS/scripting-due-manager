@@ -790,9 +790,11 @@ test("completing the visible item backfills every medium and large widget capaci
   const layouts = [
     ["systemMedium", 145, 2],
     ["systemMedium", 152, 3],
-    ["systemLarge", 250, 5],
-    ["systemLarge", 281, 6],
-    ["systemLarge", 320, 7],
+    ["systemLarge", 250, 3],
+    ["systemLarge", 281, 4],
+    ["systemLarge", 320, 5],
+    ["systemLarge", 354, 5],
+    ["systemLarge", 382, 5],
   ] as const
 
   for (const [family, displayHeight, expectedCapacity] of layouts) {
@@ -876,22 +878,28 @@ test("widget capacities adapt to small, medium, and large heights", () => {
   assert.equal(widgetItemCapacity("systemMedium", 151), 2)
   assert.equal(widgetItemCapacity("systemMedium", 152), 3)
   assert.equal(widgetItemCapacity("systemMedium", 168), 3)
-  assert.equal(widgetItemCapacity("systemLarge", 250), 5)
-  assert.equal(widgetItemCapacity("systemLarge", 280), 5)
-  assert.equal(widgetItemCapacity("systemLarge", 281), 6)
-  assert.equal(widgetItemCapacity("systemLarge", 319), 6)
-  assert.equal(widgetItemCapacity("systemLarge", 320), 7)
-  assert.equal(widgetItemCapacity("systemLarge", 360), 7)
+  assert.equal(widgetItemCapacity("systemLarge", 250), 3)
+  assert.equal(widgetItemCapacity("systemLarge", 279), 3)
+  assert.equal(widgetItemCapacity("systemLarge", 280), 4)
+  assert.equal(widgetItemCapacity("systemLarge", 281), 4)
+  assert.equal(widgetItemCapacity("systemLarge", 317), 4)
+  assert.equal(widgetItemCapacity("systemLarge", 318), 5)
+  assert.equal(widgetItemCapacity("systemLarge", 320), 5)
+  assert.equal(widgetItemCapacity("systemLarge", 354), 5)
+  assert.equal(widgetItemCapacity("systemLarge", 382), 5)
+  assert.equal(widgetItemCapacity("systemLarge"), 5)
 })
 
 test("widget rows use Apple's published iPhone widget heights", () => {
   assert.equal(widgetItemCapacity("systemMedium", 170), 3)
   assert.equal(widgetRowHeight("systemMedium", 170, 3), 41)
   assert.equal(widgetRowHeight("systemMedium", 145, 2), 42)
-  assert.equal(widgetItemCapacity("systemLarge", 382), 7)
-  assert.equal(widgetRowHeight("systemLarge", 382, 7), 46)
-  assert.equal(widgetRowHeight("systemLarge", 354, 7), 42)
-  assert.equal(widgetRowHeight("systemLarge", 250, 5), 39)
+  assert.equal(widgetRowHeight("systemLarge", 250, 3), 40)
+  assert.equal(widgetRowHeight("systemLarge", 281, 4), 38)
+  assert.equal(widgetRowHeight("systemLarge", 320, 5), 38)
+  assert.equal(widgetRowHeight("systemLarge", 354, 5), 45)
+  assert.equal(widgetRowHeight("systemLarge", 382, 5), 48)
+  assert.equal(widgetRowHeight("systemLarge", undefined, 5), 45)
 })
 
 test("widget refresh targets a near timed due date before midnight", () => {
@@ -1893,27 +1901,37 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.match(source, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
   assert.match(source, /systemName="lock\.circle"/)
   assert.match(source, /systemName="circle"/)
-  assert.match(source, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
+  assert.match(source, /const hitSize = Math\.min\(height, roomy \? 42 : 38\)/)
   assert.match(source, /<CompletionControl\s+item=\{item\}\s+hitSize=\{40\}/)
+  assert.match(listWidget, /const rowHeight = widgetRowHeight\(family, displayHeight, limit\)/)
+  assert.doesNotMatch(listWidget, /widgetRowHeight\(family, displayHeight, effectiveLimit\)/)
   assert.match(
     listWidget,
     /return <WidgetFrame contentPadding=\{11\}>\s*<VStack\s+alignment="leading"\s+spacing=\{0\}\s+padding=\{\{ leading: 3, trailing: 3 \}\}/,
     "11 pt frame padding plus 3 pt horizontal inset must keep an effective 14 pt list margin",
   )
-  assert.equal(listWidget.match(/padding=\{\{ leading: 3, trailing: 3 \}\}/g)?.length, 1)
+  assert.equal(
+    listWidget.match(/padding=\{\{ leading: 3, trailing: 3 \}\}/g)?.length,
+    2,
+    "medium and large branches must both keep the effective 14 pt list margin",
+  )
   assert.doesNotMatch(source, /contentPadding=\{roomy \? 14 : 11\}/)
   assert.doesNotMatch(source, /previousItems|completionPhase|layer0|layer1/)
   assert.equal(source.match(/animation=\{\{ animation: COMPLETION_QUEUE_ANIMATION, value: generation \}\}/g)?.length, 1)
   assert.doesNotMatch(source, /symbolEffect=\{\{ effect: "bounce"/)
 })
 
-test("medium and large rows center completion, subjects, and metadata with two-line titles", () => {
+test("medium and large rows use item icons as completion controls without duplicating title icons", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
   const listRow = source.slice(
     source.indexOf("function DueItemRow"),
+    source.indexOf("function ListCompletionIcon"),
+  )
+  const listCompletionIcon = source.slice(
+    source.indexOf("function ListCompletionIcon"),
     source.indexOf("function listItemSupportingText"),
   )
   const listDetail = source.slice(
@@ -1935,9 +1953,10 @@ test("medium and large rows center completion, subjects, and metadata with two-l
   )
   assert.match(
     listRow,
-    /<CompletionControl\s+item=\{item\}\s+hitSize=\{hitSize\}\s+symbolSize=\{roomy \? 20 : 19\}\s+visualOffsetY=\{0\}\s*\/>/,
-    "the completion visual should use the row center instead of the former upward lift",
+    /<ListCompletionIcon\s+item=\{item\}\s+hitSize=\{hitSize\}\s+symbolSize=\{roomy \? 22 : 20\}\s*\/>/,
+    "medium and large rows should use 20 pt and 22 pt item icons",
   )
+  assert.match(listRow, /const hitSize = Math\.min\(height, roomy \? 42 : 38\)/)
   assert.match(
     listRow,
     /<Link url=\{itemURL\(item\)\}>\s*<HStack\s+alignment="center"\s+spacing=\{8\}\s+frame=\{\{ maxWidth: "infinity" \}\}/,
@@ -1945,22 +1964,20 @@ test("medium and large rows center completion, subjects, and metadata with two-l
   )
   assert.match(
     listRow,
-    /<HStack\s+alignment="center"\s+spacing=\{4\}\s+frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}\s*>[\s\S]*?systemName=\{item\.iconName\}[\s\S]*?\{item\.title\}[\s\S]*?<\/HStack>\s*<VStack\s+alignment="trailing"/,
-    "the icon and title should share the subject column's vertical center opposite the metadata column",
+    /<Link url=\{itemURL\(item\)\}>[\s\S]*?<Text[\s\S]*?\{item\.title\}[\s\S]*?<VStack\s+alignment="trailing"/,
+    "the title and metadata should remain inside the item link",
   )
-  const iconNameIndex = listRow.indexOf("systemName={item.iconName}")
+  const itemLink = listRow.slice(
+    listRow.indexOf("<Link url={itemURL(item)}>"),
+    listRow.lastIndexOf("</Link>") + "</Link>".length,
+  )
+  assert.doesNotMatch(itemLink, /item\.iconName|item\.iconColor/)
   const titleIndex = listRow.indexOf("{item.title}")
-  assert.ok(iconNameIndex >= 0)
-  assert.ok(titleIndex > iconNameIndex, "the item icon must precede its title")
-  const iconBlock = listRow.slice(
-    listRow.lastIndexOf("<Image", iconNameIndex),
-    listRow.indexOf("/>", iconNameIndex) + 2,
-  )
+  assert.ok(titleIndex >= 0)
   const titleBlock = listRow.slice(
     listRow.lastIndexOf("<Text", titleIndex),
     listRow.indexOf("</Text>", titleIndex) + "</Text>".length,
   )
-  assert.doesNotMatch(iconBlock, /padding=/)
   assert.match(titleBlock, /lineLimit=\{2\}/)
   assert.match(titleBlock, /multilineTextAlignment="leading"/)
   assert.match(titleBlock, /fixedSize=\{\{ horizontal: false, vertical: true \}\}/)
@@ -1979,11 +1996,65 @@ test("medium and large rows center completion, subjects, and metadata with two-l
   assert.equal(listRow.match(/displayDate\(item\)/g)?.length, 1)
   assert.match(listDetail, /return \[item\.amount, item\.note\][\s\S]*?\.join\(" · "\)/)
   assert.doesNotMatch(listDetail, /displayDate\(item\)/)
+
+  assert.match(listCompletionIcon, /systemName=\{item\.iconName\}/)
+  assert.match(listCompletionIcon, /font=\{symbolSize\}/)
+  assert.match(listCompletionIcon, /foregroundStyle=\{enabled \? item\.iconColor : "tertiaryLabel"\}/)
+  assert.match(listCompletionIcon, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
+  assert.match(
+    listCompletionIcon,
+    /CompleteDueItemIntent\(\{\s*source: item\.source,\s*id: item\.id,\s*occurrenceKey: item\.completionKey,\s*\}\)/,
+  )
+
   assert.match(completionControl, /visualOffsetY = 0/)
   assert.equal(
     completionControl.match(/padding=\{\{ top: visualOffsetY, bottom: -visualOffsetY \}\}/g)?.length,
     3,
     "interactive, locked, and stale completion visuals must use the same offset",
+  )
+  assert.match(
+    completionControl,
+    /function CompletionSymbol[\s\S]*?systemName="circle"[\s\S]*?foregroundStyle="systemBlue"/,
+    "the small widget completion control must keep its circle symbol",
+  )
+})
+
+test("large widgets keep a 62 pt summary and two divider-free 22 pt sections", () => {
+  const source = readFileSync(
+    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
+    "utf8",
+  )
+  const listWidget = source.slice(
+    source.indexOf("function ListWidget("),
+    source.indexOf("function ListWidgetBody"),
+  )
+  const mediumBody = source.slice(
+    source.indexOf("function ListWidgetBody"),
+    source.indexOf("function LargeListWidgetBody"),
+  )
+  const largeBody = source.slice(
+    source.indexOf("function LargeListWidgetBody"),
+    source.indexOf("function CompletionContent"),
+  )
+  const largeHeader = source.slice(
+    source.indexOf("function LargeSummaryHeader"),
+    source.indexOf("function largeSummaryDate"),
+  )
+
+  assert.match(largeHeader, /height: 62, alignment: "topLeading"/)
+  assert.match(
+    listWidget,
+    /<CompletionContent generation=\{completionGeneration\}>[\s\S]*?<LargeSummaryHeader item=\{items\[0\]\} issue=\{issue\} \/>/,
+    "the large header must animate with the completion queue",
+  )
+  assert.match(largeBody, /title="需要处理"/)
+  assert.match(largeBody, /title="接下来"/)
+  assert.match(largeBody, /height: 22, alignment: "leading"/)
+  assert.doesNotMatch(largeBody, /<Divider/)
+  assert.match(
+    mediumBody,
+    /index < visible\.length - 1\s*\? <Divider padding=\{\{ leading: dividerLeading \}\} \/>/,
+    "medium rows should retain their dividers",
   )
 })
 
