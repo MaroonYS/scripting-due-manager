@@ -50,6 +50,15 @@ declare const Animation: {
   snappy(options?: { duration?: number; extraBounce?: number }): any
 }
 
+declare const Device: {
+  preferredLanguages?: string[]
+  systemLocale?: string
+  systemLanguageTag?: string
+  systemLanguageCode?: string
+  systemCountryCode?: string
+  systemScriptCode?: string
+}
+
 declare const Reminder: {
   get(identifier: string): Promise<any | null>
   getIncompletes(options?: {

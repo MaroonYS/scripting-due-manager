@@ -1,6 +1,5 @@
 import {
   Button,
-  DateLabel,
   Divider,
   HStack,
   Image,
@@ -12,10 +11,19 @@ import {
   Widget,
 } from "scripting"
 import { CompleteDueItemIntent } from "../app_intents"
-import { dueStatus, humanDate } from "./date"
+import { dueStatus } from "./date"
 import { dueIconLabel } from "./icons"
-import { displayDate, kindLabel } from "./presentation"
 import type { DisplayDueItem } from "./types"
+import {
+  currentWidgetLocale,
+  formatWidgetDate,
+  formatWidgetItemDate,
+  formatWidgetMonth,
+  localizeWidgetActionError,
+  widgetKindLabel,
+  widgetLanguage,
+  widgetText,
+} from "./widget_localization"
 import {
   largeWidgetLayout,
   listItemTitleFontSize,
@@ -40,6 +48,9 @@ type WidgetIssue = {
   text: string
   color: string
 }
+
+const WIDGET_LOCALE = currentWidgetLocale()
+const WIDGET_LANGUAGE = widgetLanguage(WIDGET_LOCALE)
 
 // Animation and Transition are Scripting runtime globals (like Storage), not
 // named exports. A persisted generation drives one WidgetKit timeline diff.
@@ -87,15 +98,11 @@ function WidgetHeader({
   items,
   compact = false,
   issue,
-  iconName = "calendar.badge.clock",
-  iconColor = "systemOrange",
   compactTitle,
 }: {
   items: DisplayDueItem[]
   compact?: boolean
   issue: WidgetIssue | null
-  iconName?: string
-  iconColor?: string
   compactTitle?: string
 }) {
   return <Link url={Script.createRunURLScheme(Script.name)}>
@@ -110,14 +117,16 @@ function WidgetHeader({
       }}
       frame={{ maxWidth: "infinity" }}
     >
-      <Image
-        systemName={iconName}
-        font={compact ? 12 : 14}
-        foregroundStyle={iconColor}
-        symbolRenderingMode="hierarchical"
-        contentTransition="symbolEffectReplace"
-        widgetAccentable
-      />
+      {compact
+        ? null
+        : <Image
+          systemName="calendar.badge.clock"
+          font={14}
+          foregroundStyle="systemOrange"
+          symbolRenderingMode="hierarchical"
+          contentTransition="symbolEffectReplace"
+          widgetAccentable
+        />}
       <Text
         font={compact ? 13 : 15}
         fontWeight="semibold"
@@ -125,7 +134,7 @@ function WidgetHeader({
         lineLimit={1}
         minScaleFactor={compact ? 0.65 : 1}
       >
-        {compact ? compactTitle ?? "到期" : "到期管家"}
+        {compact ? compactTitle ?? widgetText("due", WIDGET_LOCALE) : widgetText("appName", WIDGET_LOCALE)}
       </Text>
       <Spacer />
       {issue
@@ -145,7 +154,7 @@ function WidgetHeader({
           monospacedDigit
           contentTransition="numericTextCountsDown"
         >
-          {items[0] ? humanDate(items[0].dueDate) : items.length}
+          {items[0] ? formatWidgetDate(items[0].dueDate, WIDGET_LOCALE) : items.length}
         </Text>
         : null}
     </HStack>
@@ -161,8 +170,8 @@ function LargeSummaryHeader({
   issue: WidgetIssue | null
   height: number
 }) {
-  const date = largeSummaryDate(item)
-  const context = largeSummaryContext(item)
+  const date = largeSummaryDate(item, WIDGET_LOCALE)
+  const context = largeSummaryContext(item, WIDGET_LOCALE)
   const subtitle = `${date.month} · ${context}`
   return <Link url={Script.createRunURLScheme(Script.name)}>
     <VStack
@@ -224,25 +233,29 @@ function LargeSummaryHeader({
   </Link>
 }
 
-function largeSummaryDate(item: DisplayDueItem | undefined): { day: string; month: string } {
+function largeSummaryDate(
+  item: DisplayDueItem | undefined,
+  locale: string,
+): { day: string; month: string } {
   const match = item?.dueDate.match(/^\d{4}-(\d{2})-(\d{2})$/)
   if (match) {
     return {
       day: String(Number(match[2])),
-      month: `${Number(match[1])}月`,
+      month: formatWidgetMonth(item!.dueDate, locale),
     }
   }
   const now = new Date()
-  return { day: String(now.getDate()), month: `${now.getMonth() + 1}月` }
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+  return { day: String(now.getDate()), month: formatWidgetMonth(today, locale) }
 }
 
-function largeSummaryContext(item: DisplayDueItem | undefined): string {
-  if (!item) return "到期管家"
+function largeSummaryContext(item: DisplayDueItem | undefined, locale: string): string {
+  if (!item) return widgetText("appName", locale)
   if (item.source === "reminder") {
     const listName = item.note.replace(/\s+/g, " ").trim()
-    return listName || "提醒事项"
+    return listName || widgetText("reminders", locale)
   }
-  return kindLabel(item.kind)
+  return widgetKindLabel(item.kind, locale)
 }
 
 function SmallWidget(props: WidgetDataProps & { displayWidth?: number }) {
@@ -266,9 +279,9 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number }) {
         items={items}
         compact
         issue={issue}
-        iconName={item?.iconName}
-        iconColor={item?.iconColor}
-        compactTitle={item ? dueIconLabel(item.iconName) : "到期"}
+        compactTitle={item
+          ? dueIconLabel(item.iconName, WIDGET_LANGUAGE)
+          : widgetText("due", WIDGET_LOCALE)}
       />
       <CompletionContent
         generation={completionGeneration}
@@ -304,7 +317,7 @@ function SmallWidgetBody({
     : <Link url={Script.createRunURLScheme(Script.name)}>
       <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
         {issue
-          ? <ErrorState compact title="暂时无法读取" detail={issue.text} />
+          ? <ErrorState compact title={widgetText("unableToLoad", WIDGET_LOCALE)} detail={issue.text} />
           : <EmptyState compact />}
       </VStack>
     </Link>
@@ -449,8 +462,13 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
         >
           {item.title}
         </Text>
-        <Text font="caption2" foregroundStyle={status.overdue ? "systemRed" : "tertiaryLabel"} lineLimit={1}>
-          {status.label}
+        <Text
+          font="caption2"
+          foregroundStyle={status.overdue ? "systemRed" : "tertiaryLabel"}
+          lineLimit={1}
+          minScaleFactor={0.72}
+        >
+          {formatWidgetItemDate(item, WIDGET_LOCALE)}
         </Text>
       </HStack>
     </Link>
@@ -591,7 +609,7 @@ function ListWidgetBody({
       : <Link url={Script.createRunURLScheme(Script.name)}>
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
           {issue
-            ? <ErrorState title="暂时无法读取" detail={issue.text} />
+            ? <ErrorState title={widgetText("unableToLoad", WIDGET_LOCALE)} detail={issue.text} />
             : <EmptyState />}
         </VStack>
       </Link>}
@@ -629,13 +647,13 @@ function LargeListWidgetBody({
     title: string
     rows: Array<{ item: DisplayDueItem; index: number }>
   }> = maximumSections === 1
-    ? [{ title: "近期事项", rows: indexedItems }]
+    ? [{ title: widgetText("recentItems", WIDGET_LOCALE), rows: indexedItems }]
     : []
   if (maximumSections === 2 && needsAction.length > 0) {
-    sections.push({ title: "需要处理", rows: needsAction })
+    sections.push({ title: widgetText("needsAction", WIDGET_LOCALE), rows: needsAction })
   }
   if (maximumSections === 2 && upcoming.length > 0) {
-    sections.push({ title: "接下来", rows: upcoming })
+    sections.push({ title: widgetText("nextItems", WIDGET_LOCALE), rows: upcoming })
   }
 
   return <VStack
@@ -659,7 +677,7 @@ function LargeListWidgetBody({
       : <Link url={Script.createRunURLScheme(Script.name)}>
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
           {issue
-            ? <ErrorState title="暂时无法读取" detail={issue.text} />
+            ? <ErrorState title={widgetText("unableToLoad", WIDGET_LOCALE)} detail={issue.text} />
             : <EmptyState />}
         </VStack>
       </Link>}
@@ -831,7 +849,7 @@ function DueItemRow({
               lineLimit={1}
               minScaleFactor={0.72}
             >
-              {displayDate(item)}
+              {formatWidgetItemDate(item, WIDGET_LOCALE)}
             </Text>
             {item.stale
               ? <Image
@@ -842,7 +860,6 @@ function DueItemRow({
               : !item.canComplete
                 ? <Image systemName="lock.fill" font={9} foregroundStyle="tertiaryLabel" />
                 : null}
-            <DueStatusLabel item={item} font={roomy ? "caption" : "caption2"} />
           </HStack>
         </VStack>
       </HStack>
@@ -914,35 +931,6 @@ function listItemSupportingText(item: DisplayDueItem): string {
     .join(" · ")
 }
 
-function DueStatusLabel({
-  item,
-  font,
-}: {
-  item: DisplayDueItem
-  font: "caption" | "caption2"
-}) {
-  const status = dueStatus(item)
-  const remaining = item.dueTimestamp - Date.now()
-  const useLiveTimer = item.includesTime
-    && remaining > 0
-    && remaining <= 24 * 60 * 60 * 1000
-  const color = widgetStatusColor(item, status.overdue, status.days, remaining)
-
-  if (useLiveTimer) {
-    return <DateLabel
-      date={new Date(item.dueTimestamp)}
-      style="timer"
-      font={font}
-      fontWeight="semibold"
-      monospacedDigit
-      foregroundStyle={color}
-    />
-  }
-  return <Text font={font} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>
-    {status.label}
-  </Text>
-}
-
 function EmptyState({ compact = false }: { compact?: boolean }) {
   return <VStack
     alignment="center"
@@ -955,9 +943,11 @@ function EmptyState({ compact = false }: { compact?: boolean }) {
       foregroundStyle="systemGreen"
       widgetAccentable
     />
-    <Text font={compact ? "subheadline" : "headline"} fontWeight="semibold">全部完成</Text>
+    <Text font={compact ? "subheadline" : "headline"} fontWeight="semibold">
+      {widgetText("allDone", WIDGET_LOCALE)}
+    </Text>
     <Text font="caption2" foregroundStyle="secondaryLabel" multilineTextAlignment="center" lineLimit={2}>
-      打开「到期管家」添加事项
+      {widgetText("openAppToAdd", WIDGET_LOCALE)}
     </Text>
   </VStack>
 }
@@ -1025,19 +1015,6 @@ function WidgetFrame({
   </VStack>
 }
 
-function widgetStatusColor(
-  item: DisplayDueItem,
-  overdue: boolean,
-  days: number,
-  remaining: number,
-): string {
-  if (overdue) return "systemRed"
-  if (days === 0 || (item.includesTime && remaining > 0 && remaining <= 24 * 60 * 60 * 1000)) {
-    return "systemOrange"
-  }
-  return "secondaryLabel"
-}
-
 function widgetIssue(props: {
   remindersLive: boolean
   remindersFromCache: boolean
@@ -1045,15 +1022,18 @@ function widgetIssue(props: {
   interactionError: string | null
 }): WidgetIssue | null {
   if (props.interactionError) {
-    return { text: props.interactionError, color: "systemRed" }
+    return {
+      text: localizeWidgetActionError(props.interactionError, WIDGET_LOCALE),
+      color: "systemRed",
+    }
   }
   if (props.reminderError) {
     return {
       text: props.remindersLive
-        ? "提醒事项已读取，但缓存保存失败"
+        ? widgetText("reminderReadCacheFailed", WIDGET_LOCALE)
         : props.remindersFromCache
-          ? "提醒事项同步失败，正在显示缓存"
-          : "提醒事项读取失败，请打开主脚本检查",
+          ? widgetText("reminderSyncCached", WIDGET_LOCALE)
+          : widgetText("reminderReadFailed", WIDGET_LOCALE),
       color: "systemOrange",
     }
   }

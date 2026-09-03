@@ -65,6 +65,15 @@ import {
   widgetItemCapacity,
   widgetRowHeight,
 } from "../到期管家/src/widget_layout.ts"
+import {
+  currentWidgetLocale,
+  formatWidgetDate,
+  formatWidgetItemDate,
+  localizeWidgetActionError,
+  widgetKindLabel,
+  widgetLanguage,
+  widgetText,
+} from "../到期管家/src/widget_localization.ts"
 import type { DisplayDueItem, ItemKind, ManualDueItem } from "../到期管家/src/types.ts"
 
 const LEGACY_DUE_ICON_NAMES = [
@@ -193,10 +202,88 @@ test("icon catalog is grouped, unique, and keeps every saved legacy symbol valid
 test("every due icon exposes its human-readable widget label", () => {
   for (const option of DUE_ICON_OPTIONS) {
     assert.equal(dueIconLabel(option.name), option.label, option.name)
+    assert.ok(dueIconLabel(option.name, "en").length > 0, option.name)
+    assert.doesNotMatch(dueIconLabel(option.name, "en"), /[\u3400-\u9fff]/u, option.name)
+    assert.ok(dueIconLabel(option.name, "zh-Hant").length > 0, option.name)
   }
   assert.equal(dueIconLabel("not.a.real.symbol"), "日期")
   assert.equal(dueIconLabel(null), "日期")
   assert.equal(dueIconLabel(undefined), "日期")
+  assert.equal(dueIconLabel("shippingbox.fill", "en"), "Delivery")
+  assert.equal(dueIconLabel("icloud.fill", "zh-Hant"), "雲存儲")
+  assert.equal(dueIconLabel("doc.text.magnifyingglass", "zh-Hant"), "稅務會計")
+  assert.equal(dueIconLabel("ticket.fill", "zh-Hant"), "票券會員")
+  assert.equal(dueIconLabel("film.fill", "zh-Hant"), "影片製作")
+  assert.equal(dueIconLabel(null, "en"), "Dates")
+})
+
+test("widget localization follows the preferred iOS language and script", () => {
+  assert.equal(widgetLanguage("zh-Hans-CN"), "zh-Hans")
+  assert.equal(widgetLanguage("zh-Hant-HK"), "zh-Hant")
+  assert.equal(widgetLanguage("zh-TW"), "zh-Hant")
+  assert.equal(widgetLanguage("zh", "Hant"), "zh-Hant")
+  assert.equal(widgetLanguage("en-US"), "en")
+  assert.equal(widgetLanguage("fr-FR"), "en")
+
+  assert.equal(widgetText("appName", "en-US"), "Due Manager")
+  assert.equal(widgetText("needsAction", "zh-Hans-CN"), "需要处理")
+  assert.equal(widgetText("needsAction", "zh-Hant-HK"), "需要處理")
+  assert.equal(widgetKindLabel("subscription", "en-US"), "Subscriptions")
+  assert.equal(widgetKindLabel("credential", "zh-Hant-HK"), "證件合約")
+  assert.equal(
+    localizeWidgetActionError("提醒完成失败，请打开主脚本检查权限", "en-US"),
+    "Couldn’t complete the reminder; check access in the main script",
+  )
+})
+
+test("widget dates use the system locale while remaining absolute", () => {
+  const now = new Date(2026, 8, 1, 12, 0)
+  assert.equal(formatWidgetDate("2026-09-04", "zh-Hans-CN", { now }), "9月4日")
+  assert.equal(formatWidgetDate("2026-09-04", "zh-Hant-HK", { now }), "9月4日")
+  assert.equal(formatWidgetDate("2026-09-04", "en-US", { now }), "Sep 4")
+  assert.equal(formatWidgetDate("2027-09-04", "en-US", { now }), "Sep 4, 2027")
+
+  const timed = displayItem({
+    dueDate: "2026-09-04",
+    includesTime: true,
+    hour: 18,
+    minute: 5,
+    dueTimestamp: new Date(2026, 8, 4, 18, 5).getTime(),
+  })
+  const localized = formatWidgetItemDate(timed, "en-US", now)
+  assert.match(localized, /^Sep 4(?:,| at) 6:05 PM$/)
+  assert.doesNotMatch(localized, /today|tomorrow|in \d+ days?|overdue/i)
+})
+
+test("widget locale reads the first preferred language with safe fallbacks", () => {
+  const originalDevice = (globalThis as any).Device
+  try {
+    ;(globalThis as any).Device = {
+      preferredLanguages: ["zh-Hant-HK", "en-US"],
+      systemLanguageTag: "en-US",
+      systemLanguageCode: "en",
+    }
+    assert.equal(currentWidgetLocale(), "zh-Hant-HK")
+
+    ;(globalThis as any).Device = {
+      preferredLanguages: ["zh"],
+      systemLanguageTag: "zh-Hant-HK",
+      systemLanguageCode: "zh",
+      systemScriptCode: "Hant",
+      systemCountryCode: "HK",
+    }
+    assert.equal(currentWidgetLocale(), "zh-Hant-HK")
+
+    ;(globalThis as any).Device = {
+      preferredLanguages: [],
+      systemLanguageCode: "zh",
+      systemScriptCode: "Hans",
+      systemCountryCode: "CN",
+    }
+    assert.equal(currentWidgetLocale(), "zh-Hans-CN")
+  } finally {
+    ;(globalThis as any).Device = originalDevice
+  }
 })
 
 test("item kinds have one centralized ordered and unique definition", () => {
@@ -2101,7 +2188,7 @@ test("medium and large rows use compact item icons as completion controls withou
   )
   const listDetail = source.slice(
     source.indexOf("function listItemSupportingText"),
-    source.indexOf("function DueStatusLabel"),
+    source.indexOf("function EmptyState"),
   )
 
   assert.doesNotMatch(listRow, /\btitleInset\b|\bsubjectTextOffset\b/)
@@ -2167,12 +2254,13 @@ test("medium and large rows use compact item icons as completion controls withou
   )
   assert.match(
     listRow,
-    /<VStack\s+alignment="trailing"\s+spacing=\{0\}\s+frame=\{\{ width: metadataWidth, alignment: "trailing" \}\}\s*>[\s\S]*?\{supportingText[\s\S]*?\{displayDate\(item\)\}[\s\S]*?<DueStatusLabel item=\{item\} font=\{roomy \? "caption" : "caption2"\} \/>/,
-    "supporting text, date, and status should occupy the trailing metadata column",
+    /<VStack\s+alignment="trailing"\s+spacing=\{0\}\s+frame=\{\{ width: metadataWidth, alignment: "trailing" \}\}\s*>[\s\S]*?\{supportingText[\s\S]*?\{formatWidgetItemDate\(item, WIDGET_LOCALE\)\}/,
+    "supporting text and localized absolute date should occupy the trailing metadata column",
   )
-  assert.equal(listRow.match(/displayDate\(item\)/g)?.length, 1)
+  assert.equal(listRow.match(/formatWidgetItemDate\(item, WIDGET_LOCALE\)/g)?.length, 1)
+  assert.doesNotMatch(listRow, /DueStatusLabel|DateLabel|status\.label|style="timer"/)
   assert.match(listDetail, /return \[item\.amount, item\.note\][\s\S]*?\.join\(" · "\)/)
-  assert.doesNotMatch(listDetail, /displayDate\(item\)/)
+  assert.doesNotMatch(listDetail, /formatWidgetItemDate\(item, WIDGET_LOCALE\)/)
 
   assert.match(listCompletionIcon, /systemName=\{item\.iconName\}/)
   assert.match(listCompletionIcon, /font=\{symbolSize\}/)
@@ -2231,9 +2319,9 @@ test("large widgets use adaptive Reminders-style summary and section spacing", (
   )
   assert.match(listWidget, /maximumSections=\{largeLayout\.maximumSections\}/)
   assert.match(listWidget, /sectionHeaderHeight=\{largeLayout\.sectionHeaderHeight\}/)
-  assert.match(largeBody, /maximumSections === 1\s*\? \[\{ title: "近期事项", rows: indexedItems \}\]/)
-  assert.match(largeBody, /title: "需要处理"/)
-  assert.match(largeBody, /title: "接下来"/)
+  assert.match(largeBody, /maximumSections === 1\s*\? \[\{ title: widgetText\("recentItems", WIDGET_LOCALE\), rows: indexedItems \}\]/)
+  assert.match(largeBody, /title: widgetText\("needsAction", WIDGET_LOCALE\)/)
+  assert.match(largeBody, /title: widgetText\("nextItems", WIDGET_LOCALE\)/)
   assert.match(largeBody, /maximumSections === 2 && needsAction\.length > 0/)
   assert.match(largeBody, /maximumSections === 2 && upcoming\.length > 0/)
   assert.match(largeBody, /padding=\{\{ bottom: 3, leading: 5, trailing: 5 \}\}/)
@@ -2288,11 +2376,16 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
   )
   assert.match(
     smallWidget,
-    /compactTitle=\{item \? dueIconLabel\(item\.iconName\) : "到期"\}/,
-    "the top-left compact title must use the current icon's catalog name",
+    /compactTitle=\{item\s*\? dueIconLabel\(item\.iconName, WIDGET_LANGUAGE\)\s*:\s*widgetText\("due", WIDGET_LOCALE\)\}/,
+    "the top-left compact title must use the localized current icon name",
   )
   assert.match(widgetHeader, /compactTitle\?: string/)
-  assert.match(widgetHeader, /\{compact \? compactTitle \?\? "到期" : "到期管家"\}/)
+  assert.match(
+    widgetHeader,
+    /\{compact \? compactTitle \?\? widgetText\("due", WIDGET_LOCALE\) : widgetText\("appName", WIDGET_LOCALE\)\}/,
+  )
+  assert.match(widgetHeader, /\{compact\s*\? null\s*:\s*<Image/)
+  assert.doesNotMatch(smallWidget, /iconName=\{item\?\.iconName\}|iconColor=\{item\?\.iconColor\}/)
   assert.match(smallWidget, /padding=\{\{ leading: 3, trailing: 3 \}\}/)
   const smallItem = source.slice(
     source.indexOf("function SmallDueItem"),
@@ -2366,6 +2459,8 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
   assert.doesNotMatch(preview, />下一项<\/Text>/)
   assert.match(preview, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
   assert.match(preview, /<Link url=\{itemURL\(item\)\}>/)
+  assert.match(preview, /\{formatWidgetItemDate\(item, WIDGET_LOCALE\)\}/)
+  assert.doesNotMatch(preview, /status\.label|DateLabel|style="timer"/)
   assert.doesNotMatch(preview, /ListCompletionIcon|CompleteDueItemIntent/)
 })
 
@@ -2380,7 +2475,7 @@ test("small widget header keeps its date while list widgets omit item statistics
   )
   assert.match(
     header,
-    /\{compact\s*\?\s*<Text[\s\S]*?\{items\[0\]\s*\?\s*humanDate\(items\[0\]\.dueDate\)\s*:\s*items\.length\}[\s\S]*?<\/Text>\s*:\s*null\}/,
+    /\{compact\s*\?\s*<Text[\s\S]*?\{items\[0\]\s*\?\s*formatWidgetDate\(items\[0\]\.dueDate, WIDGET_LOCALE\)\s*:\s*items\.length\}[\s\S]*?<\/Text>\s*:\s*null\}/,
     "only compact headers should render the current date or the empty-state zero",
   )
   assert.equal(header.match(/items\.length/g)?.length, 1)
@@ -2391,6 +2486,29 @@ test("small widget header keeps its date while list widgets omit item statistics
   )
   assert.match(listWidget, /<WidgetHeader\s+[\s\S]*?items=\{items\}[\s\S]*?issue=\{issue\}[\s\S]*?\/>/)
   assert.doesNotMatch(listWidget, /\bcompact\b/)
+})
+
+test("every widget family omits relative-day and live countdown labels", () => {
+  const viewSource = readFileSync(
+    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
+    "utf8",
+  )
+  const widgetSource = readFileSync(
+    new URL("../到期管家/widget.tsx", import.meta.url),
+    "utf8",
+  )
+
+  assert.doesNotMatch(viewSource, /\bDateLabel\b|style="timer"|DueStatusLabel|status\.label/)
+  assert.doesNotMatch(viewSource, /天后|逾期\s*\{|明天|今天/)
+  assert.equal(
+    viewSource.match(/formatWidgetItemDate\(item, WIDGET_LOCALE\)/g)?.length,
+    2,
+    "the small preview and medium/large rows should both show absolute localized dates",
+  )
+  assert.match(viewSource, /currentWidgetLocale\(\)/)
+  assert.match(viewSource, /widgetLanguage\(WIDGET_LOCALE\)/)
+  assert.match(widgetSource, /widgetText\("loadFailed", WIDGET_LOCALE\)/)
+  assert.match(widgetSource, /widgetText\("runAppToCheck", WIDGET_LOCALE\)/)
 })
 
 test("settings expose a native multi-list reminder picker", () => {

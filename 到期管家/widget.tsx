@@ -8,7 +8,10 @@ import {
 import {
   readWidgetCompletionTransition,
 } from "./src/widget_completion"
+import { currentWidgetLocale, widgetText } from "./src/widget_localization"
 import { DueManagerWidget } from "./src/widget_view"
+
+const WIDGET_LOCALE = currentWidgetLocale()
 
 async function main() {
   const state = loadState()
@@ -49,9 +52,11 @@ main().catch(error => {
       widgetBackground="secondarySystemBackground"
     >
       <VStack padding={11} alignment="leading" spacing={6} frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-        <Text font="headline" foregroundStyle="systemRed">到期管家加载失败</Text>
+        <Text font="headline" foregroundStyle="systemRed">
+          {widgetText("loadFailed", WIDGET_LOCALE)}
+        </Text>
         <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={4}>
-          请运行主脚本检查数据或提醒事项权限。
+          {widgetText("runAppToCheck", WIDGET_LOCALE)}
         </Text>
       </VStack>
     </VStack>,

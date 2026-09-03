@@ -180,6 +180,177 @@ export const DUE_ICON_OPTIONS: DueIconDefinition[] = [
   { name: "qrcode", label: "通行码", color: "systemIndigo", group: "其他" },
 ]
 
+export type DueIconLabelLanguage = "en" | "zh-Hans" | "zh-Hant"
+
+// Compact English names are intentionally curated instead of exposing SF
+// Symbol identifiers such as “takeoutbag.and.cup.and.straw.fill” in widgets.
+const ENGLISH_ICON_LABELS: Record<string, string> = {
+  "creditcard.fill": "Credit Card",
+  "building.columns.fill": "Banking",
+  "banknote.fill": "Payments",
+  "chart.line.uptrend.xyaxis": "Investments",
+  "chart.pie.fill": "Budgeting",
+  "doc.text.magnifyingglass": "Tax & Accounting",
+  "percent": "Rates & Offers",
+  "dollarsign.circle.fill": "Taxes & Fees",
+  "shield.fill": "Insurance",
+  "play.rectangle.fill": "Streaming Video",
+  "music.note": "Music",
+  "headphones": "Audiobooks",
+  "mic.fill": "Podcasts",
+  "waveform": "Audio",
+  "radio.fill": "Radio",
+  "gamecontroller.fill": "Games",
+  "tv.fill": "Television",
+  "sportscourt.fill": "Sports",
+  "theatermasks.fill": "Entertainment",
+  "ticket.fill": "Tickets",
+  "briefcase.fill": "Business",
+  "checklist": "Tasks",
+  "checkmark.circle.fill": "To-Do",
+  "calendar": "Calendar",
+  "note.text": "Notes",
+  "envelope.fill": "Email",
+  "doc.on.doc.fill": "Documents",
+  "signature": "E-Signatures",
+  "rectangle.3.group.fill": "Projects",
+  "printer.fill": "Printing",
+  "scanner.fill": "Scanning",
+  "storefront.fill": "Stores",
+  "sparkles": "AI Services",
+  "icloud.fill": "Cloud Storage",
+  "externaldrive.fill": "Backups",
+  "globe": "Websites & Domains",
+  "wifi": "Internet",
+  "iphone": "Mobile Plan",
+  "desktopcomputer": "Software & Devices",
+  "terminal.fill": "Developer Tools",
+  "curlybraces.square.fill": "Coding",
+  "lock.shield.fill": "VPN & Privacy",
+  "shield.lefthalf.filled": "Security",
+  "key.fill": "Passwords",
+  "network": "Networking",
+  "server.rack": "Servers & Hosting",
+  "square.grid.2x2.fill": "Apps & Services",
+  "puzzlepiece.extension.fill": "Browser Extensions",
+  "message.fill": "Messages",
+  "bubble.left.and.bubble.right.fill": "Social Networks",
+  "video.fill": "Video Meetings",
+  "person.2.fill": "Teams",
+  "person.3.fill": "Communities",
+  "heart.fill": "Dating",
+  "crown.fill": "Premium",
+  "phone.fill": "Calls",
+  "paperplane.fill": "Publishing",
+  "bolt.fill": "Electricity",
+  "drop.fill": "Water",
+  "flame.fill": "Gas",
+  "house.fill": "Home & Family",
+  "fork.knife": "Food Delivery",
+  "takeoutbag.and.cup.and.straw.fill": "Takeout",
+  "cup.and.saucer.fill": "Coffee & Tea",
+  "cart.fill": "Shopping",
+  "bag.fill": "Membership Stores",
+  "tshirt.fill": "Clothing Care",
+  "shippingbox.fill": "Delivery",
+  "hammer.fill": "Home Repairs",
+  "washer.fill": "Cleaning",
+  "trash.fill": "Recycling",
+  "bell.and.waves.left.and.right.fill": "Home Security",
+  "pawprint.fill": "Pets",
+  "cross.case.fill": "Medical",
+  "heart.text.square.fill": "Health Tracking",
+  "pills.fill": "Medication",
+  "stethoscope": "Doctor Visits",
+  "figure.run": "Exercise",
+  "dumbbell.fill": "Gym",
+  "figure.mind.and.body": "Mindfulness",
+  "bed.double.fill": "Sleep",
+  "moon.zzz.fill": "Sleep Tracking",
+  "brain.head.profile": "Mental Focus",
+  "leaf.fill": "Wellbeing",
+  "trophy.fill": "Sports Membership",
+  "airplane": "Flights & Travel",
+  "car.fill": "Car",
+  "bus.fill": "Bus",
+  "tram.fill": "Train & Metro",
+  "ferry.fill": "Ferry",
+  "map.fill": "Maps",
+  "location.fill": "Location",
+  "suitcase.rolling.fill": "Hotels & Luggage",
+  "fuelpump.fill": "Fuel & Charging",
+  "bolt.car.fill": "EV Charging",
+  "parkingsign.circle.fill": "Parking & Tolls",
+  "bicycle": "Cycling",
+  "graduationcap.fill": "Education",
+  "book.fill": "Reading",
+  "book.closed.fill": "E-Books & Comics",
+  "books.vertical.fill": "Library",
+  "newspaper.fill": "News",
+  "text.book.closed.fill": "Reference",
+  "character.book.closed.fill": "Language Learning",
+  "lightbulb.fill": "Skills",
+  "function": "Math & Science",
+  "globe.asia.australia.fill": "Geography & History",
+  "teddybear.fill": "Kids & Family",
+  "camera.fill": "Photography",
+  "photo.fill.on.rectangle.fill": "Photos",
+  "paintbrush.fill": "Drawing & Design",
+  "paintpalette.fill": "Design Assets",
+  "pencil.and.ruler.fill": "Drafting & Layout",
+  "scissors": "Editing",
+  "wand.and.stars": "Effects",
+  "film.fill": "Filmmaking",
+  "cube.transparent.fill": "3D Modeling",
+  "scribble.variable": "Handwriting",
+  "gift.fill": "Gifts",
+  "birthday.cake.fill": "Birthdays",
+  "heart.circle.fill": "Charity",
+  "doc.text.fill": "Bills",
+  "repeat.circle.fill": "Subscriptions",
+  "calendar.badge.clock": "Dates",
+  "wrench.and.screwdriver.fill": "Repairs",
+  "cloud.sun.fill": "Weather",
+  "umbrella.fill": "Rain",
+  "tag.fill": "Pricing",
+  "bell.fill": "Alerts",
+  "qrcode": "Passes",
+}
+
+const TRADITIONAL_ICON_PHRASES: Array<[string, string]> = [
+  ["视频流媒体", "影片串流"],
+  ["日历", "日曆"],
+  ["历史", "歷史"],
+  ["电台", "電臺"],
+  ["账单", "帳單"],
+  ["账务", "帳務"],
+  ["影片制作", "影片製作"],
+  ["制图", "製圖"],
+]
+
+const TRADITIONAL_ICON_CHARACTERS: Record<string, string> = {
+  "专": "專", "乐": "樂", "习": "習", "书": "書", "云": "雲", "亲": "親",
+  "价": "價", "优": "優", "会": "會", "体": "體", "储": "儲", "儿": "兒",
+  "写": "寫", "创": "創", "办": "辦", "务": "務", "动": "動", "医": "醫",
+  "协": "協", "单": "單", "卖": "賣", "参": "參", "发": "發", "团": "團",
+  "图": "圖", "声": "聲", "备": "備", "娱": "娛", "学": "學", "宠": "寵",
+  "宽": "寬", "导": "導", "带": "帶", "广": "廣", "库": "庫", "应": "應",
+  "开": "開", "戏": "戲", "户": "戶", "扩": "擴", "扫": "掃", "护": "護",
+  "报": "報", "摄": "攝", "数": "數", "时": "時", "机": "機", "档": "檔",
+  "气": "氣", "洁": "潔", "测": "測", "浏": "瀏", "现": "現", "电": "電",
+  "画": "畫", "疗": "療", "监": "監", "盘": "盤", "码": "碼", "礼": "禮",
+  "笔": "筆", "签": "簽", "约": "約", "级": "級", "纪": "紀", "绘": "繪",
+  "络": "絡", "维": "維", "网": "網", "药": "藥", "视": "視", "览": "覽",
+  "计": "計", "订": "訂", "议": "議", "讯": "訊", "记": "記", "设": "設",
+  "识": "識", "诊": "診", "话": "話", "语": "語", "读": "讀", "课": "課",
+  "财": "財", "购": "購", "费": "費", "资": "資", "赛": "賽", "赠": "贈",
+  "车": "車", "轨": "軌", "轮": "輪", "软": "軟", "辑": "輯", "辞": "辭",
+  "运": "運", "迹": "跡", "邮": "郵", "铁": "鐵", "银": "銀", "门": "門",
+  "闻": "聞", "阅": "閱", "队": "隊", "险": "險", "项": "項", "预": "預",
+  "频": "頻", "饮": "飲", "饰": "飾", "馆": "館", "骑": "騎", "员": "員",
+  "税": "稅",
+}
+
 type IconRule = {
   icon: string
   keywords: string[]
@@ -966,8 +1137,16 @@ export function normalizeIconOverride(value: unknown): string | null {
 }
 
 /** Human-readable catalog label for a resolved SF Symbol used by widgets. */
-export function dueIconLabel(iconName: string | null | undefined): string {
-  return resolvedIcon(iconName ?? DEFAULT_ICON.name).label
+export function dueIconLabel(
+  iconName: string | null | undefined,
+  language: DueIconLabelLanguage = "zh-Hans",
+): string {
+  const icon = resolvedIcon(iconName ?? DEFAULT_ICON.name)
+  if (language === "en") {
+    return ENGLISH_ICON_LABELS[icon.name] ?? humanizeSymbolName(icon.name)
+  }
+  if (language === "zh-Hant") return traditionalIconLabel(icon.label)
+  return icon.label
 }
 
 export function resolveDueIcon(
@@ -1017,6 +1196,24 @@ function resolvedIcon(iconName: string): ResolvedDueIcon {
     label: definition.label,
     color: definition.color,
   }
+}
+
+function traditionalIconLabel(label: string): string {
+  let result = label
+  for (const [simplified, traditional] of TRADITIONAL_ICON_PHRASES) {
+    result = result.replaceAll(simplified, traditional)
+  }
+  return [...result]
+    .map(character => TRADITIONAL_ICON_CHARACTERS[character] ?? character)
+    .join("")
+}
+
+function humanizeSymbolName(symbolName: string): string {
+  return symbolName
+    .replace(/\.(?:fill|filled)$/u, "")
+    .replaceAll(".", " ")
+    .replace(/\band\b/gu, "&")
+    .replace(/\b\w/gu, character => character.toUpperCase())
 }
 
 type NormalizedTitle = {

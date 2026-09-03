@@ -1,11 +1,19 @@
 {
   "name": "到期管家",
+  "localizedNames": {
+    "en": "Due Manager",
+    "zh-Hans": "到期管家",
+    "zh-Hant": "到期管家"
+  },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.3.3",
-  "description": "Track due dates and Apple Reminders with icon-based completion in every widget size, width-aware title sizing, and a display-size-aware Reminders-style large layout.",
+  "version": "2.3.4",
+  "description": "Track due dates and Apple Reminders with system-language widget text, locale-aware absolute dates, and icon-based completion in every widget size.",
   "localizedDescriptions": {
-    "zh": "2.3.3 小号改用 17 pt 当前事项图标作为完成按钮，保留 40 pt 点击热区，主体标题按实际宽度以 16/15/14 pt 适配一、二、三行；中、大号保持 2.3.2 行为。"
+    "en": "2.3.4 follows the iPhone language and date locale across every widget, removes the duplicate icon from the small header, and replaces relative or live countdowns with absolute dates.",
+    "zh": "2.3.4 让所有小组件跟随 iPhone 系统语言和日期格式，去掉小号左上角的重复图标，并以明确日期取代相对天数及实时倒计时。",
+    "zh-Hans": "2.3.4 让所有小组件跟随 iPhone 系统语言和日期格式，去掉小号左上角的重复图标，并以明确日期取代相对天数及实时倒计时。",
+    "zh-Hant": "2.3.4 讓所有小工具跟隨 iPhone 系統語言和日期格式，移除小號左上角的重複圖示，並以明確日期取代相對天數及即時倒數。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",
