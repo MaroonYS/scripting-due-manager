@@ -483,11 +483,11 @@ function DueItemRow({
   height: number
 }) {
   const hitSize = Math.min(height, roomy ? 40 : 38)
-  const titleInset = roomy ? 6 : 5
+  const subjectTextOffset = roomy ? 5 : 4
   const metadataWidth = roomy ? 124 : 116
   const supportingText = listItemSupportingText(item)
   return <HStack
-    alignment="top"
+    alignment="center"
     spacing={0}
     contentTransition="opacity"
     frame={{ maxWidth: "infinity", height }}
@@ -496,17 +496,16 @@ function DueItemRow({
       item={item}
       hitSize={hitSize}
       symbolSize={roomy ? 20 : 19}
-      visualOffsetY={-5}
+      visualOffsetY={0}
     />
     <Link url={itemURL(item)}>
       <HStack
         alignment="top"
         spacing={8}
-        padding={{ top: titleInset }}
         frame={{ maxWidth: "infinity" }}
       >
         <HStack
-          alignment="center"
+          alignment="top"
           spacing={4}
           frame={{ maxWidth: "infinity", alignment: "leading" }}
         >
@@ -523,6 +522,7 @@ function DueItemRow({
             fontWeight="semibold"
             lineLimit={1}
             minScaleFactor={0.85}
+            padding={{ top: subjectTextOffset }}
           >
             {item.title}
           </Text>

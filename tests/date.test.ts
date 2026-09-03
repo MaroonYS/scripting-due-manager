@@ -1907,7 +1907,7 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.doesNotMatch(source, /symbolEffect=\{\{ effect: "bounce"/)
 })
 
-test("medium and large rows align completion visuals and split content into two columns", () => {
+test("medium and large rows center subjects while keeping icons top-leading", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
@@ -1925,18 +1925,43 @@ test("medium and large rows align completion visuals and split content into two 
     source.indexOf("function EmptyState"),
   )
 
-  assert.match(listRow, /const titleInset = roomy \? 6 : 5/)
+  assert.doesNotMatch(listRow, /\btitleInset\b/)
+  assert.match(listRow, /const subjectTextOffset = roomy \? 5 : 4/)
   assert.match(listRow, /const metadataWidth = roomy \? 124 : 116/)
   assert.match(listRow, /const supportingText = listItemSupportingText\(item\)/)
-  assert.match(listRow, /return <HStack\s+alignment="top"\s+spacing=\{0\}/)
   assert.match(
     listRow,
-    /<CompletionControl\s+item=\{item\}\s+hitSize=\{hitSize\}\s+symbolSize=\{roomy \? 20 : 19\}\s+visualOffsetY=\{-5\}\s*\/>/,
+    /return <HStack\s+alignment="center"\s+spacing=\{0\}[\s\S]*?frame=\{\{ maxWidth: "infinity", height \}\}/,
+    "the completion control and both content columns should share the full row's vertical center",
   )
   assert.match(
     listRow,
-    /<HStack\s+alignment="center"\s+spacing=\{4\}\s+frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}\s*>[\s\S]*?systemName=\{item\.iconName\}[\s\S]*?\{item\.title\}[\s\S]*?<\/HStack>\s*<VStack\s+alignment="trailing"/,
-    "the icon and title should occupy the flexible leading column",
+    /<CompletionControl\s+item=\{item\}\s+hitSize=\{hitSize\}\s+symbolSize=\{roomy \? 20 : 19\}\s+visualOffsetY=\{0\}\s*\/>/,
+    "the completion visual should use the row center instead of the former upward lift",
+  )
+  assert.match(
+    listRow,
+    /<Link url=\{itemURL\(item\)\}>\s*<HStack\s+alignment="top"\s+spacing=\{8\}\s+frame=\{\{ maxWidth: "infinity" \}\}/,
+    "the subject and metadata columns should share one centered, top-aligned content block",
+  )
+  assert.match(
+    listRow,
+    /<HStack\s+alignment="top"\s+spacing=\{4\}\s+frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}\s*>[\s\S]*?systemName=\{item\.iconName\}[\s\S]*?<Text[\s\S]*?padding=\{\{ top: subjectTextOffset \}\}[\s\S]*?\{item\.title\}[\s\S]*?<\/HStack>\s*<VStack\s+alignment="trailing"/,
+    "the icon should stay at the subject column's top while only the title moves to its visual center",
+  )
+  const iconNameIndex = listRow.indexOf("systemName={item.iconName}")
+  const titleIndex = listRow.indexOf("{item.title}")
+  assert.ok(iconNameIndex >= 0)
+  assert.ok(titleIndex > iconNameIndex, "the item icon must precede its title")
+  const iconBlock = listRow.slice(
+    listRow.lastIndexOf("<Image", iconNameIndex),
+    listRow.indexOf("/>", iconNameIndex) + 2,
+  )
+  assert.doesNotMatch(iconBlock, /padding=|subjectTextOffset/)
+  assert.equal(
+    listRow.match(/padding=\{\{ top: subjectTextOffset \}\}/g)?.length,
+    1,
+    "only the title should receive the subject centering offset",
   )
   assert.match(
     listRow,
