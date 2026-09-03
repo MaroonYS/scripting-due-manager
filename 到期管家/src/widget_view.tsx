@@ -641,7 +641,7 @@ function LargeListWidgetBody({
 }) {
   const indexedItems = visible.map((item, index) => {
     const status = dueStatus(item)
-    return { item, index, needsAction: status.overdue || status.days === 0 }
+    return { item, index, needsAction: status.needsAction }
   })
   const needsAction = indexedItems.filter(row => row.needsAction)
   const upcoming = indexedItems.filter(row => !row.needsAction)
@@ -745,7 +745,7 @@ function largeWidgetSectionCount(
   let hasUpcoming = false
   for (const item of items) {
     const status = dueStatus(item)
-    if (status.overdue || status.days === 0) hasNeedsAction = true
+    if (status.needsAction) hasNeedsAction = true
     else hasUpcoming = true
   }
   return hasNeedsAction && hasUpcoming ? 2 : 1

@@ -2,6 +2,11 @@ import type { ManualDueItem, RecurrenceRule } from "./types"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+export const MIN_RECURRENCE_INTERVAL = 1
+export const MAX_RECURRENCE_INTERVAL = 99
+export const MIN_REMIND_BEFORE_DAYS = 0
+export const MAX_REMIND_BEFORE_DAYS = 365
+
 export interface DateParts {
   year: number
   month: number
@@ -89,6 +94,26 @@ export function addCalendarDays(dateKey: string, days: number): string {
   return formatDateKey(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
 }
 
+export function parseRecurrenceIntervalInput(value: string): number | null {
+  return parseBoundedIntegerInput(
+    value,
+    MIN_RECURRENCE_INTERVAL,
+    MAX_RECURRENCE_INTERVAL,
+  )
+}
+
+export function parseRemindBeforeDaysInput(value: string): number | null {
+  return parseBoundedIntegerInput(
+    value,
+    MIN_REMIND_BEFORE_DAYS,
+    MAX_REMIND_BEFORE_DAYS,
+  )
+}
+
+export function actionDateKey(dueDate: string, remindBeforeDays = 0): string {
+  return addCalendarDays(dueDate, -normalizeRemindBeforeDays(remindBeforeDays))
+}
+
 export function createRecurrenceRule(
   unit: RecurrenceRule["unit"],
   interval: number,
@@ -99,7 +124,11 @@ export function createRecurrenceRule(
   const parts = parseDateKey(dueDate) ?? { year: 2000, month: 1, day: 1 }
   return {
     unit,
-    interval: clamp(Math.round(interval), 1, 99),
+    interval: clamp(
+      Math.round(interval),
+      MIN_RECURRENCE_INTERVAL,
+      MAX_RECURRENCE_INTERVAL,
+    ),
     anchorDay: parts.day,
     anchorMonth: parts.month,
     useMonthEnd,
@@ -111,7 +140,11 @@ export function createRecurrenceRule(
 export function nextOccurrence(dateKey: string, recurrence: RecurrenceRule): string {
   const current = parseDateKey(dateKey)
   if (!current) return dateKey
-  const interval = clamp(Math.round(recurrence.interval), 1, 99)
+  const interval = clamp(
+    Math.round(recurrence.interval),
+    MIN_RECURRENCE_INTERVAL,
+    MAX_RECURRENCE_INTERVAL,
+  )
 
   if (recurrence.unit === "day") {
     return addCalendarDays(dateKey, interval)
@@ -171,46 +204,118 @@ export function advanceManualItem(
 }
 
 export function isOccurrenceInFuture(
-  item: Pick<ManualDueItem, "includesTime" | "hour" | "minute">,
+  item: Pick<ManualDueItem, "includesTime" | "hour" | "minute" | "remindBeforeDays">,
   dateKey: string,
   now = new Date(),
 ): boolean {
+  const effectiveDateKey = actionDateKey(dateKey, item.remindBeforeDays)
   if (item.includesTime) {
-    return dateKeyToLocalDate(dateKey, true, item.hour, item.minute).getTime() > now.getTime()
+    return dateKeyToLocalDate(
+      effectiveDateKey,
+      true,
+      item.hour,
+      item.minute,
+    ).getTime() > now.getTime()
   }
-  return calendarDayDifference(localDateKey(now), dateKey) > 0
+  return calendarDayDifference(localDateKey(now), effectiveDateKey) > 0
+}
+
+type DueStatusInput = {
+  dueDate: string
+  includesTime: boolean
+  hour: number
+  minute: number
+  dueTimestamp?: number
+  remindBeforeDays?: number
+}
+
+export function actionTimestamp(item: DueStatusInput): number {
+  const remindBeforeDays = normalizeRemindBeforeDays(item.remindBeforeDays)
+  if (
+    remindBeforeDays === 0
+    && typeof item.dueTimestamp === "number"
+    && Number.isFinite(item.dueTimestamp)
+  ) {
+    return item.dueTimestamp
+  }
+  return dateKeyToLocalDate(
+    actionDateKey(item.dueDate, remindBeforeDays),
+    item.includesTime,
+    item.hour,
+    item.minute,
+  ).getTime()
 }
 
 export function dueStatus(
-  item: Pick<ManualDueItem, "dueDate" | "includesTime" | "hour" | "minute"> & {
-    dueTimestamp?: number
-  },
+  item: DueStatusInput,
   now = new Date(),
-): { days: number; overdue: boolean; label: string; color: string } {
-  const timedDeadline = typeof item.dueTimestamp === "number" && Number.isFinite(item.dueTimestamp)
+): { days: number; overdue: boolean; needsAction: boolean; label: string; color: string } {
+  const actualDeadline = typeof item.dueTimestamp === "number" && Number.isFinite(item.dueTimestamp)
     ? item.dueTimestamp
     : dateKeyToLocalDate(item.dueDate, true, item.hour, item.minute).getTime()
-  const effectiveDateKey = item.includesTime && Number.isFinite(timedDeadline)
-    ? localDateKey(new Date(timedDeadline))
+  const actualDateKey = item.includesTime && Number.isFinite(actualDeadline)
+    ? localDateKey(new Date(actualDeadline))
     : item.dueDate
-  const days = calendarDayDifference(localDateKey(now), effectiveDateKey)
-  const timedAndPassed = item.includesTime
-    && days === 0
-    && timedDeadline <= now.getTime()
+  const actualDays = calendarDayDifference(localDateKey(now), actualDateKey)
+  const actualTimedAndPassed = item.includesTime
+    && actualDays === 0
+    && actualDeadline <= now.getTime()
 
-  if (days < 0) {
-    return { days, overdue: true, label: `逾期 ${Math.abs(days)} 天`, color: "systemRed" }
+  if (actualDays < 0) {
+    return {
+      days: actualDays,
+      overdue: true,
+      needsAction: true,
+      label: `逾期 ${Math.abs(actualDays)} 天`,
+      color: "systemRed",
+    }
   }
-  if (timedAndPassed) {
-    return { days, overdue: true, label: "已到期", color: "systemRed" }
+  if (actualTimedAndPassed) {
+    return { days: 0, overdue: true, needsAction: true, label: "已到期", color: "systemRed" }
   }
-  if (days === 0) {
-    return { days, overdue: false, label: "今天", color: "systemOrange" }
+  if (actualDays === 0) {
+    return { days: 0, overdue: false, needsAction: true, label: "今天", color: "systemOrange" }
+  }
+
+  const remindBeforeDays = normalizeRemindBeforeDays(item.remindBeforeDays)
+  const effectiveDateKey = actionDateKey(actualDateKey, remindBeforeDays)
+  const days = calendarDayDifference(localDateKey(now), effectiveDateKey)
+  if (remindBeforeDays > 0 && days <= 0) {
+    return { days: 0, overdue: false, needsAction: true, label: "需处理", color: "systemOrange" }
   }
   if (days === 1) {
-    return { days, overdue: false, label: "明天", color: "systemOrange" }
+    return {
+      days,
+      overdue: false,
+      needsAction: false,
+      label: remindBeforeDays > 0 ? "明天提醒" : "明天",
+      color: "systemOrange",
+    }
   }
-  return { days, overdue: false, label: `${days} 天后`, color: days <= 7 ? "systemOrange" : "secondaryLabel" }
+  return {
+    days,
+    overdue: false,
+    needsAction: false,
+    label: remindBeforeDays > 0 ? `${days} 天后提醒` : `${days} 天后`,
+    color: days <= 7 ? "systemOrange" : "secondaryLabel",
+  }
+}
+
+function parseBoundedIntegerInput(
+  value: string,
+  minimum: number,
+  maximum: number,
+): number | null {
+  const normalized = value.trim()
+  if (!/^\d+$/.test(normalized)) return null
+  const parsed = Number(normalized)
+  if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) return null
+  return parsed
+}
+
+function normalizeRemindBeforeDays(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return MIN_REMIND_BEFORE_DAYS
+  return clamp(Math.round(value), MIN_REMIND_BEFORE_DAYS, MAX_REMIND_BEFORE_DAYS)
 }
 
 export function humanDate(

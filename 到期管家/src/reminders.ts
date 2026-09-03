@@ -1,4 +1,5 @@
 import {
+  actionTimestamp,
   dateKeyToLocalDate,
   dueStatus,
   formatDateKey,
@@ -113,9 +114,14 @@ export function sortDueItems(items: DisplayDueItem[], now = new Date()): Display
     if (left.stale !== right.stale) return left.stale ? 1 : -1
     const leftStatus = dueStatus(left, now)
     const rightStatus = dueStatus(right, now)
-    const leftRank = urgencyRank(leftStatus.days, leftStatus.overdue)
-    const rightRank = urgencyRank(rightStatus.days, rightStatus.overdue)
+    const leftRank = urgencyRank(leftStatus.overdue, leftStatus.needsAction)
+    const rightRank = urgencyRank(rightStatus.overdue, rightStatus.needsAction)
     if (leftRank !== rightRank) return leftRank - rightRank
+    const leftActionTimestamp = actionTimestamp(left)
+    const rightActionTimestamp = actionTimestamp(right)
+    if (leftActionTimestamp !== rightActionTimestamp) {
+      return leftActionTimestamp - rightActionTimestamp
+    }
     if (left.dueTimestamp !== right.dueTimestamp) return left.dueTimestamp - right.dueTimestamp
     if (left.priority !== right.priority) return right.priority - left.priority
     const titleOrder = left.title.localeCompare(right.title, "zh-Hans-CN")
@@ -184,10 +190,13 @@ export function nextWidgetRefresh(
 
   for (const item of items) {
     if (!item.includesTime) continue
-    if (item.dueTimestamp <= now.getTime()) continue
-    const candidate = Math.max(item.dueTimestamp, minimum)
-    if (candidate < refreshAt.getTime()) {
-      refreshAt = new Date(candidate)
+    const transitionTimes = [actionTimestamp(item), item.dueTimestamp]
+    for (const transitionAt of transitionTimes) {
+      if (transitionAt <= now.getTime()) continue
+      const candidate = Math.max(transitionAt, minimum)
+      if (candidate < refreshAt.getTime()) {
+        refreshAt = new Date(candidate)
+      }
     }
   }
   return refreshAt
@@ -264,6 +273,7 @@ function cacheItemToDisplay(item: CachedReminderItem, stale: boolean): DisplayDu
     hour: item.hour,
     minute: item.minute,
     dueTimestamp: item.dueTimestamp,
+    remindBeforeDays: 0,
     amount: "",
     note: item.calendarTitle,
     priority: item.priority,
@@ -337,9 +347,9 @@ function normalizeCachedItem(raw: any): CachedReminderItem | null {
   }
 }
 
-function urgencyRank(days: number, overdue: boolean): number {
-  if (overdue || days < 0) return 0
-  if (days === 0) return 1
+function urgencyRank(overdue: boolean, needsAction: boolean): number {
+  if (overdue) return 0
+  if (needsAction) return 1
   return 2
 }
 

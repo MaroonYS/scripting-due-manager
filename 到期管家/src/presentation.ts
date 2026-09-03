@@ -37,10 +37,10 @@ export function displayDate(item: DisplayDueItem): string {
 export function summaryText(items: DisplayDueItem[], now = new Date()): string {
   const statuses = items.map(item => dueStatus(item, now))
   const overdue = statuses.filter(status => status.overdue).length
-  const today = statuses.filter(status => !status.overdue && status.days === 0).length
-  if (overdue > 0 && today > 0) return `${overdue} 项逾期 · ${today} 项今天`
+  const needsAction = statuses.filter(status => !status.overdue && status.needsAction).length
+  if (overdue > 0 && needsAction > 0) return `${overdue} 项逾期 · ${needsAction} 项需处理`
   if (overdue > 0) return `${overdue} 项已逾期`
-  if (today > 0) return `${today} 项今天到期`
+  if (needsAction > 0) return `${needsAction} 项需处理`
   return `${items.length} 项待跟进`
 }
 

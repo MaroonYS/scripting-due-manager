@@ -25,6 +25,8 @@ export interface ManualDueItem {
   includesTime: boolean
   hour: number
   minute: number
+  /** Moves the action/reminder date earlier without changing the real due-date anchor. */
+  remindBeforeDays: number
   recurrence: RecurrenceRule | null
   amount: string
   note: string
@@ -42,7 +44,7 @@ export interface AppSettings {
 }
 
 export interface AppState {
-  schemaVersion: 2
+  schemaVersion: 3
   items: ManualDueItem[]
   settings: AppSettings
   updatedAt: number
@@ -86,6 +88,8 @@ export interface DisplayDueItem {
   hour: number
   minute: number
   dueTimestamp: number
+  /** Zero for Apple Reminders; manual items may enter the action queue earlier. */
+  remindBeforeDays: number
   amount: string
   note: string
   priority: number

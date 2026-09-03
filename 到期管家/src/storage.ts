@@ -2,6 +2,10 @@ import {
   advanceManualItem,
   dateKeyToLocalDate,
   localDateKey,
+  MAX_REMIND_BEFORE_DAYS,
+  MAX_RECURRENCE_INTERVAL,
+  MIN_REMIND_BEFORE_DAYS,
+  MIN_RECURRENCE_INTERVAL,
   parseDateKey,
 } from "./date"
 import { normalizeIconOverride, resolveDueIcon } from "./icons"
@@ -32,7 +36,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 export function defaultState(now = Date.now()): AppState {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     items: [],
     settings: {
       ...DEFAULT_SETTINGS,
@@ -61,7 +65,7 @@ export function loadState(): AppState {
 export function saveState(state: AppState): boolean {
   return Storage.set(STATE_KEY, {
     ...state,
-    schemaVersion: 2,
+    schemaVersion: 3,
     updatedAt: Math.max(Date.now(), state.updatedAt),
   }, SHARED_STORAGE_OPTIONS)
 }
@@ -114,6 +118,7 @@ export function createDraftItem(now = new Date()): ManualDueItem {
     includesTime: false,
     hour: 9,
     minute: 0,
+    remindBeforeDays: MIN_REMIND_BEFORE_DAYS,
     recurrence: null,
     amount: "",
     note: "",
@@ -140,6 +145,7 @@ export function manualItemsForDisplay(state: AppState): DisplayDueItem[] {
         includesTime: item.includesTime,
         hour: item.hour,
         minute: item.minute,
+        remindBeforeDays: item.remindBeforeDays,
         dueTimestamp: dateKeyToLocalDate(
           item.dueDate,
           item.includesTime,
@@ -257,6 +263,7 @@ function normalizeState(raw: unknown): AppState {
     Object.prototype.hasOwnProperty.call(raw, "schemaVersion")
     && raw.schemaVersion !== 1
     && raw.schemaVersion !== 2
+    && raw.schemaVersion !== 3
   ) {
     throw new Error("检测到不受支持的数据版本；为保护原数据，本脚本没有修改它。")
   }
@@ -266,7 +273,7 @@ function normalizeState(raw: unknown): AppState {
     .filter((item): item is ManualDueItem => item != null)
   const items = uniqueItemIDs(normalizedItems)
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     items,
     settings: normalizeSettings(raw.settings),
     updatedAt: finiteNumber(raw.updatedAt, Date.now()),
@@ -320,6 +327,12 @@ function normalizeItem(raw: unknown, index: number): ManualDueItem | null {
     includesTime: raw.includesTime === true,
     hour: clampInteger(raw.hour, 0, 23, 9),
     minute: clampInteger(raw.minute, 0, 59, 0),
+    remindBeforeDays: clampInteger(
+      raw.remindBeforeDays,
+      MIN_REMIND_BEFORE_DAYS,
+      MAX_REMIND_BEFORE_DAYS,
+      MIN_REMIND_BEFORE_DAYS,
+    ),
     recurrence: normalizeRecurrence(raw.recurrence, dueDate),
     amount: typeof raw.amount === "string" ? raw.amount.slice(0, 60) : "",
     note: typeof raw.note === "string" ? raw.note.slice(0, 1000) : "",
@@ -363,7 +376,12 @@ function normalizeRecurrence(raw: unknown, dueDate: string): RecurrenceRule | nu
   const date = parseDateKey(dueDate)!
   return {
     unit: raw.unit,
-    interval: clampInteger(raw.interval, 1, 99, 1),
+    interval: clampInteger(
+      raw.interval,
+      MIN_RECURRENCE_INTERVAL,
+      MAX_RECURRENCE_INTERVAL,
+      MIN_RECURRENCE_INTERVAL,
+    ),
     anchorDay: clampInteger(raw.anchorDay, 1, 31, date.day),
     anchorMonth: clampInteger(raw.anchorMonth, 1, 12, date.month),
     useMonthEnd: raw.useMonthEnd === true,

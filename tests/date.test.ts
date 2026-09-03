@@ -6,8 +6,14 @@ import {
   calendarDayDifference,
   createRecurrenceRule,
   dueStatus,
+  MAX_REMIND_BEFORE_DAYS,
+  MAX_RECURRENCE_INTERVAL,
+  MIN_REMIND_BEFORE_DAYS,
+  MIN_RECURRENCE_INTERVAL,
   nextOccurrence,
   parseDateKey,
+  parseRemindBeforeDaysInput,
+  parseRecurrenceIntervalInput,
 } from "../到期管家/src/date.ts"
 import {
   DUE_ICON_GROUPS,
@@ -127,6 +133,7 @@ function item(overrides: Partial<ManualDueItem> = {}): ManualDueItem {
     includesTime: false,
     hour: 9,
     minute: 0,
+    remindBeforeDays: 0,
     recurrence: null,
     amount: "",
     note: "",
@@ -154,6 +161,7 @@ function displayItem(overrides: Partial<DisplayDueItem>): DisplayDueItem {
     includesTime,
     hour,
     minute,
+    remindBeforeDays: overrides.remindBeforeDays ?? 0,
     dueTimestamp: overrides.dueTimestamp
       ?? new Date(
         2026,
@@ -371,7 +379,7 @@ test("item kind validation accepts every definition and rejects unknown values",
   assert.equal(isItemKind(null), false)
 })
 
-test("legacy state upgrades to schema 2 and preserves old and new item kinds", () => {
+test("legacy state upgrades to schema 3 and preserves old and new item kinds", () => {
   const originalStorage = (globalThis as any).Storage
   const legacyKinds = ["creditCard", "subscription", "bill", "custom"] as const
   let sharedValue: any = {
@@ -398,7 +406,7 @@ test("legacy state upgrades to schema 2 and preserves old and new item kinds", (
     }
 
     const migrated = loadState()
-    assert.equal(migrated.schemaVersion, 2)
+    assert.equal(migrated.schemaVersion, 3)
     assert.deepEqual(migrated.items.map(value => value.kind), legacyKinds)
 
     const next = {
@@ -411,7 +419,7 @@ test("legacy state upgrades to schema 2 and preserves old and new item kinds", (
       updatedAt: 2,
     }
     assert.equal(saveState(next), true)
-    assert.equal(sharedValue.schemaVersion, 2)
+    assert.equal(sharedValue.schemaVersion, 3)
     assert.equal(
       loadState().items.find(value => value.id === "new-insurance-kind")?.kind,
       "insurance",
@@ -424,6 +432,77 @@ test("legacy state upgrades to schema 2 and preserves old and new item kinds", (
       ],
     }
     assert.equal(loadState().items[0].kind, "custom")
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
+})
+
+test("schema 1 and 2 items migrate with no early-action offset", () => {
+  const originalStorage = (globalThis as any).Storage
+  try {
+    for (const schemaVersion of [1, 2]) {
+      const sharedValue = {
+        schemaVersion,
+        items: [{
+          id: `legacy-schema-${schemaVersion}`,
+          title: `Legacy schema ${schemaVersion}`,
+          dueDate: "2026-09-30",
+        }],
+        settings: {},
+        updatedAt: schemaVersion,
+      }
+      ;(globalThis as any).Storage = {
+        get: (key: string, options?: { shared: boolean }) => (
+          key === STATE_KEY && options?.shared ? sharedValue : null
+        ),
+        set: () => true,
+        remove: () => undefined,
+        contains: () => true,
+      }
+
+      const migrated = loadState()
+      assert.equal(migrated.schemaVersion, 3)
+      assert.equal(migrated.items[0].remindBeforeDays, 0)
+    }
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
+})
+
+test("early-action days use the complete zero-to-three-hundred-sixty-five storage domain", () => {
+  assert.equal(MIN_REMIND_BEFORE_DAYS, 0)
+  assert.equal(MAX_REMIND_BEFORE_DAYS, 365)
+  assert.equal(parseRemindBeforeDaysInput("0"), 0)
+  assert.equal(parseRemindBeforeDaysInput(" 3 "), 3)
+  assert.equal(parseRemindBeforeDaysInput("365"), 365)
+  for (const invalid of ["", "-1", "366", "1.5", "+2", "1e2", "not-a-number"]) {
+    assert.equal(parseRemindBeforeDaysInput(invalid), null, invalid)
+  }
+
+  const originalStorage = (globalThis as any).Storage
+  const sharedValue = {
+    schemaVersion: 3,
+    items: [-1, 0, 3, 365, 366].map((remindBeforeDays, index) => ({
+      ...item({ id: `remind-boundary-${index}` }),
+      remindBeforeDays,
+    })),
+    settings: {},
+    updatedAt: 1,
+  }
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string, options?: { shared: boolean }) => (
+        key === STATE_KEY && options?.shared ? sharedValue : null
+      ),
+      set: () => true,
+      remove: () => undefined,
+      contains: () => true,
+    }
+
+    assert.deepEqual(
+      loadState().items.map(value => value.remindBeforeDays),
+      [0, 0, 3, 365, 365],
+    )
   } finally {
     ;(globalThis as any).Storage = originalStorage
   }
@@ -766,9 +845,118 @@ test("monthly recurrence handles leap February and true month-end", () => {
   assert.equal(nextOccurrence("2026-04-30", monthEnd), "2026-05-31")
 })
 
+test("early-action offsets do not shift the real recurrence anchor", () => {
+  const recurring = item({
+    dueDate: "2026-01-31",
+    remindBeforeDays: 3,
+    recurrence: createRecurrenceRule("month", 1, "2026-01-31"),
+  })
+
+  const february = advanceManualItem(recurring, { now: new Date(2026, 0, 28, 12, 0) })
+  const march = advanceManualItem(february, { now: new Date(2026, 1, 25, 12, 0) })
+
+  assert.equal(february.dueDate, "2026-02-28")
+  assert.equal(march.dueDate, "2026-03-31")
+  assert.equal(march.recurrence?.anchorDay, 31)
+  assert.equal(march.remindBeforeDays, 3)
+})
+
 test("quarterly recurrence crosses the year", () => {
   const quarterly = createRecurrenceRule("month", 3, "2026-12-31")
   assert.equal(nextOccurrence("2026-12-31", quarterly), "2027-03-31")
+})
+
+test("custom recurrence intervals above twelve are preserved for every unit", () => {
+  const cases = [
+    ["day", 45, "2026-01-31", "2026-03-17"],
+    ["week", 24, "2026-01-01", "2026-06-18"],
+    ["month", 18, "2026-01-31", "2027-07-31"],
+    ["year", 13, "2024-02-29", "2037-02-28"],
+  ] as const
+
+  for (const [unit, interval, dueDate, expected] of cases) {
+    const rule = createRecurrenceRule(unit, interval, dueDate)
+    assert.equal(rule.interval, interval, `${unit} must keep the custom interval`)
+    assert.equal(nextOccurrence(dueDate, rule), expected, `${unit} must apply the custom interval`)
+  }
+})
+
+test("recurrence interval normalization uses the full one-to-ninety-nine domain", () => {
+  assert.equal(MIN_RECURRENCE_INTERVAL, 1)
+  assert.equal(MAX_RECURRENCE_INTERVAL, 99)
+  assert.equal(
+    createRecurrenceRule("day", 0, "2026-01-01").interval,
+    MIN_RECURRENCE_INTERVAL,
+  )
+  assert.equal(createRecurrenceRule("day", 13, "2026-01-01").interval, 13)
+  assert.equal(
+    createRecurrenceRule("day", MAX_RECURRENCE_INTERVAL, "2026-01-01").interval,
+    MAX_RECURRENCE_INTERVAL,
+  )
+  assert.equal(
+    createRecurrenceRule("day", MAX_RECURRENCE_INTERVAL + 1, "2026-01-01").interval,
+    MAX_RECURRENCE_INTERVAL,
+  )
+})
+
+test("custom recurrence input accepts only integers from one through ninety-nine", () => {
+  assert.equal(parseRecurrenceIntervalInput("1"), 1)
+  assert.equal(parseRecurrenceIntervalInput("12"), 12)
+  assert.equal(parseRecurrenceIntervalInput("13"), 13)
+  assert.equal(parseRecurrenceIntervalInput(" 24 "), 24)
+  assert.equal(parseRecurrenceIntervalInput("99"), 99)
+
+  for (const invalid of [
+    "",
+    " ",
+    "0",
+    "100",
+    "1.5",
+    "1e1",
+    "+2",
+    "-2",
+    "not-a-number",
+    "9007199254740993",
+  ]) {
+    assert.equal(parseRecurrenceIntervalInput(invalid), null, invalid)
+  }
+})
+
+test("stored recurrence intervals above twelve survive normalization", () => {
+  const originalStorage = (globalThis as any).Storage
+  const storedIntervals = [13, 24, 99]
+  const sharedValue = {
+    schemaVersion: 2,
+    items: storedIntervals.map((interval, index) => item({
+      id: `custom-interval-${interval}`,
+      recurrence: {
+        ...createRecurrenceRule("month", 1, "2026-01-31"),
+        interval,
+      },
+      createdAt: index + 1,
+      updatedAt: index + 1,
+    })),
+    settings: {},
+    updatedAt: 1,
+  }
+
+  try {
+    ;(globalThis as any).Storage = {
+      get: (key: string, options?: { shared: boolean }) => (
+        key === STATE_KEY && options?.shared ? sharedValue : null
+      ),
+      set: () => true,
+      remove: () => undefined,
+      contains: () => true,
+    }
+
+    assert.deepEqual(
+      loadState().items.map(value => value.recurrence?.interval),
+      storedIntervals,
+    )
+  } finally {
+    ;(globalThis as any).Storage = originalStorage
+  }
 })
 
 test("yearly leap-day anchors recover on the next leap year", () => {
@@ -810,6 +998,21 @@ test("skip-to-future advances through every missed recurrence", () => {
   assert.equal(advanced.dueDate, "2026-08-31")
 })
 
+test("skip-to-future uses the early action date rather than the real due date", () => {
+  const recurring = item({
+    dueDate: "2026-01-31",
+    remindBeforeDays: 3,
+    recurrence: createRecurrenceRule("month", 1, "2026-01-31"),
+  })
+  const advanced = advanceManualItem(recurring, {
+    skipToFuture: true,
+    now: new Date(2026, 7, 30, 12, 0),
+  })
+
+  assert.equal(advanced.dueDate, "2026-09-30")
+  assert.equal(advanced.recurrence?.anchorDay, 31)
+})
+
 test("date-only items stay due today until local midnight", () => {
   const sameDay = item({ dueDate: "2026-08-30" })
   const today = dueStatus(sameDay, new Date(2026, 7, 30, 23, 59, 59))
@@ -818,6 +1021,32 @@ test("date-only items stay due today until local midnight", () => {
   assert.equal(today.overdue, false)
   assert.equal(tomorrow.label, "逾期 1 天")
   assert.equal(tomorrow.overdue, true)
+})
+
+test("an early action window never reports an item overdue before its real due date", () => {
+  const early = item({
+    dueDate: "2026-09-30",
+    remindBeforeDays: 3,
+  })
+
+  const beforeWindow = dueStatus(early, new Date(2026, 8, 26, 12, 0))
+  assert.equal(beforeWindow.label, "明天提醒")
+  assert.equal(beforeWindow.needsAction, false)
+  assert.equal(beforeWindow.overdue, false)
+
+  for (const now of [
+    new Date(2026, 8, 27, 0, 0),
+    new Date(2026, 8, 29, 23, 59),
+  ]) {
+    const status = dueStatus(early, now)
+    assert.equal(status.label, "需处理")
+    assert.equal(status.needsAction, true)
+    assert.equal(status.overdue, false)
+  }
+
+  const actuallyOverdue = dueStatus(early, new Date(2026, 9, 1, 0, 0))
+  assert.equal(actuallyOverdue.overdue, true)
+  assert.equal(actuallyOverdue.label, "逾期 1 天")
 })
 
 test("timed items become due at their configured clock time", () => {
@@ -839,6 +1068,24 @@ test("sorting puts overdue, today, and future items in urgency order", () => {
     displayItem({ id: "overdue", dueDate: "2026-08-29" }),
   ], now)
   assert.deepEqual(sorted.map(value => value.id), ["overdue", "today", "future"])
+})
+
+test("future items sort by their early action date before their real due date", () => {
+  const now = new Date(2026, 8, 1, 12, 0)
+  const sorted = sortDueItems([
+    displayItem({
+      id: "sooner-due",
+      dueDate: "2026-09-10",
+      remindBeforeDays: 0,
+    }),
+    displayItem({
+      id: "earlier-action",
+      dueDate: "2026-09-20",
+      remindBeforeDays: 15,
+    }),
+  ], now)
+
+  assert.deepEqual(sorted.map(value => value.id), ["earlier-action", "sooner-due"])
 })
 
 test("same-day timed items sort chronologically before date-only items", () => {
@@ -1135,6 +1382,27 @@ test("widget refresh targets a near timed due date before midnight", () => {
     }),
   ], now)
   assert.equal(refresh.getTime(), due.getTime())
+})
+
+test("widget refresh targets both timed early-action and real-due transitions", () => {
+  const beforeAction = new Date(2026, 8, 7, 12, 0)
+  const action = new Date(2026, 8, 7, 18, 0)
+  const due = new Date(2026, 8, 10, 18, 0)
+  const earlyTimedItem = displayItem({
+    dueDate: "2026-09-10",
+    includesTime: true,
+    hour: 18,
+    minute: 0,
+    remindBeforeDays: 3,
+    dueTimestamp: due.getTime(),
+  })
+
+  const actionRefresh = nextWidgetRefresh([earlyTimedItem], beforeAction)
+  assert.equal(actionRefresh.getTime(), action.getTime())
+
+  const beforeRealDue = new Date(2026, 8, 10, 12, 0)
+  const dueRefresh = nextWidgetRefresh([earlyTimedItem], beforeRealDue)
+  assert.equal(dueRefresh.getTime(), due.getTime())
 })
 
 test("widget refresh does not request a sub-five-minute timeline", () => {
@@ -2559,6 +2827,121 @@ test("settings expose a native multi-list reminder picker", () => {
   assert.match(source, /requestAccess\(\[\s*"calendar"\s*,\s*"reminders"\s*\]\)/)
 })
 
+test("item editor uses validated number input for custom recurrence intervals", () => {
+  const source = readFileSync(
+    new URL("../到期管家/index.tsx", import.meta.url),
+    "utf8",
+  )
+  const editor = source.slice(
+    source.indexOf("function ItemEditor("),
+    source.indexOf("function ManualItemsSection("),
+  )
+
+  assert.match(
+    editor,
+    /\[intervalInput, setIntervalInput\] = useState\(\s*String\(item\.recurrence\?\.interval \?\? MIN_RECURRENCE_INTERVAL\),\s*\)/,
+  )
+  assert.match(
+    editor,
+    /const recurrenceInterval = parseRecurrenceIntervalInput\(intervalInput\)/,
+  )
+  assert.match(editor, /recurrenceUnit !== "none" && recurrenceInterval == null/)
+  assert.match(editor, /title: "请输入有效间隔"/)
+  assert.match(
+    editor,
+    /message: `间隔必须是 \$\{MIN_RECURRENCE_INTERVAL\}–\$\{MAX_RECURRENCE_INTERVAL\} 的正整数。`/,
+  )
+  assert.match(
+    editor,
+    /间隔可输入 \$\{MIN_RECURRENCE_INTERVAL\}–\$\{MAX_RECURRENCE_INTERVAL\} 的正整数。/,
+  )
+
+  const intervalTitle = editor.indexOf('title="间隔"')
+  const fieldStart = editor.lastIndexOf("<TextField", intervalTitle)
+  const fieldEnd = editor.indexOf("/>", intervalTitle)
+  assert.ok(intervalTitle >= 0 && fieldStart >= 0 && fieldEnd > intervalTitle)
+  const intervalField = editor.slice(fieldStart, fieldEnd + 2)
+  assert.match(intervalField, /value=\{intervalInput\}/)
+  assert.match(intervalField, /onChanged=\{setIntervalInput\}/)
+  assert.match(intervalField, /keyboardType="numberPad"/)
+  assert.match(
+    intervalField,
+    /prompt=\{`\$\{MIN_RECURRENCE_INTERVAL\}–\$\{MAX_RECURRENCE_INTERVAL\}`\}/,
+  )
+
+  const save = editor.slice(
+    editor.indexOf("const save = async"),
+    editor.indexOf("const complete = async"),
+  )
+  const complete = editor.slice(
+    editor.indexOf("const complete = async"),
+    editor.indexOf("const remove = async"),
+  )
+  for (const [action, body] of [["save", save], ["complete", complete]] as const) {
+    const validation = body.indexOf("const error = validationError()")
+    const build = body.indexOf("const nextItem = buildItem()")
+    assert.ok(
+      validation >= 0 && validation < build,
+      `${action} must validate before building the item`,
+    )
+    assert.match(body, /if \(error\) \{\s*await Dialog\.alert\(error\)\s*return\s*\}/)
+  }
+
+  assert.match(editor, /interval: recurrenceInterval!/)
+  assert.match(editor, /createRecurrenceRule\(\s*recurrenceUnit,\s*recurrenceInterval!/)
+  assert.doesNotMatch(editor, /const intervals\s*=/)
+  assert.doesNotMatch(editor, /intervals\.map|Array\.from\(\{\s*length:\s*12/)
+  assert.doesNotMatch(editor, /\[interval,\s*setInterval\]/)
+
+  const actions = editor.slice(
+    editor.indexOf('header={<Text>本期操作</Text>}'),
+    editor.indexOf('title="删除事项"'),
+  )
+  assert.match(actions, /footer=\{recurrenceUnit !== "none"/)
+  assert.match(
+    actions,
+    /title=\{recurrenceUnit !== "none" \? "完成本期" : "标记完成"\}/,
+  )
+  assert.match(actions, /\{recurrenceUnit !== "none" && currentStatus\?\.overdue/)
+})
+
+test("item editor exposes a validated early-action day field", () => {
+  const source = readFileSync(
+    new URL("../到期管家/index.tsx", import.meta.url),
+    "utf8",
+  )
+  const editor = source.slice(
+    source.indexOf("function ItemEditor("),
+    source.indexOf("function ManualItemsSection("),
+  )
+
+  assert.match(
+    editor,
+    /\[remindBeforeInput, setRemindBeforeInput\] = useState\(\s*String\(item\.remindBeforeDays \?\? MIN_REMIND_BEFORE_DAYS\),\s*\)/,
+  )
+  assert.match(
+    editor,
+    /const remindBeforeDays = parseRemindBeforeDaysInput\(remindBeforeInput\)/,
+  )
+  assert.match(editor, /if \(remindBeforeDays == null\) \{[\s\S]*?title: "请输入有效的提前天数"/)
+  assert.match(
+    editor,
+    /message: `提前天数必须是 \$\{MIN_REMIND_BEFORE_DAYS\}–\$\{MAX_REMIND_BEFORE_DAYS\} 的整数；0 表示不提前。`/,
+  )
+  assert.match(editor, /remindBeforeDays: remindBeforeDays!/)
+
+  const sectionTitle = editor.indexOf('header={<Text>提前提醒</Text>}')
+  const sectionEnd = editor.indexOf("</Section>", sectionTitle)
+  assert.ok(sectionTitle >= 0 && sectionEnd > sectionTitle)
+  const section = editor.slice(sectionTitle, sectionEnd)
+  assert.match(section, /组件仍显示真实到期日，周期锚点不会改变/)
+  assert.match(section, /title="提前天数"/)
+  assert.match(section, /value=\{remindBeforeInput\}/)
+  assert.match(section, /onChanged=\{setRemindBeforeInput\}/)
+  assert.match(section, /prompt=\{`\$\{MIN_REMIND_BEFORE_DAYS\}–\$\{MAX_REMIND_BEFORE_DAYS\}`\}/)
+  assert.match(section, /keyboardType="numberPad"/)
+})
+
 test("item editor derives its type picker from the centralized definitions", () => {
   const source = readFileSync(
     new URL("../到期管家/index.tsx", import.meta.url),
@@ -2573,14 +2956,35 @@ test("item editor derives its type picker from the centralized definitions", () 
   assert.doesNotMatch(source, /<Text tag="custom">/)
 })
 
-test("published script updates from the fixed latest-release package", () => {
+test("published script and in-app update entry use the fixed latest-release package", () => {
   const manifest = JSON.parse(readFileSync(
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(
-    manifest.remoteResource.url,
-    "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",
+  const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
+  assert.equal(manifest.remoteResource.url, latestPackageURL)
+
+  const source = readFileSync(
+    new URL("../到期管家/index.tsx", import.meta.url),
+    "utf8",
+  )
+  assert.match(
+    source,
+    /const LATEST_PACKAGE_URL = "https:\/\/github\.com\/MaroonYS\/scripting-due-manager\/releases\/latest\/download\/due-manager\.scripting"/,
+  )
+  const versionSectionStart = source.indexOf("本机持久存储已启用")
+  const versionSectionEnd = source.indexOf("</Section>", versionSectionStart)
+  assert.ok(versionSectionStart >= 0 && versionSectionEnd > versionSectionStart)
+  const versionSection = source.slice(versionSectionStart, versionSectionEnd)
+  assert.match(versionSection, /<Text>版本<\/Text>[\s\S]*?\{Script\.metadata\.version\}/)
+  assert.match(
+    versionSection,
+    /<Link url=\{Script\.createImportScriptsURLScheme\(\[LATEST_PACKAGE_URL\]\)\}>[\s\S]*?<Label title="检查并更新版本" systemImage="arrow\.down\.circle" \/>[\s\S]*?<\/Link>/,
+  )
+  assert.ok(
+    versionSection.indexOf("Script.metadata.version")
+      < versionSection.indexOf("Script.createImportScriptsURLScheme"),
+    "the update entry must appear beside and immediately after the displayed version",
   )
 })
 

@@ -4,6 +4,7 @@ import {
   HStack,
   Image,
   Label,
+  Link,
   List,
   Navigation,
   NavigationLink,
@@ -27,6 +28,12 @@ import {
   dueStatus,
   humanDate,
   localDateKey,
+  MAX_REMIND_BEFORE_DAYS,
+  MAX_RECURRENCE_INTERVAL,
+  MIN_REMIND_BEFORE_DAYS,
+  MIN_RECURRENCE_INTERVAL,
+  parseRemindBeforeDaysInput,
+  parseRecurrenceIntervalInput,
 } from "./src/date"
 import {
   DUE_ICON_GROUPS,
@@ -85,6 +92,8 @@ const EMPTY_REMINDER_STATUS: ReminderStatus = {
   fromCache: false,
   error: null,
 }
+
+const LATEST_PACKAGE_URL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
 
 function DueManagerApp() {
   const dismiss = Navigation.useDismiss()
@@ -256,13 +265,13 @@ function DueManagerApp() {
     .map(id => state.items.find(item => item.id === id))
     .filter((item): item is ManualDueItem => item != null)
   const overdueItems = activeItems.filter(item => dueStatus(item).overdue)
-  const todayItems = activeItems.filter(item => {
+  const needsActionItems = activeItems.filter(item => {
     const status = dueStatus(item)
-    return !status.overdue && status.days === 0
+    return !status.overdue && status.needsAction
   })
   const upcomingItems = activeItems.filter(item => {
     const status = dueStatus(item)
-    return !status.overdue && status.days > 0
+    return !status.overdue && !status.needsAction
   })
   const inactiveItems = state.items.filter(item => !item.enabled)
 
@@ -297,7 +306,7 @@ function DueManagerApp() {
       </Section>
 
       <ManualItemsSection title="已逾期" items={overdueItems} onChanged={refreshState} />
-      <ManualItemsSection title="今天" items={todayItems} onChanged={refreshState} />
+      <ManualItemsSection title="需要处理" items={needsActionItems} onChanged={refreshState} />
       <ManualItemsSection title="接下来" items={upcomingItems} onChanged={refreshState} />
 
       {inactiveItems.length > 0
@@ -386,6 +395,9 @@ function DueManagerApp() {
           <Spacer />
           <Text foregroundStyle="secondaryLabel">{Script.metadata.version}</Text>
         </HStack>
+        <Link url={Script.createImportScriptsURLScheme([LATEST_PACKAGE_URL])}>
+          <Label title="检查并更新版本" systemImage="arrow.down.circle" />
+        </Link>
       </Section>
     </List>
   </NavigationStack>
@@ -412,7 +424,12 @@ function ItemEditor({
   const [recurrenceUnit, setRecurrenceUnit] = useState<RecurrenceUnit | "none">(
     item.recurrence?.unit ?? "none",
   )
-  const [interval, setInterval] = useState(item.recurrence?.interval ?? 1)
+  const [intervalInput, setIntervalInput] = useState(
+    String(item.recurrence?.interval ?? MIN_RECURRENCE_INTERVAL),
+  )
+  const [remindBeforeInput, setRemindBeforeInput] = useState(
+    String(item.remindBeforeDays ?? MIN_REMIND_BEFORE_DAYS),
+  )
   const [useMonthEnd, setUseMonthEnd] = useState(item.recurrence?.useMonthEnd ?? false)
   const [leapDayPolicy, setLeapDayPolicy] = useState<"feb28" | "mar1">(
     item.recurrence?.leapDayPolicy ?? "feb28",
@@ -423,10 +440,35 @@ function ItemEditor({
   const [expectedUpdatedAt] = useState<number | undefined>(
     () => isNew ? undefined : item.updatedAt,
   )
+  const recurrenceInterval = parseRecurrenceIntervalInput(intervalInput)
+  const remindBeforeDays = parseRemindBeforeDaysInput(remindBeforeInput)
+
+  const validationError = (): { title: string; message: string } | null => {
+    if (!title.trim()) {
+      return { title: "请输入名称", message: "事项名称不能为空。" }
+    }
+    if (recurrenceUnit !== "none" && recurrenceInterval == null) {
+      return {
+        title: "请输入有效间隔",
+        message: `间隔必须是 ${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL} 的正整数。`,
+      }
+    }
+    if (remindBeforeDays == null) {
+      return {
+        title: "请输入有效的提前天数",
+        message: `提前天数必须是 ${MIN_REMIND_BEFORE_DAYS}–${MAX_REMIND_BEFORE_DAYS} 的整数；0 表示不提前。`,
+      }
+    }
+    return null
+  }
 
   const buildItem = (): ManualDueItem | null => {
     const trimmedTitle = title.trim().slice(0, 120)
-    if (!trimmedTitle) return null
+    if (
+      !trimmedTitle
+      || (recurrenceUnit !== "none" && recurrenceInterval == null)
+      || remindBeforeDays == null
+    ) return null
     const selectedDate = new Date(dueTimestamp)
     const dueDate = localDateKey(selectedDate)
     let recurrence = null
@@ -438,13 +480,13 @@ function ItemEditor({
       recurrence = preserveAnchor
         ? {
           ...item.recurrence!,
-          interval,
+          interval: recurrenceInterval!,
           useMonthEnd,
           leapDayPolicy,
         }
         : createRecurrenceRule(
           recurrenceUnit,
-          interval,
+          recurrenceInterval!,
           dueDate,
           useMonthEnd,
           leapDayPolicy,
@@ -460,6 +502,7 @@ function ItemEditor({
       includesTime,
       hour: selectedDate.getHours(),
       minute: selectedDate.getMinutes(),
+      remindBeforeDays: remindBeforeDays!,
       recurrence,
       amount: amount.trim().slice(0, 60),
       note: note.trim().slice(0, 1000),
@@ -469,11 +512,13 @@ function ItemEditor({
   }
 
   const save = async () => {
-    const nextItem = buildItem()
-    if (!nextItem) {
-      await Dialog.alert({ title: "请输入名称", message: "事项名称不能为空。" })
+    const error = validationError()
+    if (error) {
+      await Dialog.alert(error)
       return
     }
+    const nextItem = buildItem()
+    if (!nextItem) return
     try {
       const nextState = upsertItem(nextItem, expectedUpdatedAt)
       onChanged(nextState)
@@ -485,11 +530,13 @@ function ItemEditor({
   }
 
   const complete = async (skipToFuture = false) => {
-    const nextItem = buildItem()
-    if (!nextItem) {
-      await Dialog.alert({ title: "请输入名称", message: "事项名称不能为空。" })
+    const error = validationError()
+    if (error) {
+      await Dialog.alert(error)
       return
     }
+    const nextItem = buildItem()
+    if (!nextItem) return
     let advanced: ManualDueItem
     try {
       advanced = advanceManualItem(nextItem, { skipToFuture })
@@ -538,10 +585,6 @@ function ItemEditor({
     }
   }
 
-  const intervals = [
-    ...Array.from({ length: 12 }, (_, index) => index + 1),
-    ...(interval > 12 ? [interval] : []),
-  ]
   const currentFormItem = buildItem()
   const currentStatus = currentFormItem ? dueStatus(currentFormItem) : null
 
@@ -610,7 +653,9 @@ function ItemEditor({
 
     <Section
       header={<Text>重复</Text>}
-      footer={<Text>月末规则会正确处理 28/29/30/31 号。编辑到期日期会同时把它设为后续周期的新锚点。</Text>}
+      footer={
+        <Text>{`间隔可输入 ${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL} 的正整数。月末规则会正确处理 28/29/30/31 号；编辑到期日期会同时把它设为后续周期的新锚点。`}</Text>
+      }
     >
       <Picker
         title="周期"
@@ -625,14 +670,13 @@ function ItemEditor({
         <Text tag="year">按年</Text>
       </Picker>
       {recurrenceUnit !== "none"
-        ? <Picker
+        ? <TextField
           title="间隔"
-          value={interval}
-          onChanged={setInterval as any}
-          pickerStyle="menu"
-        >
-          {intervals.map(value => <Text key={value} tag={value}>{value}</Text>)}
-        </Picker>
+          value={intervalInput}
+          onChanged={setIntervalInput}
+          prompt={`${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL}`}
+          keyboardType="numberPad"
+        />
         : null}
       {recurrenceUnit === "month"
         ? <Toggle
@@ -652,6 +696,21 @@ function ItemEditor({
           <Text tag="mar1">使用 3 月 1 日</Text>
         </Picker>
         : null}
+    </Section>
+
+    <Section
+      header={<Text>提前提醒</Text>}
+      footer={
+        <Text>{`填写 ${MIN_REMIND_BEFORE_DAYS} 表示按真实到期日处理；填写 3 会从到期前第 3 天进入“需要处理”并提前排序。组件仍显示真实到期日，周期锚点不会改变。最多可提前 ${MAX_REMIND_BEFORE_DAYS} 天。`}</Text>
+      }
+    >
+      <TextField
+        title="提前天数"
+        value={remindBeforeInput}
+        onChanged={setRemindBeforeInput}
+        prompt={`${MIN_REMIND_BEFORE_DAYS}–${MAX_REMIND_BEFORE_DAYS}`}
+        keyboardType="numberPad"
+      />
     </Section>
 
     <Section header={<Text>可选信息</Text>}>
@@ -674,16 +733,16 @@ function ItemEditor({
     {!isNew
       ? <Section
         header={<Text>本期操作</Text>}
-        footer={currentFormItem?.recurrence
+        footer={recurrenceUnit !== "none"
           ? <Text>「完成本期」只推进一次；若积累多期逾期，可选择直接跳至未来最近一期。</Text>
           : undefined}
       >
         <Button
-          title={currentFormItem?.recurrence ? "完成本期" : "标记完成"}
+          title={recurrenceUnit !== "none" ? "完成本期" : "标记完成"}
           systemImage="checkmark.circle"
           action={() => { void complete(false) }}
         />
-        {currentFormItem?.recurrence && currentStatus?.overdue
+        {recurrenceUnit !== "none" && currentStatus?.overdue
           ? <Button
             title="跳至未来最近一期"
             systemImage="forward.end"
@@ -743,6 +802,7 @@ function ManualItemRow({ item, inactive = false }: { item: ManualDueItem; inacti
       </Text>
       <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={1}>
         {humanDate(item.dueDate, item.includesTime, item.hour, item.minute)} · {recurrenceLabel(item.recurrence)}
+        {item.remindBeforeDays > 0 ? ` · 提前 ${item.remindBeforeDays} 天` : ""}
       </Text>
     </VStack>
     <Spacer />
