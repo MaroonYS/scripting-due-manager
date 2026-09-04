@@ -6,7 +6,10 @@ on:
       - main
     paths:
       - "到期管家.scripting"
-      - "到期管家/script.json"
+      - "到期管家/**"
+      - "tests/**"
+      - "tsconfig.validation.json"
+      - "RELEASE_NOTES.md"
       - ".github/workflows/publish-release.yml"
   workflow_dispatch:
 
@@ -24,6 +27,16 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Run regression tests and type validation
+        run: |
+          bun test tests
+          bunx --package typescript@7.0.2 tsc -p tsconfig.validation.json
+
       - name: Verify and prepare package
         id: package
         shell: bash
@@ -33,6 +46,10 @@ jobs:
           version="$(jq -er '.version | select(type == "string" and length > 0)' '到期管家/script.json')"
           packaged_version="$(unzip -p '到期管家.scripting' script.json | jq -er '.version')"
           test "$version" = "$packaged_version"
+          unzip -t '到期管家.scripting'
+          package_check_dir="$(mktemp -d)"
+          unzip -q '到期管家.scripting' -d "$package_check_dir"
+          diff -qr --exclude=README.md --exclude=.DS_Store '到期管家' "$package_check_dir"
 
           cp '到期管家.scripting' due-manager.scripting
           echo "tag=v${version}" >> "$GITHUB_OUTPUT"
@@ -48,15 +65,17 @@ jobs:
           set -euo pipefail
 
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release edit "$RELEASE_TAG" \
-              --title "$RELEASE_TITLE" \
-              --target "$GITHUB_SHA" \
-              --latest
-            gh release upload "$RELEASE_TAG" due-manager.scripting --clobber
+            existing_package_dir="$(mktemp -d)"
+            gh release download "$RELEASE_TAG" --pattern due-manager.scripting --dir "$existing_package_dir"
+            if ! cmp due-manager.scripting "$existing_package_dir/due-manager.scripting"; then
+              echo "Refusing to overwrite an existing version with different bytes. Bump the version."
+              exit 1
+            fi
+            gh release edit "$RELEASE_TAG" --latest
           else
             gh release create "$RELEASE_TAG" due-manager.scripting \
               --target "$GITHUB_SHA" \
               --title "$RELEASE_TITLE" \
-              --generate-notes \
+              --notes-file RELEASE_NOTES.md \
               --latest
           fi

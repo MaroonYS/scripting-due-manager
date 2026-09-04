@@ -89,6 +89,20 @@ declare const console: {
 
 declare function setTimeout(callback: () => void, delay?: number): unknown
 
+declare function fetch(url: string, init?: {
+  headers?: Record<string, string>
+  timeout?: number
+}): Promise<{ ok: boolean; status: number; json(): Promise<any> }>
+
+declare const Safari: { openURL(url: string): Promise<boolean> }
+declare const Data: { fromString(value: string): unknown | null }
+declare const DocumentPicker: {
+  exportFiles(options: { files: Array<{ data: unknown; name: string }> }): Promise<string[]>
+  pickFiles(options?: { types?: string[]; allowsMultipleSelection?: boolean }): Promise<string[]>
+  stopAcessingSecurityScopedResources(): void
+}
+declare const FileManager: { readAsString(path: string): Promise<string> }
+
 declare namespace JSX {
   interface Element {}
   interface IntrinsicAttributes {

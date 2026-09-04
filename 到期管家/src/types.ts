@@ -1,4 +1,5 @@
 import type { ItemKind } from "./item_kinds"
+import type { NotificationSettings } from "./notifications"
 
 export type { ItemKind } from "./item_kinds"
 
@@ -48,6 +49,30 @@ export interface AppState {
   items: ManualDueItem[]
   settings: AppSettings
   updatedAt: number
+  /** Saved together with manual mutations so an incomplete write cannot invent a completion. */
+  completionHistory?: CompletionRecord[]
+}
+
+export interface CompletionRecord {
+  id: string
+  source: "manual" | "reminder"
+  itemID: string
+  title: string
+  dueDate: string
+  completedAt: number
+  action: "complete" | "skip"
+  undoneAt: number | null
+  /** Only manual items are safely undoable; EventKit has no exposed revision token. */
+  before?: ManualDueItem
+  after?: ManualDueItem
+}
+
+export interface LocalSnapshot {
+  id: string
+  createdAt: number
+  reason: string
+  state: AppState
+  notificationSettings?: NotificationSettings
 }
 
 export interface CachedReminderItem {

@@ -28,10 +28,17 @@ const WIDGET_TEXT = {
     reminderReadCacheFailed: "Reminders loaded, but the cache couldn’t be saved",
     reminderSyncCached: "Reminders couldn’t sync; showing cached items",
     reminderReadFailed: "Reminders couldn’t load; open the main script to check",
-    reminderCompletedCacheFailed: "Reminder completed, but its local cache couldn’t update",
+    reminderCompletedCacheFailed: "Reminder completed, but its local cache or history couldn’t update",
     completionAnimationSaveFailed: "Item completed, but the animation state couldn’t be saved",
     reminderCompletionFailed: "Couldn’t complete the reminder; check access in the main script",
     itemCompletionFailed: "Couldn’t complete the item; check storage in the main script",
+    actionNeedsReview: "The last action needs attention; open Due Manager to check",
+    reviewAction: "Review action",
+    retrySync: "Tap to retry",
+    cachedItems: "Cached items",
+    lastSynced: "Last sync",
+    noSuccessfulSync: "Not synced yet",
+    completeItem: "Complete",
   },
   "zh-Hans": {
     appName: "到期管家",
@@ -48,10 +55,17 @@ const WIDGET_TEXT = {
     reminderReadCacheFailed: "提醒事项已读取，但缓存保存失败",
     reminderSyncCached: "提醒事项同步失败，正在显示缓存",
     reminderReadFailed: "提醒事项读取失败，请打开主脚本检查",
-    reminderCompletedCacheFailed: "提醒已完成，但本地缓存未能更新",
+    reminderCompletedCacheFailed: "提醒已完成，但缓存或完成记录未能保存",
     completionAnimationSaveFailed: "事项已完成，但完成动画状态未能保存",
     reminderCompletionFailed: "提醒完成失败，请打开主脚本检查权限",
     itemCompletionFailed: "事项完成失败，请打开主脚本检查存储",
+    actionNeedsReview: "上次操作需要检查，请打开到期管家查看",
+    reviewAction: "检查操作",
+    retrySync: "点按重试",
+    cachedItems: "正在显示缓存",
+    lastSynced: "上次同步",
+    noSuccessfulSync: "尚未同步成功",
+    completeItem: "完成",
   },
   "zh-Hant": {
     appName: "到期管家",
@@ -68,10 +82,17 @@ const WIDGET_TEXT = {
     reminderReadCacheFailed: "提醒事項已讀取，但快取儲存失敗",
     reminderSyncCached: "提醒事項同步失敗，正在顯示快取",
     reminderReadFailed: "提醒事項讀取失敗，請開啟主腳本檢查",
-    reminderCompletedCacheFailed: "提醒已完成，但本機快取未能更新",
+    reminderCompletedCacheFailed: "提醒已完成，但快取或完成記錄未能儲存",
     completionAnimationSaveFailed: "事項已完成，但完成動畫狀態未能儲存",
     reminderCompletionFailed: "提醒完成失敗，請開啟主腳本檢查權限",
     itemCompletionFailed: "事項完成失敗，請開啟主腳本檢查儲存空間",
+    actionNeedsReview: "上次操作需要檢查，請開啟到期管家查看",
+    reviewAction: "檢查操作",
+    retrySync: "點按重試",
+    cachedItems: "正在顯示快取",
+    lastSynced: "上次同步",
+    noSuccessfulSync: "尚未同步成功",
+    completeItem: "完成",
   },
 } as const
 
@@ -124,6 +145,7 @@ const KIND_LABELS: Record<WidgetLanguage, Record<ItemKind | "reminder", string>>
 
 const ACTION_ERROR_TEXT_KEYS: Record<string, WidgetTextKey> = {
   "提醒已完成，但本地缓存未能更新": "reminderCompletedCacheFailed",
+  "提醒已完成，但本地缓存或完成记录未能保存": "reminderCompletedCacheFailed",
   "事项已完成，但完成动画状态未能保存": "completionAnimationSaveFailed",
   "提醒完成失败，请打开主脚本检查权限": "reminderCompletionFailed",
   "事项完成失败，请打开主脚本检查存储": "itemCompletionFailed",
@@ -186,7 +208,60 @@ export function widgetKindLabel(kind: ItemKind | "reminder", locale: string): st
 
 export function localizeWidgetActionError(message: string, locale: string): string {
   const key = ACTION_ERROR_TEXT_KEYS[message]
-  return key ? widgetText(key, locale) : message
+  // Never expose an arbitrary runtime error, identifier, or private source data
+  // on the Home Screen. The app is the place to inspect diagnostic details.
+  return widgetText(key ?? "actionNeedsReview", locale)
+}
+
+/** The small widget reserves one existing auxiliary line, not another row. */
+export function formatWidgetItemTime(item: DisplayDueItem, locale: string): string {
+  if (!item.includesTime) return ""
+  const timestampDate = Number.isFinite(item.dueTimestamp)
+    ? new Date(item.dueTimestamp)
+    : null
+  const timestampIsValid = timestampDate && Number.isFinite(timestampDate.getTime())
+  const hour = timestampIsValid ? timestampDate.getHours() : clampInteger(item.hour, 0, 23)
+  const minute = timestampIsValid ? timestampDate.getMinutes() : clampInteger(item.minute, 0, 59)
+  const date = new Date(2000, 0, 1, hour, minute)
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date)
+  } catch {
+    return `${pad2(hour)}:${pad2(minute)}`
+  }
+}
+
+/** A real timestamp, never a relative countdown or a new permanent status row. */
+export function formatWidgetLastSync(
+  fetchedAt: number | null,
+  locale: string,
+  now = new Date(),
+): string {
+  if (fetchedAt === null || !Number.isFinite(fetchedAt) || fetchedAt <= 0) {
+    return widgetText("noSuccessfulSync", locale)
+  }
+  const date = new Date(fetchedAt)
+  if (!Number.isFinite(date.getTime())) return widgetText("noSuccessfulSync", locale)
+  const includesDate = localDateKey(date) !== localDateKey(now)
+  let stamp: string
+  try {
+    stamp = new Intl.DateTimeFormat(locale, {
+      month: includesDate ? "short" : undefined,
+      day: includesDate ? "numeric" : undefined,
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date)
+  } catch {
+    stamp = `${includesDate ? `${localDateKey(date)} ` : ""}${pad2(date.getHours())}:${pad2(date.getMinutes())}`
+  }
+  return `${widgetText("lastSynced", locale)} ${stamp}`
+}
+
+export function widgetCompletionLabel(item: DisplayDueItem, locale: string): string {
+  return `${widgetText("completeItem", locale)}: ${item.title}`
 }
 
 export function formatWidgetDate(
@@ -284,6 +359,7 @@ function fallbackDate(
 }
 
 function clampInteger(value: number, minimum: number, maximum: number): number {
+  if (!Number.isFinite(value)) return minimum
   return Math.min(maximum, Math.max(minimum, Math.round(value)))
 }
 

@@ -24,6 +24,7 @@ import {
 } from "scripting"
 import {
   advanceManualItem,
+  actionDateKey,
   createRecurrenceRule,
   dateKeyToLocalDate,
   dueStatus,
@@ -50,6 +51,7 @@ import {
 } from "./src/reminders"
 import {
   createDraftItem,
+  completeManualItem,
   deleteItem,
   findItem,
   loadState,
@@ -68,6 +70,11 @@ import {
   reloadUserWidgets,
   reloadWidgetsAfterStorageWrite,
 } from "./src/widget_refresh"
+import { refreshAfterDataChange } from "./src/maintenance"
+import { reconcileNotifications } from "./src/notifications"
+import { NotificationView } from "./src/notification_view"
+import { RecoveryView } from "./src/recovery_view"
+import { UpdateView } from "./src/update_view"
 
 type ReminderStatus = {
   loading: boolean
@@ -94,9 +101,6 @@ const EMPTY_REMINDER_STATUS: ReminderStatus = {
   error: null,
 }
 
-const LATEST_PACKAGE_URL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
-const MANUAL_UPDATE_PACKAGE_URL = `${LATEST_PACKAGE_URL}?from=${encodeURIComponent(Script.metadata.version)}&t=${Date.now()}`
-
 function recurrenceIntervalUnitLabel(unit: RecurrenceUnit): string {
   switch (unit) {
     case "day": return "天"
@@ -106,11 +110,21 @@ function recurrenceIntervalUnitLabel(unit: RecurrenceUnit): string {
   }
 }
 
+async function refreshWidgetsWithWarning(title = "设置已保存") {
+  try { await reloadWidgetsAfterStorageWrite() }
+  catch (error) {
+    console.error("Widget refresh failed after a successful operation", error)
+    await Dialog.alert({ title, message: "组件刷新请求失败，但已保存的数据不会丢失。请点「刷新桌面组件」重试，无需重复保存。" })
+  }
+}
+
 function DueManagerApp() {
   const dismiss = Navigation.useDismiss()
   const [state, setState] = useState<AppState>(() => loadState())
   const [newItem, setNewItem] = useState<ManualDueItem>(() => createDraftItem())
   const [reminderStatus, setReminderStatus] = useState<ReminderStatus>(EMPTY_REMINDER_STATUS)
+  // A stable request token prevents an older refresh from replacing newer scope/status.
+  const [reminderRequests] = useState(() => ({ generation: 0 }))
 
   const refreshState = (nextState?: AppState) => {
     setState(nextState ?? loadState())
@@ -122,40 +136,52 @@ function DueManagerApp() {
   }
 
   const refreshReminders = async () => {
-    if (!loadState().settings.includeReminders) {
-      setReminderStatus(EMPTY_REMINDER_STATUS)
-      return
+    const request = ++reminderRequests.generation
+    try {
+      const current = loadState()
+      if (!current.settings.includeReminders) {
+        setReminderStatus(EMPTY_REMINDER_STATUS)
+        return
+      }
+      setReminderStatus(status => ({ ...status, loading: true }))
+      const result = await loadReminderItems(current.settings.reminderHorizonDays, current.settings.reminderCalendarIDs)
+      if (request !== reminderRequests.generation) return
+      setReminderStatus({ loading: false, count: result.items.length, fetchedAt: result.fetchedAt,
+        live: result.live, fromCache: result.fromCache, error: result.error })
+      await refreshWidgetsWithWarning("提醒数据已读取")
+    } catch (error) {
+      if (request === reminderRequests.generation) {
+        setReminderStatus(status => ({ ...status, loading: false, error: String(error) }))
+      }
     }
-    setReminderStatus(status => ({ ...status, loading: true }))
-    const current = loadState()
-    const result = await loadReminderItems(
-      current.settings.reminderHorizonDays,
-      current.settings.reminderCalendarIDs,
-    )
-    setReminderStatus({
-      loading: false,
-      count: result.items.length,
-      fetchedAt: result.fetchedAt,
-      live: result.live,
-      fromCache: result.fromCache,
-      error: result.error,
-    })
-    await reloadWidgetsAfterStorageWrite()
+  }
+
+  const refreshRecoveredState = (nextState?: AppState) => {
+    refreshState(nextState)
+    // A restored backup can change the list scope or disable Reminders entirely.
+    // Do not show the previous scope's successful status until a fresh read finishes.
+    setReminderStatus(EMPTY_REMINDER_STATUS)
+    void refreshReminders()
   }
 
   useEffect(() => {
     if (state.settings.includeReminders) void refreshReminders()
-    else void reloadWidgetsAfterStorageWrite()
+    else void refreshWidgetsWithWarning("数据已读取")
   }, [])
 
   const setReminderIntegration = async (enabled: boolean) => {
+    ++reminderRequests.generation
     if (!enabled) {
       try {
         const next = updateSettings({ includeReminders: false })
-        clearReminderSnapshot()
         refreshState(next)
         setReminderStatus(EMPTY_REMINDER_STATUS)
-        await reloadWidgetsAfterStorageWrite()
+        try { clearReminderSnapshot() }
+        catch (error) {
+          console.error("Reminders disabled but cache cleanup failed", error)
+          await Dialog.alert({ title: "提醒事项显示已关闭", message: "旧缓存清理失败，但不会继续用于当前组件。请稍后重新运行脚本清理。" })
+        }
+        await refreshWidgetsWithWarning()
       } catch (error) {
         await Dialog.alert({ title: "无法关闭提醒事项", message: String(error) })
       }
@@ -207,7 +233,7 @@ function DueManagerApp() {
           message: result.error,
         })
       }
-      await reloadWidgetsAfterStorageWrite()
+      await refreshWidgetsWithWarning()
     } catch (error) {
       setReminderStatus({ ...EMPTY_REMINDER_STATUS, error: String(error) })
       await Dialog.alert({ title: "授权失败", message: String(error) })
@@ -215,12 +241,13 @@ function DueManagerApp() {
   }
 
   const setReminderCalendarSelection = async (calendarIDs: string[]) => {
+    ++reminderRequests.generation
     const current = loadState()
 
     if (!current.settings.includeReminders) {
       const next = updateSettings({ reminderCalendarIDs: calendarIDs })
       refreshState(next)
-      await reloadWidgetsAfterStorageWrite()
+      await refreshWidgetsWithWarning()
       return
     }
 
@@ -238,13 +265,13 @@ function DueManagerApp() {
       error: result.error,
     })
     if (!result.live && !result.fromCache) {
-      await reloadWidgetsAfterStorageWrite()
+      try { await reloadWidgetsAfterStorageWrite() } catch (error) { console.error("Widget refresh failed", error) }
       throw new Error(result.error ?? "无法读取所选提醒事项列表")
     }
 
     const next = updateSettings({ reminderCalendarIDs: calendarIDs })
     refreshState(next)
-    await reloadWidgetsAfterStorageWrite()
+    await refreshWidgetsWithWarning()
     if (result.live && result.error) {
       await Dialog.alert({
         title: "列表已保存，但缓存失败",
@@ -257,7 +284,7 @@ function DueManagerApp() {
     try {
       const next = updateSettings({ showAmounts })
       refreshState(next)
-      await reloadWidgetsAfterStorageWrite()
+      await refreshWidgetsWithWarning()
     } catch (error) {
       await Dialog.alert({ title: "设置保存失败", message: String(error) })
     }
@@ -295,7 +322,7 @@ function DueManagerApp() {
         confirmationAction: <Button title="完成" action={() => dismiss()} />,
       }}
     >
-      <Section footer={<Text>组件左侧圆圈用于完成当前一期；周期事项只推进一期，不会自动跳过逾期记录。</Text>}>
+      <Section footer={<Text>点击组件左侧图标完成当前一期，点击文字查看详情。周期事项只推进一期；误触后可到「记录与数据安全」撤销手动事项的完成。</Text>}>
         <NavigationLink
           destination={
             <ItemEditor
@@ -341,6 +368,7 @@ function DueManagerApp() {
           title="显示 Apple 提醒事项"
           systemImage="checklist"
           value={state.settings.includeReminders}
+          disabled={reminderStatus.loading}
           onChanged={(value: boolean) => { void setReminderIntegration(value) }}
         />
         {state.settings.includeReminders
@@ -377,6 +405,9 @@ function DueManagerApp() {
       </Section>
 
       <Section header={<Text>显示与组件</Text>}>
+        <NavigationLink destination={<NotificationView />}>
+          <Label title="通知与提醒" systemImage="bell.badge" />
+        </NavigationLink>
         <Toggle
           title="在组件显示金额"
           systemImage="banknote"
@@ -389,8 +420,17 @@ function DueManagerApp() {
         <Button
           title="刷新桌面组件"
           systemImage="arrow.triangle.2.circlepath"
-          action={async () => await reloadUserWidgets()}
+          action={async () => {
+            try { await reloadUserWidgets() }
+            catch (error) { await Dialog.alert({ title: "组件刷新失败", message: String(error) }) }
+          }}
         />
+      </Section>
+
+      <Section>
+        <NavigationLink destination={<RecoveryView onChanged={refreshRecoveredState} />}>
+          <Label title="记录与数据安全" systemImage="clock.arrow.circlepath" />
+        </NavigationLink>
       </Section>
 
       <Section footer={<Text>旧版私有数据会在首次运行时自动迁移；以后更新脚本不需要重新录入事项。数据仍只保存在本机 Scripting 中。</Text>}>
@@ -406,9 +446,9 @@ function DueManagerApp() {
           <Spacer />
           <Text foregroundStyle="secondaryLabel">{Script.metadata.version}</Text>
         </HStack>
-        <Link url={Script.createImportScriptsURLScheme([MANUAL_UPDATE_PACKAGE_URL])}>
+        <NavigationLink destination={<UpdateView />}>
           <Label title="检查并更新版本" systemImage="arrow.down.circle" />
-        </Link>
+        </NavigationLink>
       </Section>
     </List>
   </NavigationStack>
@@ -448,6 +488,15 @@ function ItemEditor({
   const [amount, setAmount] = useState(item.amount)
   const [note, setNote] = useState(item.note)
   const [enabled, setEnabled] = useState(item.enabled)
+  const [working, setWorking] = useState(false)
+  const [actionGate] = useState(() => ({ busy: false }))
+  const runEditorAction = async (action: () => Promise<void>) => {
+    if (actionGate.busy) return
+    actionGate.busy = true
+    setWorking(true)
+    try { await action() }
+    finally { actionGate.busy = false; setWorking(false) }
+  }
   const [expectedUpdatedAt] = useState<number | undefined>(
     () => isNew ? undefined : item.updatedAt,
   )
@@ -536,7 +585,8 @@ function ItemEditor({
     try {
       const nextState = upsertItem(nextItem, expectedUpdatedAt)
       onChanged(nextState)
-      await reloadWidgetsAfterStorageWrite()
+      const warning = await refreshAfterDataChange()
+      if (warning) await Dialog.alert({ title: "事项已保存", message: warning })
       dismiss()
     } catch (error) {
       await Dialog.alert({ title: "保存失败", message: String(error) })
@@ -572,9 +622,10 @@ function ItemEditor({
     if (!confirmed) return
 
     try {
-      const nextState = upsertItem(advanced, expectedUpdatedAt)
+      const nextState = completeManualItem(nextItem, expectedUpdatedAt, skipToFuture)
       onChanged(nextState)
-      await reloadWidgetsAfterStorageWrite()
+      const warning = await refreshAfterDataChange()
+      if (warning) await Dialog.alert({ title: "本期已完成", message: warning })
       dismiss()
     } catch (error) {
       await Dialog.alert({ title: "保存完成状态失败", message: String(error) })
@@ -584,7 +635,7 @@ function ItemEditor({
   const remove = async () => {
     const confirmed = await Dialog.confirm({
       title: "删除这个事项？",
-      message: "此操作无法撤销。",
+      message: "删除前会自动保留本地快照，可在「记录与数据安全」恢复整份快照；该操作会移除这条手动事项。",
       cancelLabel: "取消",
       confirmLabel: "删除",
     })
@@ -592,7 +643,8 @@ function ItemEditor({
     try {
       const nextState = deleteItem(item.id, expectedUpdatedAt)
       onChanged(nextState)
-      await reloadWidgetsAfterStorageWrite()
+      const warning = await refreshAfterDataChange()
+      if (warning) await Dialog.alert({ title: "事项已删除", message: warning })
       dismiss()
     } catch (error) {
       await Dialog.alert({ title: "删除失败", message: String(error) })
@@ -606,11 +658,12 @@ function ItemEditor({
     listStyle="insetGroup"
     navigationTitle={isNew ? "新增事项" : "编辑事项"}
     navigationBarTitleDisplayMode="inline"
+    disabled={working}
     toolbar={{
       cancellationAction: standalone
         ? <Button title="关闭" action={() => dismiss()} />
         : undefined,
-      confirmationAction: <Button title="保存" action={() => { void save() }} />,
+      confirmationAction: <Button title={working ? "正在处理…" : "保存"} disabled={working} action={() => { void runEditorAction(save) }} />,
     }}
   >
     <Section header={<Text>基本信息</Text>}>
@@ -668,7 +721,7 @@ function ItemEditor({
     <Section
       header={<Text>重复</Text>}
       footer={
-        <Text>{`间隔可输入 ${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL} 的正整数。提前提醒可输入 ${MIN_REMIND_BEFORE_DAYS}–${MAX_REMIND_BEFORE_DAYS} 天，0 表示不提前。提前设置只改变处理排序；真实到期日、月末规则和周期锚点保持不变。`}</Text>
+        <Text>{`间隔可输入 ${MIN_RECURRENCE_INTERVAL}–${MAX_RECURRENCE_INTERVAL} 的正整数。提前提醒可输入 ${MIN_REMIND_BEFORE_DAYS}–${MAX_REMIND_BEFORE_DAYS} 天，0 表示不提前；提前处理从提前日零点开始。真实到期日、月末规则和周期锚点保持不变。需要横幅通知，请在主界面的「通知与提醒」中开启。`}</Text>
       }
     >
       <Picker
@@ -715,6 +768,11 @@ function ItemEditor({
           <Text foregroundStyle="secondaryLabel">天</Text>
         </HStack>
       </LabeledContent>
+      {currentFormItem && currentFormItem.remindBeforeDays > 0 ? <LabeledContent title="开始处理">
+        <Text font="subheadline" foregroundStyle="secondaryLabel">
+          {humanDate(actionDateKey(currentFormItem.dueDate, currentFormItem.remindBeforeDays), true, 0, 0)}
+        </Text>
+      </LabeledContent> : null}
       {recurrenceUnit === "month"
         ? <Toggle
           title="始终使用月末"
@@ -762,13 +820,13 @@ function ItemEditor({
         <Button
           title={recurrenceUnit !== "none" ? "完成本期" : "标记完成"}
           systemImage="checkmark.circle"
-          action={() => { void complete(false) }}
+          action={() => { void runEditorAction(() => complete(false)) }}
         />
         {recurrenceUnit !== "none" && currentStatus?.overdue
           ? <Button
             title="跳至未来最近一期"
             systemImage="forward.end"
-            action={() => { void complete(true) }}
+            action={() => { void runEditorAction(() => complete(true)) }}
           />
           : null}
       </Section>
@@ -780,7 +838,7 @@ function ItemEditor({
           title="删除事项"
           systemImage="trash"
           role="destructive"
-          action={() => { void remove() }}
+          action={() => { void runEditorAction(remove) }}
         />
       </Section>
       : null}
@@ -1140,13 +1198,22 @@ function ReminderStatusRow({ status }: { status: ReminderStatus }) {
     color = "systemOrange"
     icon = "exclamationmark.triangle"
   }
-  return <HStack>
-    <Image systemName={icon} foregroundStyle={color} />
-    <Text font="caption" foregroundStyle={color} lineLimit={2}>{title}</Text>
-  </HStack>
+  return <VStack alignment="leading" spacing={5}>
+    <HStack>
+      <Image systemName={icon} foregroundStyle={color} />
+      <Text font="caption" foregroundStyle={color} lineLimit={2}>{title}</Text>
+    </HStack>
+    <Text font="caption" foregroundStyle="secondaryLabel">
+      {status.fetchedAt ? `上次成功读取：${new Date(status.fetchedAt).toLocaleString()}` : "尚无成功同步记录"}
+    </Text>
+    {status.error ? <Text font="caption" foregroundStyle="systemOrange" lineLimit={5}>
+      {status.error}。可点「立即更新」重试；若列表已失效，请在「提醒事项列表」重新选择。
+    </Text> : null}
+  </VStack>
 }
 
 async function run() {
+  const notificationRefresh = reconcileNotifications([], { loadItems: () => loadState().items })
   const action = typeof Script.queryParameters?.action === "string"
     ? Script.queryParameters.action
     : ""
@@ -1164,6 +1231,7 @@ async function run() {
   } else {
     await Navigation.present({ element: <DueManagerApp /> })
   }
+  await notificationRefresh
   Script.exit()
 }
 

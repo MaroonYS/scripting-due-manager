@@ -10,6 +10,7 @@ import {
 } from "./src/widget_completion"
 import { currentWidgetLocale, widgetText } from "./src/widget_localization"
 import { DueManagerWidget } from "./src/widget_view"
+import { reconcileNotifications } from "./src/notifications"
 
 const WIDGET_LOCALE = currentWidgetLocale()
 
@@ -41,6 +42,11 @@ async function main() {
     />,
     { policy: "after", date: refreshAt },
   )
+  // Optional bounded maintenance happens after presenting content; it cannot
+  // turn a valid timeline into a load-error placeholder.
+  try {
+    await reconcileNotifications([], { loadItems: () => loadState().items, maxNewRequests: 3, leaseWaitMs: 0 })
+  } catch (error) { console.error("Widget notification maintenance deferred", error) }
   Script.exit()
 }
 

@@ -18,8 +18,11 @@ import {
   currentWidgetLocale,
   formatWidgetDate,
   formatWidgetItemDate,
+  formatWidgetItemTime,
+  formatWidgetLastSync,
   formatWidgetMonth,
   localizeWidgetActionError,
+  widgetCompletionLabel,
   widgetKindLabel,
   widgetLanguage,
   widgetText,
@@ -46,6 +49,8 @@ type WidgetDataProps = {
 
 type WidgetIssue = {
   text: string
+  compactText: string
+  statusText: string
   color: string
 }
 
@@ -313,6 +318,7 @@ function SmallWidgetBody({
       item={item}
       nextItem={nextItem}
       displayWidth={displayWidth}
+      issue={issue}
     />
     : <Link url={Script.createRunURLScheme(Script.name)}>
       <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
@@ -327,10 +333,12 @@ function SmallDueItem({
   item,
   nextItem,
   displayWidth,
+  issue,
 }: {
   item: DisplayDueItem
   nextItem: DisplayDueItem | undefined
   displayWidth?: number
+  issue: WidgetIssue | null
 }) {
   const detail = smallItemDetail(item)
   const titleFontSize = smallItemTitleFontSize(item.title, displayWidth)
@@ -378,8 +386,8 @@ function SmallDueItem({
       </HStack>
     </VStack>
     <Spacer minLength={4} />
-    {detail
-      ? <SmallCurrentDetail item={item} detail={detail} />
+    {detail || item.includesTime || issue
+      ? <SmallCurrentDetail item={item} detail={detail} issue={issue} />
       : <VStack frame={{ maxWidth: "infinity", height: 19, alignment: "leading" }} />}
     <Spacer minLength={0} />
     {nextItem
@@ -398,25 +406,29 @@ function smallItemDetail(item: DisplayDueItem): string {
 function SmallCurrentDetail({
   item,
   detail,
+  issue,
 }: {
   item: DisplayDueItem
   detail: string
+  issue: WidgetIssue | null
 }) {
+  const time = formatWidgetItemTime(item, WIDGET_LOCALE)
+  const supportingText = issue?.compactText ?? detail
   return <VStack
     alignment="leading"
     spacing={0}
     frame={{ maxWidth: "infinity", height: 19, alignment: "leading" }}
   >
-    <Link url={itemURL(item)}>
+    <Link url={issue ? Script.createRunURLScheme(Script.name) : itemURL(item)}>
       <HStack
         alignment="center"
-        spacing={0}
+        spacing={time && supportingText ? 5 : 0}
         padding={{ top: 4, leading: 5, trailing: 5 }}
         frame={{ maxWidth: "infinity" }}
       >
         <Text
           font={13}
-          foregroundStyle="secondaryLabel"
+          foregroundStyle={issue?.color ?? "secondaryLabel"}
           lineLimit={1}
           minScaleFactor={0.85}
           truncationMode="middle"
@@ -425,8 +437,20 @@ function SmallCurrentDetail({
           fixedSize={{ horizontal: false, vertical: true }}
           frame={{ maxWidth: "infinity", alignment: "leading" }}
         >
-          {detail}
+          {supportingText}
         </Text>
+        {time
+          ? <Text
+            font={12}
+            fontWeight="medium"
+            foregroundStyle="secondaryLabel"
+            lineLimit={1}
+            monospacedDigit
+            fixedSize={{ horizontal: true, vertical: false }}
+          >
+            {time}
+          </Text>
+          : null}
       </HStack>
     </Link>
   </VStack>
@@ -484,6 +508,7 @@ function ListWidget({
   family,
   remindersLive,
   remindersFromCache,
+  reminderFetchedAt,
   reminderError,
   interactionError,
   displayHeight,
@@ -497,6 +522,7 @@ function ListWidget({
   const issue = widgetIssue({
     remindersLive,
     remindersFromCache,
+    reminderFetchedAt,
     reminderError,
     interactionError,
   })
@@ -617,9 +643,7 @@ function ListWidgetBody({
       </Link>}
     <Spacer minLength={0} />
     {visible.length > 0 && issue
-      ? <Text font="caption2" foregroundStyle={issue.color} lineLimit={1} padding={{ top: 3 }}>
-        {issue.text}
-      </Text>
+      ? <WidgetIssueLink issue={issue} />
       : null}
   </VStack>
 }
@@ -685,9 +709,7 @@ function LargeListWidgetBody({
       </Link>}
     <Spacer minLength={0} />
     {visible.length > 0 && issue
-      ? <Text font="caption2" foregroundStyle={issue.color} lineLimit={1} padding={{ top: 3 }}>
-        {issue.text}
-      </Text>
+      ? <WidgetIssueLink issue={issue} />
       : null}
   </VStack>
 }
@@ -892,19 +914,21 @@ function ListCompletionIcon({
   return <Button
     buttonStyle="plain"
     contentShape="rectangle"
+    title={widgetCompletionLabel(item, WIDGET_LOCALE)}
+    systemImage={item.iconName}
+    labelStyle="iconOnly"
+    font={symbolSize}
+    foregroundStyle={item.iconColor}
+    symbolRenderingMode="hierarchical"
+    frame={{ width: hitSize, height: hitSize }}
+    contentTransition="symbolEffectReplace"
+    widgetAccentable
     intent={CompleteDueItemIntent({
       source: item.source,
       id: item.id,
       occurrenceKey: item.completionKey,
     })}
-  >
-    <ListCompletionSymbol
-      item={item}
-      hitSize={hitSize}
-      symbolSize={symbolSize}
-      enabled
-    />
-  </Button>
+  />
 }
 
 function ListCompletionSymbol({
@@ -1020,15 +1044,32 @@ function WidgetFrame({
   </VStack>
 }
 
+function WidgetIssueLink({ issue }: { issue: WidgetIssue }) {
+  return <Link url={Script.createRunURLScheme(Script.name)}>
+    <Text
+      font="caption2"
+      foregroundStyle={issue.color}
+      lineLimit={1}
+      minScaleFactor={0.8}
+      padding={{ top: 3, leading: 5, trailing: 5 }}
+    >
+      {issue.statusText}
+    </Text>
+  </Link>
+}
+
 function widgetIssue(props: {
   remindersLive: boolean
   remindersFromCache: boolean
+  reminderFetchedAt: number | null
   reminderError: string | null
   interactionError: string | null
 }): WidgetIssue | null {
   if (props.interactionError) {
     return {
       text: localizeWidgetActionError(props.interactionError, WIDGET_LOCALE),
+      compactText: widgetText("reviewAction", WIDGET_LOCALE),
+      statusText: widgetText("reviewAction", WIDGET_LOCALE),
       color: "systemRed",
     }
   }
@@ -1039,6 +1080,16 @@ function widgetIssue(props: {
         : props.remindersFromCache
           ? widgetText("reminderSyncCached", WIDGET_LOCALE)
           : widgetText("reminderReadFailed", WIDGET_LOCALE),
+      compactText: widgetText("retrySync", WIDGET_LOCALE),
+      statusText: `${widgetText("retrySync", WIDGET_LOCALE)} · ${formatWidgetLastSync(props.reminderFetchedAt, WIDGET_LOCALE)}`,
+      color: "systemOrange",
+    }
+  }
+  if (props.remindersFromCache) {
+    return {
+      text: widgetText("cachedItems", WIDGET_LOCALE),
+      compactText: widgetText("retrySync", WIDGET_LOCALE),
+      statusText: `${widgetText("retrySync", WIDGET_LOCALE)} · ${formatWidgetLastSync(props.reminderFetchedAt, WIDGET_LOCALE)}`,
       color: "systemOrange",
     }
   }

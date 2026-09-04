@@ -16,6 +16,8 @@ import {
   reloadUserWidgets,
   reloadWidgetsAfterStorageWrite,
 } from "./src/widget_refresh"
+import { reconcileNotifications } from "./src/notifications"
+import { loadState } from "./src/storage"
 
 export type CompleteDueItemParams = {
   source: "manual" | "reminder"
@@ -61,11 +63,12 @@ async function performCompleteDueItem(params: CompleteDueItemParams): Promise<vo
     const result = params.source === "manual"
       ? completeManualOccurrence(params.id, params.occurrenceKey)
       : await completeReminderOccurrence(params.id, params.occurrenceKey)
-    clearWidgetActionError()
+    try { clearWidgetActionError() }
+    catch (error) { console.error("Completion succeeded but prior status cleanup failed", error) }
 
     const applied = result === "applied" || result === "appliedCacheStale"
     let completionWarning = result === "appliedCacheStale"
-      ? "提醒已完成，但本地缓存未能更新"
+      ? "提醒已完成，但本地缓存或完成记录未能保存"
       : null
     if (applied && feedbackItem) {
       // Advance only a lightweight animation generation. Never retain or
@@ -79,10 +82,10 @@ async function performCompleteDueItem(params: CompleteDueItemParams): Promise<vo
         completionWarning = "事项已完成，但完成动画状态未能保存"
       }
     }
-    if (completionWarning) writeWidgetActionError(completionWarning)
+    if (completionWarning) writeActionWarningSafely(completionWarning)
   } catch (error) {
     console.error("CompleteDueItem failed", error)
-    writeWidgetActionError(
+    writeActionWarningSafely(
       params?.source === "reminder"
         ? "提醒完成失败，请打开主脚本检查权限"
         : "事项完成失败，请打开主脚本检查存储",
@@ -90,8 +93,23 @@ async function performCompleteDueItem(params: CompleteDueItemParams): Promise<vo
   } finally {
     // Occurrence keys make old controls idempotent, so every interaction may
     // safely request a fresh timeline instead of leaving a stale widget stuck.
-    await reloadWidgetsAfterStorageWrite()
+    try { await reloadWidgetsAfterStorageWrite() }
+    catch (error) {
+      console.error("Widget refresh request failed", error)
+      writeActionWarningSafely("数据操作已结束，但组件刷新请求失败，请打开主脚本刷新")
+    }
+    // Show completion feedback before optional notification maintenance. Keep
+    // cancellation/de-duplication complete, but don't wait for another worker
+    // or fill the entire notification horizon during an interactive intent.
+    try {
+      await reconcileNotifications([], { loadItems: () => loadState().items, maxNewRequests: 3, leaseWaitMs: 0 })
+    } catch (error) { console.error("Notification reconciliation failed", error) }
   }
+}
+
+function writeActionWarningSafely(message: string) {
+  try { writeWidgetActionError(message) }
+  catch (error) { console.error("Widget status could not be saved", error) }
 }
 
 function isCompletionParams(value: unknown): value is CompleteDueItemParams {

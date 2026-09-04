@@ -12,6 +12,7 @@ import {
 } from "./icons"
 import {
   normalizeReminderCalendarIDs,
+  recordReminderCompletion,
   REMINDER_SNAPSHOT_KEY,
   SHARED_STORAGE_OPTIONS,
 } from "./storage"
@@ -171,7 +172,17 @@ export async function completeReminderOccurrence(
 
   reminder.isCompleted = true
   await reminder.save()
-  return removeReminderFromSnapshot(id) ? "applied" : "appliedCacheStale"
+  // EventKit and local Storage cannot commit atomically. Once save succeeds,
+  // a local history/cache failure must never invite repeating the completion.
+  let historySaved = true
+  try {
+    recordReminderCompletion(current)
+  } catch (error) {
+    historySaved = false
+    console.error("Reminder completed but local history was not saved", error)
+  }
+  const cacheSaved = removeReminderFromSnapshot(id)
+  return cacheSaved && historySaved ? "applied" : "appliedCacheStale"
 }
 
 export function nextWidgetRefresh(

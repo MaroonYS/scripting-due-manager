@@ -208,16 +208,7 @@ export function isOccurrenceInFuture(
   dateKey: string,
   now = new Date(),
 ): boolean {
-  const effectiveDateKey = actionDateKey(dateKey, item.remindBeforeDays)
-  if (item.includesTime) {
-    return dateKeyToLocalDate(
-      effectiveDateKey,
-      true,
-      item.hour,
-      item.minute,
-    ).getTime() > now.getTime()
-  }
-  return calendarDayDifference(localDateKey(now), effectiveDateKey) > 0
+  return actionTimestamp({ ...item, dueDate: dateKey }) > now.getTime()
 }
 
 type DueStatusInput = {
@@ -231,6 +222,11 @@ type DueStatusInput = {
 
 export function actionTimestamp(item: DueStatusInput): number {
   const remindBeforeDays = normalizeRemindBeforeDays(item.remindBeforeDays)
+  // An advance window and an all-day due item both become actionable at local
+  // midnight, not at the item's clock time or the end of the calendar day.
+  if (remindBeforeDays > 0 || !item.includesTime) {
+    return dateKeyToLocalDate(actionDateKey(item.dueDate, remindBeforeDays), true, 0, 0).getTime()
+  }
   if (
     remindBeforeDays === 0
     && typeof item.dueTimestamp === "number"
@@ -274,7 +270,13 @@ export function dueStatus(
     return { days: 0, overdue: true, needsAction: true, label: "已到期", color: "systemRed" }
   }
   if (actualDays === 0) {
-    return { days: 0, overdue: false, needsAction: true, label: "今天", color: "systemOrange" }
+    return {
+      days: 0,
+      overdue: false,
+      needsAction: actionTimestamp({ ...item, dueDate: actualDateKey }) <= now.getTime(),
+      label: "今天",
+      color: "systemOrange",
+    }
   }
 
   const remindBeforeDays = normalizeRemindBeforeDays(item.remindBeforeDays)

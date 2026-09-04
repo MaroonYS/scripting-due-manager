@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.4.2",
-  "description": "Track due dates and Apple Reminders with custom recurrence intervals, per-item advance action dates, and readable system-language widgets.",
+  "version": "2.5.0",
+  "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.4.2 places Advance reminder inside the same Recurrence section and uses native LabeledContent rows so Interval and Advance reminder stay visible beside their values. The interval keeps its dynamic day, week, month, or year unit, and manual updates now use a fresh download request. Existing items, recurrence behavior, advance action dates, and schema v3 storage remain unchanged.",
-    "zh": "2.4.2 将提前设置并入同一个「重复」分组，并使用原生 LabeledContent 让「间隔」和「提前提醒」始终显示在数值左侧。间隔值仍按周期动态显示天、周、个月或年，手动更新入口现在会发起新的下载请求。已有事项、周期规则、提前行动日与 schema v3 存储均保持不变。",
-    "zh-Hans": "2.4.2 将提前设置并入同一个「重复」分组，并使用原生 LabeledContent 让「间隔」和「提前提醒」始终显示在数值左侧。间隔值仍按周期动态显示天、周、个月或年，手动更新入口现在会发起新的下载请求。已有事项、周期规则、提前行动日与 schema v3 存储均保持不变。",
-    "zh-Hant": "2.4.2 將提前設定併入同一個「重複」分組，並使用原生 LabeledContent 讓「間隔」和「提前提醒」始終顯示在數值左側。間隔值仍按週期動態顯示天、週、個月或年，手動更新入口現在會發起新的下載請求。現有事項、週期規則、提前行動日與 schema v3 儲存均保持不變。"
+    "en": "2.5.0 adds completion history, safe undo for manual items, local snapshots, JSON backup and restore, optional local notifications, and a checked update page with a pre-install snapshot. Small widgets show precise time beside notes without moving the title or preview. Advance-action timing and sync failure feedback are improved, and collections over 1,000 items are preserved. Notifications are off by default and require subsequent runs to replenish their rolling schedule.",
+    "zh": "2.5.0 新增完成记录、手动事项安全撤销、本机快照、JSON 备份恢复、可选本地通知，以及安装前备份的版本检查页。小型组件在备注行右侧显示具体时间，不移动标题和预告。统一提前处理时刻，改善同步失败提示，修复超过 1,000 条事项被截断。通知默认关闭，滚动排程需后续运行续排。",
+    "zh-Hans": "2.5.0 新增完成记录、手动事项安全撤销、本机快照、JSON 备份恢复、可选本地通知，以及安装前备份的版本检查页。小型组件在备注行右侧显示具体时间，不移动标题和预告。统一提前处理时刻，改善同步失败提示，修复超过 1,000 条事项被截断。通知默认关闭，滚动排程需后续运行续排。",
+    "zh-Hant": "2.5.0 新增完成記錄、手動事項安全撤銷、本機快照、JSON 備份還原、可選本機通知，以及安裝前備份的版本檢查頁。小型元件在備註行右側顯示具體時間，不移動標題和預告。統一提前處理時刻，改善同步失敗提示，修復超過 1,000 筆事項被截斷。通知預設關閉，滾動排程需後續執行補充。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

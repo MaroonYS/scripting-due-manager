@@ -1088,7 +1088,7 @@ test("future items sort by their early action date before their real due date", 
   assert.deepEqual(sorted.map(value => value.id), ["earlier-action", "sooner-due"])
 })
 
-test("same-day timed items sort chronologically before date-only items", () => {
+test("already actionable all-day items precede future timed items, which sort chronologically", () => {
   const now = new Date(2026, 7, 30, 8, 0)
   const sorted = sortDueItems([
     displayItem({ id: "date-only", dueDate: "2026-08-30" }),
@@ -1107,7 +1107,7 @@ test("same-day timed items sort chronologically before date-only items", () => {
       dueTimestamp: new Date(2026, 7, 30, 9, 0).getTime(),
     }),
   ], now)
-  assert.deepEqual(sorted.map(value => value.id), ["early", "late", "date-only"])
+  assert.deepEqual(sorted.map(value => value.id), ["date-only", "early", "late"])
 })
 
 test("manual widget completion is idempotent for an old occurrence button", () => {
@@ -1385,8 +1385,8 @@ test("widget refresh targets a near timed due date before midnight", () => {
 })
 
 test("widget refresh targets both timed early-action and real-due transitions", () => {
-  const beforeAction = new Date(2026, 8, 7, 12, 0)
-  const action = new Date(2026, 8, 7, 18, 0)
+  const beforeAction = new Date(2026, 8, 6, 23, 0)
+  const action = new Date(2026, 8, 7, 0, 0)
   const due = new Date(2026, 8, 10, 18, 0)
   const earlyTimedItem = displayItem({
     dueDate: "2026-09-10",
@@ -2360,7 +2360,7 @@ test("completion intent keeps one persisted transition and requests one widget r
   assert.doesNotMatch(source, /renderedAt|renderGeneration|canRunWidgetCompletionIntent|shouldReload/)
   assert.match(source, /completionIntentQueue/)
   assert.match(source, /result === "appliedCacheStale"/)
-  assert.match(source, /提醒已完成，但本地缓存未能更新/)
+  assert.match(source, /提醒已完成，但本地缓存或完成记录未能保存/)
 })
 
 test("widget view uses native queue transitions, safe controls, and unified list insets", () => {
@@ -2663,7 +2663,7 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
   )
   assert.match(
     smallBody,
-    /<SmallDueItem\s+item=\{item\}\s+nextItem=\{nextItem\}\s+displayWidth=\{displayWidth\}\s*\/>/,
+    /<SmallDueItem\s+item=\{item\}\s+nextItem=\{nextItem\}\s+displayWidth=\{displayWidth\}\s+issue=\{issue\}\s*\/>/,
   )
   assert.match(
     smallWidget,
@@ -2731,7 +2731,7 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
     /padding=\{\{[\s\S]*?trailing: 5,[\s\S]*?\}\}/,
     "the compact header and current detail must keep the same 5 pt horizontal inset",
   )
-  assert.match(smallItem, /<SmallCurrentDetail item=\{item\} detail=\{detail\} \/>/)
+  assert.match(smallItem, /<SmallCurrentDetail item=\{item\} detail=\{detail\} issue=\{issue\} \/>/)
   assert.equal(smallItem.match(/height: 19, alignment: "leading"/g)?.length, 2)
   assert.equal(smallItem.match(/height: 18, alignment: "leading"/g)?.length, 1)
   assert.doesNotMatch(smallItem, /width: 39/)
@@ -3021,12 +3021,12 @@ test("item editor derives its type picker from the centralized definitions", () 
   assert.doesNotMatch(source, /<Text tag="custom">/)
 })
 
-test("published script keeps a fixed remote URL and cache-busts manual updates", () => {
+test("published script keeps a fixed remote URL and exposes a checked backed-up update flow", () => {
   const manifest = JSON.parse(readFileSync(
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.4.2")
+  assert.equal(manifest.version, "2.5.0")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 
@@ -3034,14 +3034,12 @@ test("published script keeps a fixed remote URL and cache-busts manual updates",
     new URL("../到期管家/index.tsx", import.meta.url),
     "utf8",
   )
-  assert.match(
-    source,
-    /const LATEST_PACKAGE_URL = "https:\/\/github\.com\/MaroonYS\/scripting-due-manager\/releases\/latest\/download\/due-manager\.scripting"/,
-  )
-  assert.match(
-    source,
-    /const MANUAL_UPDATE_PACKAGE_URL = `\$\{LATEST_PACKAGE_URL\}\?from=\$\{encodeURIComponent\(Script\.metadata\.version\)\}&t=\$\{Date\.now\(\)\}`/,
-  )
+  const updates = readFileSync(new URL("../到期管家/src/updates.ts", import.meta.url), "utf8")
+  const updateView = readFileSync(new URL("../到期管家/src/update_view.tsx", import.meta.url), "utf8")
+  assert.match(updates, /const LATEST_PACKAGE_URL = "https:\/\/github\.com\/MaroonYS\/scripting-due-manager\/releases\/latest\/download\/due-manager\.scripting"/)
+  assert.match(updates, /from=\$\{encodeURIComponent\(currentVersion\)\}&t=/)
+  assert.match(updateView, /await checkLatestRelease\(\)/)
+  assert.ok(updateView.indexOf("createLocalSnapshot(`更新至") < updateView.indexOf("await Safari.openURL"))
   const versionSectionStart = source.indexOf("本机持久存储已启用")
   const versionSectionEnd = source.indexOf("</Section>", versionSectionStart)
   assert.ok(versionSectionStart >= 0 && versionSectionEnd > versionSectionStart)
@@ -3049,11 +3047,11 @@ test("published script keeps a fixed remote URL and cache-busts manual updates",
   assert.match(versionSection, /<Text>版本<\/Text>[\s\S]*?\{Script\.metadata\.version\}/)
   assert.match(
     versionSection,
-    /<Link url=\{Script\.createImportScriptsURLScheme\(\[MANUAL_UPDATE_PACKAGE_URL\]\)\}>[\s\S]*?<Label title="检查并更新版本" systemImage="arrow\.down\.circle" \/>[\s\S]*?<\/Link>/,
+    /<NavigationLink destination=\{<UpdateView \/>\}>[\s\S]*?<Label title="检查并更新版本" systemImage="arrow\.down\.circle" \/>[\s\S]*?<\/NavigationLink>/,
   )
   assert.ok(
     versionSection.indexOf("Script.metadata.version")
-      < versionSection.indexOf("Script.createImportScriptsURLScheme"),
+      < versionSection.indexOf("<UpdateView"),
     "the update entry must appear beside and immediately after the displayed version",
   )
 })
