@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
 import test from "node:test"
 import { actionTimestamp, advanceManualItem, createRecurrenceRule, dueStatus, isOccurrenceInFuture } from "../到期管家/src/date.ts"
 import {
@@ -558,29 +559,69 @@ test("changed trigger times repair existing requests ahead of the ordinary three
   assert.ok(api.pending.every(value => new Date(JSON.parse(value.content.userInfo.dueManagerKey)[3]).getHours() === 10))
 })
 
-test("time-zone changes repair the entire existing queue without leaving seven items unplanned", async () => {
-  const originalTZ = process.env.TZ
-  try {
-    process.env.TZ = "Asia/Hong_Kong"
-    storage()
-    const api = runtime()
-    const items = Array.from({ length: 10 }, (_, i) => item({ id: `zone-${i}`, includesTime: true, hour: 9, minute: i }))
-    await reconcileNotifications(items, { now: NOW, runtime: api.adapter, settings: config(), locale: "en-US" })
-    const before = api.scheduled[0]
-    process.env.TZ = "America/New_York"
-    const result = await reconcileNotifications(items, {
-      now: NOW, runtime: api.adapter, settings: config(), locale: "en-US", maxNewRequests: 3, leaseWaitMs: 0,
+test("time-zone changes repair the entire existing queue without leaving seven items unplanned", () => {
+  const items = Array.from({ length: 10 }, (_, i) => item({ id: `zone-${i}`, includesTime: true, hour: 9, minute: i }))
+  const moduleURL = new URL("../到期管家/src/notifications.ts", import.meta.url).href
+  const reconcileInZone = (zone: string, previousPending: unknown[] = []) => {
+    // Bun caches runtime TZ changes differently on Linux/macOS. Start a fresh
+    // process in each real zone, carrying the old native queue into the new one.
+    const script = `
+      import { reconcileNotifications, NOTIFICATION_OWNER } from ${JSON.stringify(moduleURL)};
+      const values = new Map();
+      globalThis.Storage = {
+        get: key => values.get(key) ?? null,
+        set: (key, value) => { values.set(key, value); return true },
+        contains: key => values.has(key),
+        remove: key => values.delete(key),
+      };
+      let pending = ${JSON.stringify(previousPending)};
+      const scheduled = [];
+      const cancelled = [];
+      const runtime = {
+        getAllPendings: async () => [...pending],
+        removePendings: async ids => {
+          cancelled.push(...ids);
+          pending = pending.filter(request => !ids.includes(request.identifier));
+        },
+        schedule: async planned => {
+          scheduled.push(planned);
+          pending.push({ identifier: ${JSON.stringify(zone)} + '-' + scheduled.length,
+            content: { userInfo: { dueManagerOwner: NOTIFICATION_OWNER, dueManagerKey: planned.key } } });
+        },
+      };
+      const result = await reconcileNotifications(${JSON.stringify(items)}, {
+        now: new Date("2026-09-01T12:00:00Z"), runtime,
+        settings: ${JSON.stringify(config())}, locale: "en-US",
+        maxNewRequests: ${previousPending.length ? 3 : 40}, leaseWaitMs: 0,
+      });
+      console.log(JSON.stringify({ result, pending, scheduled, cancelled,
+        offset: new Date("2026-09-30T12:00:00Z").getTimezoneOffset(),
+        localHours: pending.map(request => new Date(JSON.parse(request.content.userInfo.dueManagerKey)[3]).getHours()),
+      }));
+    `
+    const child = spawnSync(process.execPath, ["--eval", script], {
+      encoding: "utf8", env: { ...process.env, TZ: zone }, timeout: 10000,
     })
-    assert.equal(result.state, "ready")
-    assert.equal(result.pendingCount, 10)
-    assert.equal(api.scheduled.length, 20)
-    assert.equal(api.scheduled[10].identity, before.identity)
-    assert.notEqual(api.scheduled[10].fireAt, before.fireAt)
-    assert.ok(api.pending.every(value => new Date(JSON.parse(value.content.userInfo.dueManagerKey)[3]).getHours() === 9))
-  } finally {
-    if (originalTZ === undefined) delete process.env.TZ
-    else process.env.TZ = originalTZ
+    assert.equal(child.status, 0, child.stderr || String(child.error ?? ""))
+    return JSON.parse(child.stdout) as {
+      result: { state: string; pendingCount: number }; pending: unknown[];
+      scheduled: PlannedNotification[]; cancelled: string[]; offset: number; localHours: number[];
+    }
   }
+  const before = reconcileInZone("Asia/Hong_Kong")
+  const after = reconcileInZone("America/New_York", before.pending)
+  assert.equal(before.offset, -480)
+  assert.equal(after.offset, 240)
+  assert.equal(before.result.state, "ready")
+  assert.equal(before.pending.length, 10)
+  assert.equal(after.result.state, "ready")
+  assert.equal(after.result.pendingCount, 10)
+  assert.equal(before.scheduled.length + after.scheduled.length, 20)
+  assert.equal(after.cancelled.length, 10)
+  assert.equal(after.pending.length, 10)
+  assert.equal(after.scheduled[0].identity, before.scheduled[0].identity)
+  assert.equal(after.scheduled[0].fireAt - before.scheduled[0].fireAt, 12 * 60 * 60 * 1000)
+  assert.ok(after.localHours.every(hour => hour === 9))
 })
 
 test("failed cosmetic replacement retains the valid old notification", async () => {
