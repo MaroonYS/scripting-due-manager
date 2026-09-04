@@ -134,6 +134,8 @@ export interface ReminderLoadResult {
 
 export interface WidgetActionStatus {
   schemaVersion: 1
+  /** New warnings have a unique identity; legacy messages use their timestamp. */
+  eventID?: string
   createdAt: number
   message: string
 }

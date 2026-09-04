@@ -22,6 +22,7 @@ import type {
   ReminderLoadResult,
   ReminderSnapshot,
 } from "./types"
+import { currentWidgetLocale, widgetText } from "./widget_localization"
 
 export async function loadReminderItems(
   horizonDays: number,
@@ -65,7 +66,16 @@ export async function loadReminderItems(
       error: snapshotError,
     }
   } catch (error) {
-    const snapshot = readSnapshot()
+    let snapshot: ReminderSnapshot | null
+    try {
+      snapshot = readSnapshot()
+    } catch (cacheError) {
+      // A broken optional cache must not hide otherwise usable manual items.
+      return {
+        items: [], fetchedAt: null, live: false, fromCache: false,
+        error: `${readableError(error)}；提醒缓存读取失败：${readableError(cacheError)}`,
+      }
+    }
     const matchingSnapshot = snapshot != null
       && sameCalendarFilter(snapshot.calendarFilterIDs, calendarFilterIDs)
       ? snapshot
@@ -138,10 +148,17 @@ export function findReminderDisplayItemForCompletion(
   id: string,
   completionKey: string,
 ): DisplayDueItem | null {
-  const cached = readSnapshot()?.items.find(item => item.id === id)
-  if (!cached) return null
-  const item = cacheItemToDisplay(cached, false)
-  return item.completionKey === completionKey ? item : null
+  try {
+    const cached = readSnapshot()?.items.find(item => item.id === id)
+    if (!cached) return null
+    const item = cacheItemToDisplay(cached, false)
+    return item.completionKey === completionKey ? item : null
+  } catch (error) {
+    // This lookup only supplies animation feedback. The actual completion
+    // re-reads EventKit and verifies the occurrence and read-only permission.
+    console.error("Reminder completion feedback cache unavailable", error)
+    return null
+  }
 }
 
 export function reminderOccurrenceKey(
@@ -245,7 +262,7 @@ function reminderToCacheItem(reminder: any): CachedReminderItem | null {
   const dueTimestamp = includesTime
     ? computed.getTime()
     : dateKeyToLocalDate(dueDate, false).getTime()
-  const title = String(reminder.title ?? "未命名提醒").slice(0, 200)
+  const title = normalizedReminderTitle(reminder.title)
   const calendarTitle = String(reminder.calendar?.title ?? "提醒事项").slice(0, 80)
 
   return {
@@ -265,6 +282,16 @@ function reminderToCacheItem(reminder: any): CachedReminderItem | null {
 }
 
 function cacheItemToDisplay(item: CachedReminderItem, stale: boolean): DisplayDueItem {
+  // Cached timed reminders are instants, while all-day reminders are floating
+  // dates. Rebuild presentation fields after a device time-zone change without
+  // changing the old widget's occurrence key or granting completion access.
+  const dueTimestamp = item.includesTime
+    ? item.dueTimestamp
+    : dateKeyToLocalDate(item.dueDate, false).getTime()
+  const localDate = new Date(dueTimestamp)
+  const dueDate = item.includesTime
+    ? formatDateKey(localDate.getFullYear(), localDate.getMonth() + 1, localDate.getDate())
+    : item.dueDate
   const icon = resolveReminderIcon(
     item.title,
     item.calendarTitle,
@@ -279,11 +306,11 @@ function cacheItemToDisplay(item: CachedReminderItem, stale: boolean): DisplayDu
     kind: "reminder",
     iconName: icon.name,
     iconColor: icon.color,
-    dueDate: item.dueDate,
+    dueDate,
     includesTime: item.includesTime,
-    hour: item.hour,
-    minute: item.minute,
-    dueTimestamp: item.dueTimestamp,
+    hour: item.includesTime ? localDate.getHours() : 0,
+    minute: item.includesTime ? localDate.getMinutes() : 0,
+    dueTimestamp,
     remindBeforeDays: 0,
     amount: "",
     note: item.calendarTitle,
@@ -294,11 +321,13 @@ function cacheItemToDisplay(item: CachedReminderItem, stale: boolean): DisplayDu
 }
 
 function removeReminderFromSnapshot(id: string): boolean {
-  const snapshot = readSnapshot()
-  if (!snapshot) return true
-  const items = snapshot.items.filter(item => item.id !== id)
-  if (items.length === snapshot.items.length) return true
   try {
+    // Reads, legacy migration and writes can all fail after EventKit saved.
+    // None of them may reclassify an applied completion as a failed action.
+    const snapshot = readSnapshot()
+    if (!snapshot) return true
+    const items = snapshot.items.filter(item => item.id !== id)
+    if (items.length === snapshot.items.length) return true
     return Storage.set(
       REMINDER_SNAPSHOT_KEY,
       { ...snapshot, items },
@@ -340,12 +369,13 @@ function normalizeCachedItem(raw: any): CachedReminderItem | null {
     || typeof raw.includesTime !== "boolean"
     || typeof raw.dueTimestamp !== "number"
     || !Number.isFinite(raw.dueTimestamp)
+    || (raw.includesTime && !Number.isFinite(new Date(raw.dueTimestamp).getTime()))
   ) {
     return null
   }
   return {
     id: raw.id,
-    title: raw.title.slice(0, 200),
+    title: normalizedReminderTitle(raw.title),
     dueDate: raw.dueDate,
     includesTime: raw.includesTime,
     hour: boundedInteger(raw.hour, 0, 23, 0),
@@ -362,6 +392,11 @@ function urgencyRank(overdue: boolean, needsAction: boolean): number {
   if (overdue) return 0
   if (needsAction) return 1
   return 2
+}
+
+function normalizedReminderTitle(value: unknown): string {
+  const title = typeof value === "string" ? value.trim().slice(0, 200) : ""
+  return title || widgetText("untitledReminder", currentWidgetLocale())
 }
 
 function integerOr(value: unknown, fallback: number): number {

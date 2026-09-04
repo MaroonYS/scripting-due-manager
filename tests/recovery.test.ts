@@ -6,9 +6,10 @@ import {
   deleteItem, listCompletionHistory, listLocalSnapshots, loadState,
   LOCAL_SNAPSHOTS_KEY, manualOccurrenceKey, MAX_COMPLETION_HISTORY,
   MAX_LOCAL_SNAPSHOTS, restoreLocalSnapshot, saveState, STATE_KEY,
-  undoManualCompletion, updateSettings, upsertItem,
+  undoManualCompletion, updateSettings, upsertItem, readRecoveryStatus,
+  RECOVERY_ARCHIVE_KEY, MAX_STATE_TIMESTAMP,
 } from "../到期管家/src/storage.ts"
-import { createBackupJSON, parseBackupJSON, restoreBackupJSON } from "../到期管家/src/recovery.ts"
+import { createBackupJSON, createRecoveryArchiveJSON, parseBackupJSON, restoreBackupJSON } from "../到期管家/src/recovery.ts"
 import { completeReminderOccurrence } from "../到期管家/src/reminders.ts"
 import { defaultNotificationSettings, loadNotificationSettings, NOTIFICATION_SETTINGS_KEY, updateNotificationSettings } from "../到期管家/src/notifications.ts"
 import type { AppState, ManualDueItem } from "../到期管家/src/types.ts"
@@ -334,6 +335,300 @@ test("old backup without notification settings is accepted and leaves notificati
     assert.equal(loadNotificationSettings().hour, 16)
     const invalid = { ...raw, notificationSettings: { ...defaultNotificationSettings(), hour: 24 } }
     assert.throws(() => parseBackupJSON(JSON.stringify(invalid)), /通知设置无效/)
+  } finally { env.cleanup() }
+})
+
+test("valid JSON restores a damaged current state only after archiving the exact original", () => {
+  const env = setup()
+  try {
+    const json = createBackupJSON()
+    const damaged = { schemaVersion: 3, items: [{ title: "Preserve broken original", dueDate: "wrong" }], settings: { includeReminders: true } }
+    env.values.set(STATE_KEY, damaged)
+    assert.equal(readRecoveryStatus().status, "damaged")
+    assert.equal(readRecoveryStatus().canRestore, true)
+    const restored = restoreBackupJSON(json)
+    assert.equal(restored.items[0].title, "Monthly subscription")
+    const archive = JSON.parse(createRecoveryArchiveJSON())
+    assert.deepEqual(archive.entries[0].stateRaw, damaged)
+    assert.equal(readRecoveryStatus().status, "ready")
+    assert.equal(readRecoveryStatus().archiveCount, 1)
+  } finally { env.cleanup() }
+})
+
+test("a valid local snapshot remains recoverable when current data is corrupt", () => {
+  const env = setup()
+  try {
+    const snapshot = createLocalSnapshot("Known good")
+    const damaged = { schemaVersion: 3, items: null, settings: {} }
+    env.values.set(STATE_KEY, damaged)
+    const restored = restoreLocalSnapshot(snapshot.id)
+    assert.equal(restored.items.length, 1)
+    assert.deepEqual(JSON.parse(createRecoveryArchiveJSON()).entries[0].stateRaw, damaged)
+  } finally { env.cleanup() }
+})
+
+test("recovery archive write failure prevents replacement of damaged data", () => {
+  const env = setup()
+  try {
+    const json = createBackupJSON()
+    const damaged = { schemaVersion: 3, items: [null] }
+    env.values.set(STATE_KEY, damaged)
+    env.failures.add(RECOVERY_ARCHIVE_KEY)
+    assert.throws(() => restoreBackupJSON(json), /隔离|原始|保护/)
+    assert.deepEqual(env.values.get(STATE_KEY), damaged)
+  } finally { env.cleanup() }
+})
+
+test("recovery never overwrites a state from a newer unknown schema", () => {
+  const env = setup()
+  try {
+    const json = createBackupJSON()
+    const snapshot = createLocalSnapshot("Current")
+    const future = { schemaVersion: 99, items: [], futureField: "Preserve future data" }
+    env.values.set(STATE_KEY, future)
+    assert.equal(readRecoveryStatus().status, "unsupported")
+    assert.equal(readRecoveryStatus().canRestore, false)
+    assert.throws(() => restoreBackupJSON(json), /不受支持|较新|版本/)
+    assert.throws(() => restoreLocalSnapshot(snapshot.id), /不受支持|较新|版本/)
+    assert.deepEqual(env.values.get(STATE_KEY), future)
+  } finally { env.cleanup() }
+})
+
+test("recovery preflight is read-only and safely handles unavailable storage", () => {
+  const env = setup()
+  const storage = (globalThis as any).Storage
+  let writes = 0
+  try {
+    ;(globalThis as any).Storage = {
+      ...storage,
+      get: () => { throw new Error("Storage temporarily unavailable") },
+      set: () => { writes += 1; return true },
+    }
+    const status = readRecoveryStatus()
+    assert.equal(status.status, "damaged")
+    assert.equal(status.canRestore, false)
+    assert.match(status.message ?? "", /Storage temporarily unavailable/)
+    assert.equal(writes, 0)
+    assert.throws(() => restoreBackupJSON("{}"))
+    assert.equal(writes, 0)
+  } finally { env.cleanup() }
+})
+
+test("a transient snapshot read error cannot be misclassified as corruption and reset the index", () => {
+  const env = setup()
+  const storage = (globalThis as any).Storage
+  try {
+    createLocalSnapshot("Preserve me")
+    const originalIndex = structuredClone(env.values.get(LOCAL_SNAPSHOTS_KEY))
+    const json = createBackupJSON()
+    ;(globalThis as any).Storage = {
+      ...storage,
+      get: (key: string, options?: { shared: boolean }) => {
+        if (key === LOCAL_SNAPSHOTS_KEY) throw new Error("Transient read failure")
+        return storage.get(key, options)
+      },
+    }
+    assert.equal(readRecoveryStatus().canRestore, false)
+    assert.throws(() => restoreBackupJSON(json), /Transient read failure/)
+    assert.deepEqual(env.values.get(LOCAL_SNAPSHOTS_KEY), originalIndex)
+    assert.equal(env.values.has(RECOVERY_ARCHIVE_KEY), false)
+  } finally { env.cleanup() }
+})
+
+test("raw recovery export is available for unsupported versions and never changes any stores", () => {
+  const env = setup()
+  try {
+    const future = { schemaVersion: 99, items: [], newData: { preserve: "exactly" } }
+    env.values.set(STATE_KEY, future)
+    const before = structuredClone([...env.values])
+    const archive = JSON.parse(createRecoveryArchiveJSON())
+    assert.deepEqual(archive.current.stateRaw, future)
+    assert.equal(archive.current.stateSource, "shared")
+    assert.deepEqual([...env.values], before)
+    assert.deepEqual(archive.entries, [])
+  } finally { env.cleanup() }
+})
+
+test("failed recovery state write preserves quarantined source and rolls back exact notification data", () => {
+  const env = setup()
+  try {
+    const json = createBackupJSON()
+    const damaged = { schemaVersion: 3, items: [null], privateNote: "Do not lose me" }
+    const notifications = { ...defaultNotificationSettings(), enabled: true, customMarker: "Preserve raw extra data" }
+    env.values.set(STATE_KEY, damaged)
+    env.values.set(NOTIFICATION_SETTINGS_KEY, notifications)
+    env.failures.add(STATE_KEY)
+    assert.throws(() => restoreBackupJSON(json), /恢复失败/)
+    assert.deepEqual(env.values.get(STATE_KEY), damaged)
+    assert.deepEqual(env.values.get(NOTIFICATION_SETTINGS_KEY), notifications)
+    const archive = JSON.parse(createRecoveryArchiveJSON())
+    assert.deepEqual(archive.entries[0].stateRaw, damaged)
+    assert.deepEqual(archive.entries[0].notificationSettingsRaw, notifications)
+  } finally { env.cleanup() }
+})
+
+test("unknown future snapshot and notification schemas are never replaced during recovery", () => {
+  const env = setup()
+  try {
+    const json = createBackupJSON()
+    for (const key of [LOCAL_SNAPSHOTS_KEY, NOTIFICATION_SETTINGS_KEY]) {
+      const future = { schemaVersion: 99, futureData: key }
+      env.values.set(key, future)
+      assert.equal(readRecoveryStatus().status, "unsupported")
+      assert.equal(readRecoveryStatus().canRestore, false)
+      assert.throws(() => restoreBackupJSON(json), /不受支持|较新/)
+      assert.deepEqual(env.values.get(key), future)
+      env.values.delete(key)
+    }
+  } finally { env.cleanup() }
+})
+
+test("JSON recovery can quarantine a damaged snapshot index without discarding it", () => {
+  const env = setup()
+  try {
+    const json = createBackupJSON()
+    const index = { schemaVersion: 1, snapshots: [{ id: "bad", state: null }] }
+    env.values.set(LOCAL_SNAPSHOTS_KEY, index)
+    restoreBackupJSON(json)
+    const archive = JSON.parse(createRecoveryArchiveJSON())
+    assert.deepEqual(archive.entries[0].snapshotsRaw, index)
+    assert.equal(listLocalSnapshots().length, 1)
+    assert.equal(loadState().items.length, 1)
+  } finally { env.cleanup() }
+})
+
+test("restoring a backup or local snapshot preserves only genuinely eligible undo records", () => {
+  const env = setup([item(), item({ id: "edited-later" })])
+  try {
+    for (const current of loadState().items) completeManualOccurrence(current.id, manualOccurrenceKey(current))
+    const changed = loadState().items.find(value => value.id === "edited-later")!
+    upsertItem({ ...changed, note: "Later note", updatedAt: Date.now() }, changed.updatedAt)
+    const originalHistory = listCompletionHistory()
+    const validID = originalHistory.find(record => record.itemID === "manual-1")!.id
+    const staleID = originalHistory.find(record => record.itemID === "edited-later")!.id
+    const json = createBackupJSON()
+    const snapshot = createLocalSnapshot("Completed records")
+    const restored = restoreBackupJSON(json)
+    assert.notEqual(restored.items[0].updatedAt, originalHistory.find(record => record.itemID === "manual-1")!.after!.updatedAt)
+    assert.throws(() => undoManualCompletion(staleID), /完成后已被编辑/)
+    undoManualCompletion(validID)
+    assert.equal(loadState().items[0].dueDate, "2026-09-30")
+    restoreLocalSnapshot(snapshot.id)
+    undoManualCompletion(validID)
+    assert.equal(loadState().items[0].dueDate, "2026-09-30")
+    assert.throws(() => undoManualCompletion(staleID), /完成后已被编辑/)
+  } finally { env.cleanup() }
+})
+
+test("unsafe or unreasonable imported timestamps are rejected before changing either store", () => {
+  const env = setup()
+  try {
+    const original = loadState()
+    const raw = JSON.parse(createBackupJSON())
+    for (const value of [1e100, Number.MAX_SAFE_INTEGER, MAX_STATE_TIMESTAMP + 1, -1, 1.25]) {
+      for (const field of ["createdAt", "updatedAt"]) {
+        const invalid = structuredClone(raw)
+        invalid.state.items[0][field] = value
+        assert.throws(() => restoreBackupJSON(JSON.stringify(invalid)), `${field}: ${value}`)
+      }
+      const invalid = structuredClone(raw)
+      invalid.state.updatedAt = value
+      assert.throws(() => parseBackupJSON(JSON.stringify(invalid)))
+    }
+    assert.deepEqual(loadState(), original)
+    assert.deepEqual(listLocalSnapshots(), [])
+  } finally { env.cleanup() }
+})
+
+test("unsafe stored revisions fail closed but are recoverable, and writes reject overflow", () => {
+  const env = setup()
+  try {
+    const json = createBackupJSON()
+    env.values.set(STATE_KEY, { ...defaultState(2), items: [item({ updatedAt: 1e100 })] })
+    assert.throws(() => loadState(), /时间|版本|损坏/)
+    assert.equal(readRecoveryStatus().status, "damaged")
+    restoreBackupJSON(json)
+    const current = loadState().items[0]
+    const oldKey = manualOccurrenceKey(current)
+    const edited = upsertItem({ ...current, title: "New title", updatedAt: Date.now() }, current.updatedAt)
+    assert.ok(edited.items[0].updatedAt > current.updatedAt)
+    assert.equal(completeManualOccurrence(current.id, oldKey), "stale")
+    assert.throws(() => upsertItem({ ...edited.items[0], updatedAt: 1e100 }), /时间|版本|损坏/)
+  } finally { env.cleanup() }
+})
+
+test("legacy maximum-length duplicate IDs stay bounded and stable through repeated saves and backups", () => {
+  const base = "x".repeat(160)
+  const existingSuffix = `${base.slice(0, 148)}-duplicate-2`
+  const env = setup([item({ id: base, title: "Original" }), item({ id: base, title: "Duplicate" }), item({ id: existingSuffix, title: "Reserved" })])
+  try {
+    const ids = loadState().items.map(value => value.id)
+    assert.equal(new Set(ids).size, 3)
+    assert.ok(ids.every(id => id.length <= 160))
+    assert.equal(ids[2], existingSuffix)
+    for (let index = 0; index < 3; index += 1) {
+      updateSettings({ showAmounts: index % 2 === 0 })
+      assert.deepEqual(loadState().items.map(value => value.id), ids)
+      assert.equal(parseBackupJSON(createBackupJSON()).itemCount, 3)
+    }
+  } finally { env.cleanup() }
+})
+
+test("legacy already-overlong duplicate IDs and their manual history migrate together", () => {
+  const oldID = `${"x".repeat(160)}-duplicate-2`
+  const before = item({ id: oldID, recurrence: null })
+  const after = { ...before, enabled: false, updatedAt: 3 }
+  const env = setup([item({ id: "x".repeat(160) }), after])
+  try {
+    env.values.set(STATE_KEY, { ...defaultState(3), items: [item({ id: "x".repeat(160) }), after], completionHistory: [{
+      id: "legacy-completion", source: "manual", itemID: oldID, title: before.title,
+      dueDate: before.dueDate, completedAt: 3, action: "complete", undoneAt: null, before, after,
+    }] })
+    const state = loadState()
+    assert.ok(state.items[1].id.length <= 160)
+    assert.equal(state.completionHistory![0].itemID, state.items[1].id)
+    assert.equal(parseBackupJSON(createBackupJSON()).historyCount, 1)
+    undoManualCompletion("legacy-completion")
+    assert.equal(loadState().items[1].enabled, true)
+  } finally { env.cleanup() }
+})
+
+test("legacy overlong IDs preserve notification opt-outs and remain backup roundtrip compatible", () => {
+  const oldID = `${"x".repeat(160)}-duplicate-2`
+  const env = setup([item({ id: "x".repeat(160) }), item({ id: oldID })])
+  try {
+    env.values.set(NOTIFICATION_SETTINGS_KEY, {
+      ...defaultNotificationSettings(), enabled: true, mutedItemIDs: [oldID],
+    })
+    const migratedID = loadState().items[1].id
+    assert.equal(migratedID.length, 160)
+    assert.deepEqual(loadNotificationSettings().mutedItemIDs, [migratedID])
+    const json = createBackupJSON()
+    assert.deepEqual(parseBackupJSON(json).notificationSettings!.mutedItemIDs, [migratedID])
+    const legacyJSON = JSON.parse(json)
+    legacyJSON.state.items[1].id = oldID
+    legacyJSON.notificationSettings.mutedItemIDs = [oldID]
+    const legacyPreview = parseBackupJSON(JSON.stringify(legacyJSON))
+    assert.deepEqual(legacyPreview.notificationSettings!.mutedItemIDs, [migratedID])
+    assert.equal(legacyPreview.state.items[1].id, migratedID)
+    restoreBackupJSON(JSON.stringify(legacyJSON))
+    assert.deepEqual(loadNotificationSettings().mutedItemIDs, [migratedID])
+  } finally { env.cleanup() }
+})
+
+test("already stored blank Apple history titles remain visible and roundtrip without dropping records", () => {
+  const env = setup()
+  try {
+    env.values.set(STATE_KEY, { ...defaultState(2), items: [item()], completionHistory: [{
+      id: "apple-blank-record", source: "reminder", itemID: "apple-id", title: "  ",
+      dueDate: "2026-09-30", completedAt: 2, action: "complete", undoneAt: null,
+    }] })
+    assert.equal(listCompletionHistory()[0].title, "未命名提醒")
+    const parsed = parseBackupJSON(createBackupJSON())
+    assert.equal(parsed.historyCount, 1)
+    const raw = JSON.parse(createBackupJSON())
+    raw.state.completionHistory[0].title = ""
+    assert.equal(parseBackupJSON(JSON.stringify(raw)).state.completionHistory![0].title, "未命名提醒")
   } finally { env.cleanup() }
 })
 

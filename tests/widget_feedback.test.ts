@@ -125,14 +125,14 @@ test("small precise time reuses the detail row without taking title or preview s
 test("small issue status replaces only auxiliary text and offers an app link", () => {
   const detail = source.slice(source.indexOf("function SmallCurrentDetail"), source.indexOf("function SmallNextItemPreview"))
   assert.match(detail, /supportingText = issue\?\.compactText \?\? detail/)
-  assert.match(detail, /<Link url=\{issue \? Script\.createRunURLScheme\(Script\.name\) : itemURL\(item\)\}>/)
+  assert.match(detail, /<Link url=\{issue \? Script\.createRunURLScheme\(Script\.name, \{ action: "widget-status" \}\) : itemURL\(item\)\}>/)
   assert.match(detail, /\{time\}/)
   assert.equal(detail.match(/height: 19/g)?.length, 1)
 })
 
 test("cached and failed list widgets show actionable last-sync feedback only when needed", () => {
   const issue = source.slice(source.indexOf("function WidgetIssueLink"), source.indexOf("function itemURL"))
-  assert.match(issue, /<Link url=\{Script\.createRunURLScheme\(Script\.name\)\}>/)
+  assert.match(issue, /<Link url=\{Script\.createRunURLScheme\(Script\.name, \{ action: "widget-status" \}\)\}>/)
   assert.match(issue, /if \(props\.remindersFromCache\)/)
   assert.match(issue, /formatWidgetLastSync\(props\.reminderFetchedAt, WIDGET_LOCALE\)/)
   assert.match(issue, /return null/)

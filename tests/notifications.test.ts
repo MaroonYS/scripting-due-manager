@@ -107,6 +107,14 @@ test("date-only notifications use selected clock time; timed due notices preserv
   assert.equal(nextNotificationForItem(item({ includesTime: true }), settings, NOW)?.fireAt, new Date(2026, 8, 30, 18, 30).getTime())
 })
 
+test("legacy long muted item IDs follow the same normalization as manual items", () => {
+  const oldID = `${"x".repeat(160)}-duplicate-2`
+  const newID = `${"x".repeat(148)}-duplicate-2`
+  const settings = normalizeNotificationSettings(config({ mutedItemIDs: [oldID, newID] }))
+  assert.deepEqual(settings.mutedItemIDs, [newID])
+  assert.equal(planNotifications([item({ id: newID })], settings, NOW).notifications.length, 0)
+})
+
 test("advance notifications use selected time and optionally notify again on actual due date", () => {
   const settings = config({ hour: 10, minute: 20, includeDueDate: true })
   const early = item({ includesTime: true, remindBeforeDays: 3 })
@@ -392,9 +400,11 @@ test("new-request budget is shared across source-change retries", async () => {
   } }
   const result = await reconcileNotifications([], { now: NOW, runtime: adapter, settings: config(), loadItems: () => items, maxNewRequests: 3 })
   assert.equal(api.scheduled.length, 3)
-  assert.equal(result.pendingCount, 2)
+  // A changed title no longer causes a valid, already-scheduled request to be
+  // discarded. It remains until the cosmetic update has budget to replace it.
+  assert.equal(result.pendingCount, 3)
   assert.equal(result.state, "limited")
-  assert.equal(api.cancelled.length, 1)
+  assert.equal(api.cancelled.length, 0)
 })
 
 test("zero-wait widget skips a busy lease without API work or persisted status changes", async () => {
@@ -457,4 +467,252 @@ test("one global preview picks the earliest eligible trigger using one shared cl
   assert.equal(result.notifications.length, 1)
   assert.equal(result.notifications[0].itemID, "advance")
   assert.equal(result.notifications[0].fireAt, new Date(2026, 8, 2, 9).getTime())
+})
+
+test("language changes replace only budgeted content and preserve every other effective reminder", async () => {
+  storage()
+  const api = runtime()
+  const items = Array.from({ length: 10 }, (_, i) => item({ id: `item-${i}`, includesTime: true, hour: 9, minute: i }))
+  await reconcileNotifications(items, { now: NOW, runtime: api.adapter, settings: config(), locale: "en-US" })
+  const originalIDs = api.pending.map(value => value.identifier)
+  let minimumPending = api.pending.length
+  const adapter = { ...api.adapter, async removePendings(ids: string[]) {
+    // A replacement has already been accepted before each original is removed.
+    assert.equal(api.pending.length, 11)
+    await api.adapter.removePendings(ids)
+    minimumPending = Math.min(minimumPending, api.pending.length)
+  } }
+  const result = await reconcileNotifications(items, {
+    now: NOW, runtime: adapter, settings: config(), locale: "zh-Hans-CN", maxNewRequests: 3, leaseWaitMs: 0,
+  })
+  assert.equal(result.pendingCount, 10)
+  assert.equal(api.pending.length, 10)
+  assert.equal(minimumPending, 10)
+  assert.equal(api.scheduled.length, 13)
+  assert.equal(originalIDs.filter(id => api.pending.some(value => value.identifier === id)).length, 7)
+  assert.equal(result.state, "limited")
+  assert.match(result.message, /有效提醒均已保留/)
+})
+
+test("stable identities are independent of titles and localized content, but occurrences differ", () => {
+  const a = planNotifications([item()], config(), NOW, 40, "en-US").notifications[0]
+  const b = planNotifications([item({ title: "Updated" })], config(), NOW, 40, "zh-Hans-CN").notifications[0]
+  const c = planNotifications([item({ dueDate: "2026-10-01" })], config(), NOW, 40, "en-US").notifications[0]
+  assert.equal(a.identity, b.identity)
+  assert.notEqual(a.key, b.key)
+  assert.notEqual(a.identity, c.identity)
+})
+
+test("v2.5 pending keys migrate in place instead of cancelling the whole queue", async () => {
+  storage()
+  const api = runtime()
+  const planned = planNotifications([item()], config(), NOW, 40, "en-US").notifications[0]
+  // Old notifications had no dueManagerIdentity, only the original tuple key.
+  api.add({ identifier: "legacy-v250", content: { userInfo: { dueManagerOwner: NOTIFICATION_OWNER, dueManagerKey: planned.key } } })
+  const result = await reconcileNotifications([item()], { now: NOW, runtime: api.adapter, settings: config(), locale: "zh-Hans-CN", maxNewRequests: 0 })
+  assert.equal(result.pendingCount, 1)
+  assert.equal(api.pending[0].identifier, "legacy-v250")
+  assert.equal(api.cancelled.length, 0)
+})
+
+test("legacy overlong active pending IDs survive migration with only three widget replacements", async () => {
+  storage()
+  const api = runtime()
+  const oldItems = Array.from({ length: 10 }, (_, i) => item({ id: `${String(i).repeat(160)}-duplicate-2` }))
+  const migratedItems = Array.from({ length: 10 }, (_, i) => item({ id: `${String(i).repeat(148)}-duplicate-2` }))
+  for (const [index, planned] of planNotifications(oldItems, config(), NOW, 40, "en-US").notifications.entries()) {
+    api.add({ identifier: `legacy-${index}`, content: { userInfo: {
+      dueManagerOwner: NOTIFICATION_OWNER, dueManagerKey: planned.key,
+    } } })
+  }
+  let minimumPending = api.pending.length
+  const adapter = { ...api.adapter, async removePendings(ids: string[]) {
+    await api.adapter.removePendings(ids)
+    minimumPending = Math.min(minimumPending, api.pending.length)
+  } }
+  const result = await reconcileNotifications(migratedItems, {
+    now: NOW, runtime: adapter, settings: config(), locale: "en-US", maxNewRequests: 3, leaseWaitMs: 0,
+  })
+  assert.equal(result.state, "limited")
+  assert.equal(result.pendingCount, 10)
+  assert.equal(minimumPending, 10)
+  assert.equal(api.pending.length, 10)
+  assert.equal(api.scheduled.length, 3)
+  assert.equal(api.cancelled.length, 3)
+  assert.equal(api.pending.filter(value => value.identifier.startsWith("legacy-")).length, 7)
+  assert.match(result.message, /有效提醒均已保留/)
+})
+
+test("changed trigger times repair existing requests ahead of the ordinary three-request budget", async () => {
+  storage()
+  const api = runtime()
+  const items = Array.from({ length: 10 }, (_, i) => item({ id: `item-${i}` }))
+  await reconcileNotifications(items, { now: NOW, runtime: api.adapter, settings: config({ hour: 9 }) })
+  const result = await reconcileNotifications(items, {
+    now: NOW, runtime: api.adapter, settings: config({ hour: 10 }), maxNewRequests: 3, leaseWaitMs: 0,
+  })
+  assert.equal(result.state, "ready")
+  assert.equal(api.scheduled.length, 20)
+  assert.equal(api.cancelled.length, 10)
+  assert.equal(api.pending.length, 10)
+  assert.ok(api.pending.every(value => new Date(JSON.parse(value.content.userInfo.dueManagerKey)[3]).getHours() === 10))
+})
+
+test("time-zone changes repair the entire existing queue without leaving seven items unplanned", async () => {
+  const originalTZ = process.env.TZ
+  try {
+    process.env.TZ = "Asia/Hong_Kong"
+    storage()
+    const api = runtime()
+    const items = Array.from({ length: 10 }, (_, i) => item({ id: `zone-${i}`, includesTime: true, hour: 9, minute: i }))
+    await reconcileNotifications(items, { now: NOW, runtime: api.adapter, settings: config(), locale: "en-US" })
+    const before = api.scheduled[0]
+    process.env.TZ = "America/New_York"
+    const result = await reconcileNotifications(items, {
+      now: NOW, runtime: api.adapter, settings: config(), locale: "en-US", maxNewRequests: 3, leaseWaitMs: 0,
+    })
+    assert.equal(result.state, "ready")
+    assert.equal(result.pendingCount, 10)
+    assert.equal(api.scheduled.length, 20)
+    assert.equal(api.scheduled[10].identity, before.identity)
+    assert.notEqual(api.scheduled[10].fireAt, before.fireAt)
+    assert.ok(api.pending.every(value => new Date(JSON.parse(value.content.userInfo.dueManagerKey)[3]).getHours() === 9))
+  } finally {
+    if (originalTZ === undefined) delete process.env.TZ
+    else process.env.TZ = originalTZ
+  }
+})
+
+test("failed cosmetic replacement retains the valid old notification", async () => {
+  storage()
+  const api = runtime()
+  await reconcileNotifications([item()], { now: NOW, runtime: api.adapter, settings: config(), locale: "en-US" })
+  const originalID = api.pending[0].identifier
+  const failing = { ...api.adapter, async schedule() { throw new Error("denied") } }
+  const result = await reconcileNotifications([item()], { now: NOW, runtime: failing, settings: config(), locale: "zh-Hans-CN" })
+  assert.equal(result.state, "error")
+  assert.equal(api.pending[0].identifier, originalID)
+  assert.equal(api.cancelled.length, 0)
+})
+
+test("an unacknowledged replacement cannot remove the old reminder or claim ready", async () => {
+  storage()
+  const api = runtime()
+  await reconcileNotifications([item()], { now: NOW, runtime: api.adapter, settings: config() })
+  const unacknowledged = { ...api.adapter, async schedule() { /* Host silently drops it. */ } }
+  const result = await reconcileNotifications([item({ title: "Changed" })], { now: NOW, runtime: unacknowledged, settings: config() })
+  assert.equal(result.state, "error")
+  assert.match(result.message, /系统未确认替换请求/)
+  assert.equal(api.pending.length, 1)
+  assert.equal(api.cancelled.length, 0)
+})
+
+test("a trigger-repair failure keeps remaining originals and reports their stale time", async () => {
+  storage()
+  const api = runtime()
+  const items = Array.from({ length: 10 }, (_, i) => item({ id: `item-${i}` }))
+  await reconcileNotifications(items, { now: NOW, runtime: api.adapter, settings: config({ hour: 9 }) })
+  let calls = 0
+  const failing = { ...api.adapter, async schedule(notification: PlannedNotification) {
+    if (++calls === 3) throw new Error("native failure")
+    await api.adapter.schedule(notification)
+  } }
+  const result = await reconcileNotifications(items, {
+    now: NOW, runtime: failing, settings: config({ hour: 10 }), maxNewRequests: 3,
+  })
+  assert.equal(result.state, "error")
+  assert.match(result.message, /原时刻/)
+  assert.equal(api.pending.length, 10)
+  assert.equal(api.cancelled.length, 2)
+  assert.equal(api.pending.filter(value => new Date(JSON.parse(value.content.userInfo.dueManagerKey)[3]).getHours() === 9).length, 8)
+})
+
+test("a saturated host queue does not sacrifice valid reminders for cosmetic updates", async () => {
+  storage()
+  const api = runtime()
+  for (let i = 0; i < 50; i++) api.add({ identifier: `other-${i}`, content: {} })
+  const items = Array.from({ length: 10 }, (_, i) => item({ id: `item-${i}` }))
+  await reconcileNotifications(items, { now: NOW, runtime: api.adapter, settings: config(), locale: "en-US" })
+  assert.equal(api.pending.length, 60)
+  const result = await reconcileNotifications(items, { now: NOW, runtime: api.adapter, settings: config(), locale: "zh-Hans-CN", maxNewRequests: 3 })
+  assert.equal(result.state, "limited")
+  assert.match(result.message, /暂无替换余量/)
+  assert.equal(api.pending.length, 60)
+  assert.equal(api.cancelled.length, 0)
+  assert.equal(api.scheduled.length, 10)
+})
+
+test("a saturated host reports stale-time repairs rather than pretending the queue is fixed", async () => {
+  storage()
+  const api = runtime()
+  for (let i = 0; i < 50; i++) api.add({ identifier: `other-${i}`, content: {} })
+  const items = Array.from({ length: 10 }, (_, i) => item({ id: `item-${i}` }))
+  await reconcileNotifications(items, { now: NOW, runtime: api.adapter, settings: config({ hour: 9 }) })
+  const result = await reconcileNotifications(items, { now: NOW, runtime: api.adapter, settings: config({ hour: 10 }), maxNewRequests: 3 })
+  assert.equal(result.state, "error")
+  assert.match(result.message, /没有安全替换余量/)
+  assert.equal(api.pending.length, 60)
+  assert.equal(api.cancelled.length, 0)
+})
+
+test("one free host slot is reused for all controlled repairs without exceeding sixty requests", async () => {
+  storage()
+  const api = runtime()
+  for (let i = 0; i < 49; i++) api.add({ identifier: `other-${i}`, content: {} })
+  const items = Array.from({ length: 10 }, (_, i) => item({ id: `item-${i}` }))
+  await reconcileNotifications(items, { now: NOW, runtime: api.adapter, settings: config({ hour: 9 }) })
+  let maximum = api.pending.length
+  const adapter = { ...api.adapter, async schedule(notification: PlannedNotification) {
+    await api.adapter.schedule(notification)
+    maximum = Math.max(maximum, api.pending.length)
+  } }
+  const result = await reconcileNotifications(items, { now: NOW, runtime: adapter, settings: config({ hour: 10 }), maxNewRequests: 3 })
+  assert.equal(result.state, "ready")
+  assert.equal(api.scheduled.length, 20)
+  assert.equal(maximum, 60)
+  assert.equal(api.pending.length, 59)
+})
+
+test("fresh time after the native query excludes a deadline that passed while waiting", async () => {
+  storage()
+  const api = runtime()
+  let wall = new Date(2026, 8, 30, 8, 59, 58).getTime()
+  const adapter = { ...api.adapter, async getAllPendings() {
+    wall += 5000
+    return api.adapter.getAllPendings()
+  } }
+  const result = await reconcileNotifications([item({ includesTime: true, hour: 9, minute: 0 })], {
+    runtime: adapter, settings: config(), clock: () => new Date(wall),
+  })
+  assert.equal(api.scheduled.length, 0)
+  assert.equal(result.pendingCount, 0)
+  assert.match(result.message, /已过的提醒不会补发/)
+})
+
+test("every subsequent request checks the live clock and expired confirmations aren't counted", async () => {
+  storage()
+  const api = runtime()
+  let wall = new Date(2026, 8, 30, 8, 59, 58).getTime()
+  const attempts: Array<{ fireAt: number; at: number }> = []
+  const adapter = { ...api.adapter, async schedule(notification: PlannedNotification) {
+    attempts.push({ fireAt: notification.fireAt, at: wall })
+    await api.adapter.schedule(notification)
+    wall += 65000
+  } }
+  const result = await reconcileNotifications([
+    item({ id: "first", includesTime: true, hour: 9, minute: 0 }),
+    item({ id: "second", includesTime: true, hour: 9, minute: 1 }),
+  ], { runtime: adapter, settings: config(), clock: () => new Date(wall) })
+  assert.equal(attempts.length, 1)
+  assert.ok(attempts.every(value => value.fireAt > value.at))
+  assert.equal(result.pendingCount, 0)
+  assert.equal(api.pending.length, 0)
+})
+
+test("advance-day default time never pushes a 00:30 actual-due notification to 09:00", () => {
+  const plan = planNotifications([item({ dueDate: "2026-09-05", includesTime: true, hour: 0, minute: 30, remindBeforeDays: 1 })],
+    config({ includeDueDate: true, hour: 9 }), new Date(2026, 8, 4, 0))
+  assert.deepEqual(plan.notifications.map(value => value.fireAt), [
+    new Date(2026, 8, 4, 9).getTime(), new Date(2026, 8, 5, 0, 30).getTime(),
+  ])
 })

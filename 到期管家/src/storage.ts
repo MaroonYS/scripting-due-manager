@@ -10,6 +10,8 @@ import {
 } from "./date"
 import { normalizeIconOverride, resolveDueIcon } from "./icons"
 import { isItemKind, itemKindPriority } from "./item_kinds"
+import { normalizeManualItemID } from "./item_ids"
+export { normalizeManualItemID } from "./item_ids"
 import { loadNotificationSettings, normalizeNotificationSettings, NOTIFICATION_SETTINGS_KEY } from "./notifications"
 import type { NotificationSettings } from "./notifications"
 import type {
@@ -31,6 +33,29 @@ export const SHARED_STORAGE_OPTIONS = { shared: true } as const
 export const LOCAL_SNAPSHOTS_KEY = "due-manager-local-snapshots-v1"
 export const MAX_LOCAL_SNAPSHOTS = 10
 export const MAX_COMPLETION_HISTORY = 100
+export const RECOVERY_ARCHIVE_KEY = "due-manager-recovery-archive-v1"
+/** Milliseconds through 9999-12-31; always well below Number.MAX_SAFE_INTEGER. */
+export const MAX_STATE_TIMESTAMP = 253402300799999
+
+export interface RecoveryStatus {
+  status: "ready" | "missing" | "damaged" | "unsupported"
+  canRestore: boolean
+  message: string | null
+  archiveCount: number
+}
+
+interface RawRecoveryContext {
+  stateRaw: unknown
+  stateSource: "shared" | "private" | "missing"
+  snapshotsRaw: unknown
+  notificationSettingsRaw: unknown
+}
+
+interface RecoveryArchiveEntry extends RawRecoveryContext {
+  id: string
+  createdAt: number
+  reason: string
+}
 
 export type ManualCompletionResult = "applied" | "stale" | "missing"
 
@@ -42,6 +67,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 }
 
 export function defaultState(now = Date.now()): AppState {
+  assertStateTimestamp(now)
   return {
     schemaVersion: 3,
     items: [],
@@ -78,6 +104,7 @@ export function saveState(state: AppState, snapshotReason = "自动备份"): boo
 }
 
 function writeState(state: AppState): boolean {
+  assertStateMetadata(state)
   return Storage.set(STATE_KEY, {
     ...state,
     schemaVersion: 3,
@@ -100,13 +127,14 @@ export function upsertItem(
   item: ManualDueItem,
   expectedUpdatedAt?: number,
 ): AppState {
+  assertItemMetadata(item)
   const current = loadState()
   const index = current.items.findIndex(candidate => candidate.id === item.id)
   assertExpectedItemRevision(current, index, expectedUpdatedAt, "保存")
   const items = [...current.items]
   const revised = {
     ...item,
-    updatedAt: Math.max(item.updatedAt, index >= 0 ? current.items[index].updatedAt + 1 : 0),
+    updatedAt: incrementRevision(item.updatedAt, index >= 0 ? current.items[index].updatedAt : undefined),
   }
   if (index >= 0) items[index] = revised
   else items.push(revised)
@@ -212,11 +240,7 @@ export function planManualCompletion(
     throw new Error("周期规则没有生成下一期，为保护数据，本次完成已取消。")
   }
 
-  const revision = Math.max(
-    Math.trunc(nowMs),
-    Math.trunc(current.updatedAt) + 1,
-    Math.trunc(state.updatedAt) + 1,
-  )
+  const revision = nextRevision(state, current, nowMs)
   const items = [...state.items]
   items[index] = { ...advanced, updatedAt: revision }
   const record = manualCompletionRecord(current, items[index], nowMs, false)
@@ -251,6 +275,7 @@ export function completeManualItem(
   skipToFuture = false,
   nowMs = Date.now(),
 ): AppState {
+  assertItemMetadata(item)
   const current = loadState()
   const index = current.items.findIndex(candidate => candidate.id === item.id)
   assertExpectedItemRevision(current, index, expectedUpdatedAt, "保存")
@@ -303,14 +328,15 @@ export function recordReminderCompletion(
   item: Pick<DisplayDueItem, "id" | "title" | "dueDate">,
   nowMs = Date.now(),
 ): void {
+  assertStateTimestamp(nowMs)
   const current = loadState()
   persistOrThrow({
     ...current,
     completionHistory: appendCompletionRecord(current, {
-      id: makeID(), source: "reminder", itemID: item.id, title: item.title,
+      id: makeID(), source: "reminder", itemID: item.id, title: item.title.trim() || "未命名提醒",
       dueDate: item.dueDate, completedAt: nowMs, action: "complete", undoneAt: null,
     }),
-    updatedAt: Math.max(nowMs, current.updatedAt + 1),
+    updatedAt: incrementRevision(nowMs, current.updatedAt),
   })
 }
 
@@ -320,8 +346,49 @@ export function createLocalSnapshot(reason: string): LocalSnapshot {
   return snapshot
 }
 
+/** Read-only startup preflight. Storage errors never trigger a reset or write. */
+export function readRecoveryStatus(): RecoveryStatus {
+  let archiveCount = 0
+  try {
+    const context = readRawRecoveryContext()
+    const archives = readRecoveryArchives()
+    archiveCount = archives.length
+    const unsupported = unsupportedRecoveryReason(context)
+    if (unsupported) return { status: "unsupported", canRestore: false, message: unsupported, archiveCount }
+    const issues: string[] = []
+    if (context.stateRaw != null) {
+      try { normalizeStoredState(context.stateRaw) } catch (error) { issues.push(String(error)) }
+    }
+    try { normalizeLocalSnapshots(context.snapshotsRaw) } catch (error) { issues.push(String(error)) }
+    if (issues.length) return { status: "damaged", canRestore: true, message: issues.join("\n"), archiveCount }
+    return { status: context.stateRaw == null ? "missing" : "ready", canRestore: true, message: null, archiveCount }
+  } catch (error) {
+    return {
+      status: "damaged", canRestore: false, archiveCount,
+      message: `无法安全读取原始存储或恢复档案。未修改任何数据，请先重试或导出可读取的原始数据：${String(error)}`,
+    }
+  }
+}
+
+/** A forensic export, not an importable backup. Includes current raw data even for future schemas. */
+export function readRecoveryArchiveData(): unknown {
+  const archiveRaw = Storage.get<unknown>(RECOVERY_ARCHIVE_KEY, SHARED_STORAGE_OPTIONS)
+  return {
+    format: "scripting-due-manager-recovery-archive", version: 1, exportedAt: Date.now(),
+    current: readRawRecoveryContext(),
+    entries: isRecord(archiveRaw) && Array.isArray(archiveRaw.entries) ? archiveRaw.entries : [],
+    // Preserve malformed archive metadata too; this function must not normalize
+    // away the very evidence a repair/export is meant to retain.
+    archiveRaw,
+  }
+}
+
 export function listLocalSnapshots(): LocalSnapshot[] {
   const raw = Storage.get<unknown>(LOCAL_SNAPSHOTS_KEY, SHARED_STORAGE_OPTIONS)
+  return normalizeLocalSnapshots(raw)
+}
+
+function normalizeLocalSnapshots(raw: unknown): LocalSnapshot[] {
   if (raw == null) return []
   if (!isRecord(raw) || raw.schemaVersion !== 1 || !Array.isArray(raw.snapshots)) {
     throw new Error("无法保存：本地备份索引无法读取，为避免覆盖已有备份，已停止写入。")
@@ -343,21 +410,54 @@ export function restoreStateFromBackup(
   reason = "导入前备份",
   notificationSettings?: NotificationSettings,
 ): AppState {
-  const current = loadState()
-  const revision = [...current.items, ...state.items].reduce(
-    (latest, item) => Math.max(latest, item.updatedAt + 1),
-    Math.max(Date.now(), current.updatedAt + 1),
+  assertStateMetadata(state)
+  const context = readRawRecoveryContext()
+  const unsupported = unsupportedRecoveryReason(context)
+  if (unsupported) throw new Error(unsupported)
+  let current: AppState | null = null
+  if (context.stateRaw != null) {
+    try { current = normalizeStoredState(context.stateRaw) } catch { /* preserved verbatim below */ }
+  }
+  let snapshotsDamaged = false
+  try { normalizeLocalSnapshots(context.snapshotsRaw) } catch { snapshotsDamaged = true }
+  // A corrupt current state contributes no trusted revisions. The imported
+  // state is already validated, and a fresh local revision invalidates its UI.
+  const revision = [...(current?.items ?? []), ...state.items].reduce(
+    (latest, item) => incrementRevision(latest, item.updatedAt),
+    incrementRevision(Date.now(), current?.updatedAt, state.updatedAt),
   )
+  const originalItems = new Map(state.items.map(item => [item.id, item]))
   const next = {
     ...state,
     updatedAt: revision,
     // Invalidate every previously rendered widget button, including matching old IDs.
     items: state.items.map(item => ({ ...item, updatedAt: revision })),
+    completionHistory: (state.completionHistory ?? []).map(record => {
+      // Restore eligibility, not blanket permission: only a history entry
+      // whose exact saved after-state still matches the imported item gets
+      // re-signed. Records superseded by edits/completions remain stale.
+      const original = originalItems.get(record.itemID)
+      return record.source === "manual" && record.undoneAt == null && record.after && original
+        && JSON.stringify(original) === JSON.stringify(record.after)
+        ? { ...record, after: { ...record.after, updatedAt: revision } }
+        : record
+    }),
   }
   // Keep a recoverable original before touching either store. Restore never
   // auto-enables notifications; the user must review and enable them again.
-  createLocalSnapshot(reason)
-  const previousNotifications = loadNotificationSettings()
+  const stateDamaged = context.stateRaw != null && current == null
+  if (stateDamaged || snapshotsDamaged) {
+    archiveRawRecoveryContext(context, reason)
+    if (snapshotsDamaged) {
+      const preserved = current ? [makeSnapshot(current, reason)] : []
+      if (!Storage.set(LOCAL_SNAPSHOTS_KEY, { schemaVersion: 1, snapshots: preserved }, SHARED_STORAGE_OPTIONS)) {
+        throw new Error("恢复失败：原始快照索引已隔离保留，但无法写入新索引，主数据未被替换。")
+      }
+    }
+  } else if (!saveSnapshotOfState(current ?? defaultState(), reason)) {
+    throw new Error("恢复失败：无法保存恢复前备份，原数据没有被替换。")
+  }
+  const previousNotifications = normalizeNotificationSettings(context.notificationSettingsRaw)
   const restoredNotifications = normalizeNotificationSettings({
     ...(notificationSettings ?? previousNotifications), enabled: false,
   })
@@ -367,7 +467,12 @@ export function restoreStateFromBackup(
   let saved = false
   try { saved = writeState(next) } catch { /* handled by rollback below */ }
   if (!saved) {
-    const rolledBack = Storage.set(NOTIFICATION_SETTINGS_KEY, previousNotifications, SHARED_STORAGE_OPTIONS)
+    let rolledBack = false
+    try {
+      rolledBack = context.notificationSettingsRaw == null
+        ? (Storage.remove(NOTIFICATION_SETTINGS_KEY, SHARED_STORAGE_OPTIONS), true)
+        : Storage.set(NOTIFICATION_SETTINGS_KEY, context.notificationSettingsRaw, SHARED_STORAGE_OPTIONS)
+    } catch { /* report the unsuccessful rollback without losing the archive */ }
     throw new Error(rolledBack
       ? "恢复失败：无法写入数据，原事项和通知设置没有被替换。"
       : "恢复失败：原事项没有被替换；通知设置回滚失败，请检查通知开关。本地备份仍已保留。")
@@ -384,6 +489,7 @@ export function restoreLocalSnapshot(id: string): AppState {
 export function writeWidgetActionError(message: string, now = Date.now()): void {
   const status: WidgetActionStatus = {
     schemaVersion: 1,
+    eventID: makeID(),
     createdAt: now,
     message: message.slice(0, 160),
   }
@@ -396,12 +502,17 @@ export function clearWidgetActionError(): void {
 }
 
 export function readWidgetActionError(now = Date.now()): string | null {
+  return readWidgetActionStatus(now)?.message ?? null
+}
+
+export function readWidgetActionStatus(now = Date.now()): WidgetActionStatus | null {
   const shared = Storage.get<unknown>(WIDGET_ACTION_STATUS_KEY, SHARED_STORAGE_OPTIONS)
   const legacy = shared == null ? Storage.get<unknown>(WIDGET_ACTION_STATUS_KEY) : null
   const raw = shared ?? legacy
   if (!isRecord(raw)
     || raw.schemaVersion !== 1
     || typeof raw.createdAt !== "number"
+    || !Number.isFinite(raw.createdAt)
     || typeof raw.message !== "string"
   ) {
     return null
@@ -413,7 +524,10 @@ export function readWidgetActionError(now = Date.now()): string | null {
     clearWidgetActionError()
     return null
   }
-  return raw.message.slice(0, 160)
+  return {
+    schemaVersion: 1, createdAt: raw.createdAt, message: raw.message.slice(0, 160),
+    ...(typeof raw.eventID === "string" && raw.eventID ? { eventID: raw.eventID } : {}),
+  }
 }
 
 export function findItem(id: string): ManualDueItem | null {
@@ -450,6 +564,7 @@ function normalizeStoredState(raw: unknown): AppState {
     throw new Error("无法读取已保存的数据结构；原数据已保留，未创建空白数据覆盖它。")
   }
   const state = normalizeState(raw)
+  assertStateMetadata(state)
   if (state.items.length !== raw.items.length) {
     throw new Error("已保存的数据含无法识别的事项。为避免丢弃这些记录，已停止读取和写入；原数据仍已保留。")
   }
@@ -498,7 +613,7 @@ function normalizeItem(raw: unknown, index: number): ManualDueItem | null {
   const createdAt = finiteNumber(raw.createdAt, 0)
   return {
     id: typeof raw.id === "string" && raw.id
-      ? raw.id.slice(0, 160)
+      ? normalizeManualItemID(raw.id)
       : stableLegacyID(raw, index),
     title,
     kind: isItemKind(raw.kind) ? raw.kind : "custom",
@@ -524,6 +639,7 @@ function normalizeItem(raw: unknown, index: number): ManualDueItem | null {
 
 function uniqueItemIDs(items: ManualDueItem[]): ManualDueItem[] {
   const seen = new Set<string>()
+  const reserved = new Set(items.map(item => item.id))
   return items.map(item => {
     if (!seen.has(item.id)) {
       seen.add(item.id)
@@ -531,14 +647,19 @@ function uniqueItemIDs(items: ManualDueItem[]): ManualDueItem[] {
     }
 
     let suffix = 2
-    let id = `${item.id}-duplicate-${suffix}`
-    while (seen.has(id)) {
+    let id = duplicateItemID(item.id, suffix)
+    while (seen.has(id) || reserved.has(id)) {
       suffix += 1
-      id = `${item.id}-duplicate-${suffix}`
+      id = duplicateItemID(item.id, suffix)
     }
     seen.add(id)
     return { ...item, id }
   })
+}
+
+function duplicateItemID(base: string, suffix: number): string {
+  const ending = `-duplicate-${suffix}`
+  return `${base.slice(0, 160 - ending.length)}${ending}`
 }
 
 function stableLegacyID(raw: Record<string, any>, index: number): string {
@@ -596,7 +717,43 @@ function makeID(): string {
 }
 
 function nextRevision(state: AppState, item: ManualDueItem, nowMs = Date.now()): number {
-  return Math.max(Math.trunc(nowMs), Math.trunc(state.updatedAt) + 1, Math.trunc(item.updatedAt) + 1)
+  return incrementRevision(nowMs, state.updatedAt, item.updatedAt)
+}
+
+export function isStateTimestamp(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= MAX_STATE_TIMESTAMP
+}
+
+function assertStateTimestamp(value: unknown): asserts value is number {
+  if (!isStateTimestamp(value)) throw new Error("数据时间戳或版本号损坏，必须是合理范围内的安全整数。原数据未被覆盖，请从有效备份恢复。")
+}
+
+function incrementRevision(requested: number, ...previous: Array<number | undefined>): number {
+  assertStateTimestamp(requested)
+  let revision = requested
+  for (const value of previous) {
+    if (value == null) continue
+    assertStateTimestamp(value)
+    revision = Math.max(revision, value + 1)
+  }
+  assertStateTimestamp(revision)
+  return revision
+}
+
+function assertItemMetadata(item: ManualDueItem): void {
+  assertStateTimestamp(item.createdAt)
+  assertStateTimestamp(item.updatedAt)
+}
+
+function assertStateMetadata(state: AppState): void {
+  assertStateTimestamp(state.updatedAt)
+  for (const item of state.items) assertItemMetadata(item)
+  for (const record of state.completionHistory ?? []) {
+    assertStateTimestamp(record.completedAt)
+    if (record.undoneAt != null) assertStateTimestamp(record.undoneAt)
+    if (record.before) assertItemMetadata(record.before)
+    if (record.after) assertItemMetadata(record.after)
+  }
 }
 
 function manualCompletionRecord(before: ManualDueItem, after: ManualDueItem, nowMs: number, skip: boolean): CompletionRecord {
@@ -622,7 +779,9 @@ function normalizeCompletionHistory(raw: unknown): CompletionRecord[] {
     const after = value.source === "manual" ? normalizeItem(value.after, index) : null
     if (value.source === "manual" && (!before || !after)) return []
     return [{
-      id: value.id, source: value.source, itemID: value.itemID, title: value.title,
+      id: value.id, source: value.source,
+      itemID: value.source === "manual" ? normalizeManualItemID(value.itemID) : value.itemID,
+      title: value.source === "reminder" && !value.title.trim() ? "未命名提醒" : value.title,
       dueDate: value.dueDate, completedAt: value.completedAt,
       action: value.action === "skip" ? "skip" as const : "complete" as const,
       undoneAt: typeof value.undoneAt === "number" && Number.isFinite(value.undoneAt) ? value.undoneAt : null,
@@ -648,6 +807,62 @@ function writeSnapshot(snapshot: LocalSnapshot): boolean {
 
 function saveSnapshotOfState(state: AppState, reason: string): boolean {
   return writeSnapshot(makeSnapshot(state, reason))
+}
+
+function readRawRecoveryContext(): RawRecoveryContext {
+  const shared = Storage.get<unknown>(STATE_KEY, SHARED_STORAGE_OPTIONS)
+  const legacy = shared == null ? Storage.get<unknown>(STATE_KEY) : null
+  return {
+    stateRaw: shared ?? legacy,
+    stateSource: shared != null ? "shared" : legacy != null ? "private" : "missing",
+    snapshotsRaw: Storage.get<unknown>(LOCAL_SNAPSHOTS_KEY, SHARED_STORAGE_OPTIONS),
+    notificationSettingsRaw: Storage.get<unknown>(NOTIFICATION_SETTINGS_KEY, SHARED_STORAGE_OPTIONS),
+  }
+}
+
+function unsupportedRecoveryReason(context: RawRecoveryContext): string | null {
+  const unknownState = (raw: unknown) => isRecord(raw)
+    && Object.prototype.hasOwnProperty.call(raw, "schemaVersion")
+    && ![1, 2, 3].includes(raw.schemaVersion)
+  if (unknownState(context.stateRaw)) {
+    return "检测到不受支持或较新的主数据版本；本版本禁止覆盖它。请更新脚本，或先导出原始数据供检查。"
+  }
+  if (isRecord(context.notificationSettingsRaw)
+    && Object.prototype.hasOwnProperty.call(context.notificationSettingsRaw, "schemaVersion")
+    && context.notificationSettingsRaw.schemaVersion !== 1) {
+    return "检测到不受支持或较新的通知设置版本；本版本禁止覆盖它。请先更新脚本或导出原始数据。"
+  }
+  const snapshots = context.snapshotsRaw
+  if (isRecord(snapshots) && Object.prototype.hasOwnProperty.call(snapshots, "schemaVersion")
+    && snapshots.schemaVersion !== 1) {
+    return "检测到不受支持或较新的快照格式；为保护原始快照，本版本禁止覆盖它。"
+  }
+  if (isRecord(snapshots) && Array.isArray(snapshots.snapshots)
+    && snapshots.snapshots.some((snapshot: unknown) => isRecord(snapshot) && unknownState(snapshot.state))) {
+    return "快照中含不受支持或较新的数据版本；请先更新脚本，本版本不会覆盖这些数据。"
+  }
+  return null
+}
+
+function readRecoveryArchives(): RecoveryArchiveEntry[] {
+  const raw = Storage.get<unknown>(RECOVERY_ARCHIVE_KEY, SHARED_STORAGE_OPTIONS)
+  if (raw == null) return []
+  if (!isRecord(raw) || raw.schemaVersion !== 1 || !Array.isArray(raw.entries)
+    || raw.entries.some((entry: unknown) => !isRecord(entry) || typeof entry.id !== "string"
+      || !isStateTimestamp(entry.createdAt) || typeof entry.reason !== "string")) {
+    throw new Error("恢复档案索引无法安全读取；已有原始数据仍已保留，请先导出恢复档案。")
+  }
+  return raw.entries
+}
+
+function archiveRawRecoveryContext(context: RawRecoveryContext, reason: string): void {
+  const entries = readRecoveryArchives()
+  const entry: RecoveryArchiveEntry = { ...context, id: makeID(), createdAt: Date.now(), reason }
+  // Unlike rolling convenience snapshots, quarantined originals are never
+  // automatically pruned: they may be the sole surviving damaged source.
+  if (!Storage.set(RECOVERY_ARCHIVE_KEY, { schemaVersion: 1, entries: [entry, ...entries] }, SHARED_STORAGE_OPTIONS)) {
+    throw new Error("无法隔离保留原始损坏数据，为保护原数据，本次恢复已取消。")
+  }
 }
 
 function persistOrThrow(state: AppState): AppState {

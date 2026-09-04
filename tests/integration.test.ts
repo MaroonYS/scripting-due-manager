@@ -18,7 +18,7 @@ test("all saved item operations use history-aware completion and warning-only ma
 
 test("history backup and notification settings are reachable from main UI", () => {
   const app = source("index.tsx")
-  for (const view of ["RecoveryView", "NotificationView", "UpdateView"]) {
+  for (const view of ["RecoveryView", "NotificationView", "UpdateView", "WidgetActionStatusView"]) {
     assert.ok(app.includes(`destination={<${view}`), `${view} needs a visible navigation entry`)
   }
   const recovery = source("src/recovery_view.tsx")
@@ -30,6 +30,10 @@ test("history backup and notification settings are reachable from main UI", () =
   assert.match(recovery, /setReadError\(failures.length/)
   assert.match(app, /RecoveryView onChanged=\{refreshRecoveredState\}/)
   assert.match(app, /const refreshRecoveredState[\s\S]*?setReminderStatus\(EMPTY_REMINDER_STATUS\)[\s\S]*?void refreshReminders\(\)/)
+  assert.match(recovery, /if \(!currentRecoveryStatus.canRestore\) throw/)
+  assert.match(recovery, /createRecoveryArchiveJSON\(\)/)
+  assert.match(recovery, /recoveryMode \? "数据恢复"/)
+  assert.match(recovery, /隔离保全，保全失败则不恢复/)
 })
 
 test("production notification reconciliation reads fresh data and widget maintenance stays bounded", () => {
@@ -63,4 +67,16 @@ test("manual update validates version and takes a snapshot before opening pinned
   assert.match(view, /打开本页或点击重新检查时连接 GitHub/)
   assert.match(view, /if \(gate.busy\) return/)
   assert.match(view, /if \(!release \|\| gate.busy\) return/)
+})
+
+test("widget error links reach a real inspection page without repeating completion", () => {
+  const app = source("index.tsx")
+  assert.match(app, /if \(action === "widget-status"\)/)
+  assert.match(app, /<WidgetActionStatusView standalone/)
+  const status = source("src/widget_action_view.tsx")
+  assert.match(status, /inspection.message/)
+  assert.match(status, /inspection.guidance/)
+  assert.match(status, /acknowledgeWidgetAction\(inspection.event\)/)
+  assert.doesNotMatch(status, /completeManual|completeReminder/)
+  assert.match(source("src/widget_view.tsx"), /action: "widget-status"/)
 })

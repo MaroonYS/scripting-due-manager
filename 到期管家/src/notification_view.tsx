@@ -41,7 +41,7 @@ export function NotificationView() {
       {settings.enabled ? <Toggle title="真实到期日再提醒一次" value={settings.includeDueDate} disabled={busy}
         onChanged={(includeDueDate: boolean) => { void reconcile({ includeDueDate }) }} /> : null}
     </Section>
-    <Section header={<Text>安排状态</Text>} footer={<Text>提前处理从提前日零点开始；通知在上方指定时刻发出。未提前且带具体时间的事项按到期时刻通知。滚动安排未来 90 天、最多 40 条，打开脚本、操作事项及组件运行时尝试补充；并非无限期后台运行。</Text>}>
+    <Section header={<Text>安排状态</Text>} footer={<Text>提前处理从提前日零点开始；通知在上方指定时刻发出。未提前且带具体时间的事项按到期时刻通知。滚动安排未来 90 天、最多 40 个提醒计划，打开脚本、操作事项及组件运行时尝试补充；并非无限期后台运行。替换时先确认新请求再移除旧请求，可能短暂存在副本；若提示未完成，请打开主脚本重试。</Text>}>
       <LabeledContent title="待发通知"><Text>{status?.pendingCount ?? 0} 条</Text></LabeledContent>
       <Text font="caption" foregroundStyle={status?.state === "error" || status?.state === "unavailable" ? "systemOrange" : "secondaryLabel"}>
         {busy ? "正在更新通知安排…" : status?.message ?? "尚未安排通知"}

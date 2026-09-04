@@ -75,6 +75,8 @@ import { reconcileNotifications } from "./src/notifications"
 import { NotificationView } from "./src/notification_view"
 import { RecoveryView } from "./src/recovery_view"
 import { UpdateView } from "./src/update_view"
+import { readRecoveryStatus } from "./src/recovery"
+import { WidgetActionStatusView } from "./src/widget_action_view"
 
 type ReminderStatus = {
   loading: boolean
@@ -405,6 +407,9 @@ function DueManagerApp() {
       </Section>
 
       <Section header={<Text>显示与组件</Text>}>
+        <NavigationLink destination={<WidgetActionStatusView />}>
+          <Label title="上次组件操作" systemImage="exclamationmark.bubble" />
+        </NavigationLink>
         <NavigationLink destination={<NotificationView />}>
           <Label title="通知与提醒" systemImage="bell.badge" />
         </NavigationLink>
@@ -1212,7 +1217,21 @@ function ReminderStatusRow({ status }: { status: ReminderStatus }) {
   </VStack>
 }
 
+function StartupRecoveryView({ onRecovered }: { onRecovered: () => void }) {
+  const dismiss = Navigation.useDismiss()
+  return <RecoveryView recoveryMode onChanged={() => { onRecovered(); dismiss() }} />
+}
+
 async function run() {
+  // The recovery screen must not require a successful loadState() to mount.
+  const recovery = readRecoveryStatus()
+  if (recovery.status !== "ready" && recovery.status !== "missing") {
+    let recovered = false
+    await Navigation.present({ element: <NavigationStack>
+      <StartupRecoveryView onRecovered={() => { recovered = true }} />
+    </NavigationStack> })
+    if (!recovered) { Script.exit(); return }
+  }
   const notificationRefresh = reconcileNotifications([], { loadItems: () => loadState().items })
   const action = typeof Script.queryParameters?.action === "string"
     ? Script.queryParameters.action
@@ -1222,7 +1241,9 @@ async function run() {
     : ""
   const directItem = action === "edit" && id ? findItem(id) : null
 
-  if (directItem) {
+  if (action === "widget-status") {
+    await Navigation.present({ element: <NavigationStack><WidgetActionStatusView standalone /></NavigationStack> })
+  } else if (directItem) {
     await Navigation.present({
       element: <NavigationStack>
         <ItemEditor item={directItem} standalone onChanged={() => undefined} />

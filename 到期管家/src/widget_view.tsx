@@ -419,7 +419,7 @@ function SmallCurrentDetail({
     spacing={0}
     frame={{ maxWidth: "infinity", height: 19, alignment: "leading" }}
   >
-    <Link url={issue ? Script.createRunURLScheme(Script.name) : itemURL(item)}>
+    <Link url={issue ? Script.createRunURLScheme(Script.name, { action: "widget-status" }) : itemURL(item)}>
       <HStack
         alignment="center"
         spacing={time && supportingText ? 5 : 0}
@@ -1045,7 +1045,7 @@ function WidgetFrame({
 }
 
 function WidgetIssueLink({ issue }: { issue: WidgetIssue }) {
-  return <Link url={Script.createRunURLScheme(Script.name)}>
+  return <Link url={Script.createRunURLScheme(Script.name, { action: "widget-status" })}>
     <Text
       font="caption2"
       foregroundStyle={issue.color}

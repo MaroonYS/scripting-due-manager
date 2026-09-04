@@ -3,7 +3,7 @@ import { isItemKind } from "./item_kinds"
 import { normalizeIconOverride } from "./icons"
 import { loadNotificationSettings, normalizeNotificationSettings } from "./notifications"
 import type { NotificationSettings } from "./notifications"
-import { loadState, normalizeState, restoreStateFromBackup } from "./storage"
+import { isStateTimestamp, loadState, normalizeManualItemID, normalizeState, readRecoveryArchiveData, restoreStateFromBackup } from "./storage"
 import type { AppState } from "./types"
 
 export {
@@ -12,7 +12,9 @@ export {
   restoreLocalSnapshot,
   listCompletionHistory,
   undoManualCompletion,
+  readRecoveryStatus,
 } from "./storage"
+export type { RecoveryStatus } from "./storage"
 
 export const BACKUP_FORMAT = "scripting-due-manager-backup"
 export const MAX_BACKUP_CHARACTERS = 16 * 1024 * 1024
@@ -28,6 +30,7 @@ export interface BackupPreview {
 
 /** Local JSON only. Apple Reminders records/notes are never exported as tasks. */
 export function createBackupJSON(now = Date.now()): string {
+  if (!isStateTimestamp(now)) throw new Error("备份导出时间无效。")
   const json = JSON.stringify({
     format: BACKUP_FORMAT,
     version: 1,
@@ -39,18 +42,22 @@ export function createBackupJSON(now = Date.now()): string {
   return json
 }
 
+export function createRecoveryArchiveJSON(): string {
+  return JSON.stringify(readRecoveryArchiveData(), null, 2)
+}
+
 /** Reject malformed input rather than silently dropping or repairing its items. */
 export function parseBackupJSON(json: string): BackupPreview {
   if (json.length > MAX_BACKUP_CHARACTERS) throw new Error("备份文件超过 16 MB，请使用较小的到期管家备份。")
   let raw: unknown
   try { raw = JSON.parse(json) } catch { throw new Error("不是有效的 JSON 备份文件。") }
   if (!record(raw) || raw.format !== BACKUP_FORMAT || raw.version !== 1
-    || !finite(raw.exportedAt) || !record(raw.state)) {
+    || !isStateTimestamp(raw.exportedAt) || !record(raw.state)) {
     throw new Error("不是受支持的到期管家备份，未修改现有数据。")
   }
   const data = raw.state
   if (![1, 2, 3].includes(data.schemaVersion) || !Array.isArray(data.items)
-    || !record(data.settings) || !finite(data.updatedAt)) {
+    || !record(data.settings) || !isStateTimestamp(data.updatedAt)) {
     throw new Error("备份数据版本或结构无效，未修改现有数据。")
   }
   const ids = new Set<string>()
@@ -68,9 +75,10 @@ export function parseBackupJSON(json: string): BackupPreview {
     const historyIDs = new Set<string>()
     for (const entry of data.completionHistory) {
       if (!record(entry) || !nonempty(entry.id) || historyIDs.has(entry.id) || !nonempty(entry.itemID)
-        || !nonempty(entry.title) || !parseDateKey(entry.dueDate) || !finite(entry.completedAt)
+        || (entry.source === "reminder" ? typeof entry.title !== "string" : !nonempty(entry.title))
+        || !parseDateKey(entry.dueDate) || !isStateTimestamp(entry.completedAt)
         || !["manual", "reminder"].includes(entry.source) || !["complete", "skip"].includes(entry.action)
-        || (entry.undoneAt !== null && !finite(entry.undoneAt))) {
+        || (entry.undoneAt !== null && !isStateTimestamp(entry.undoneAt))) {
         throw new Error("备份包含无效完成记录。")
       }
       historyIDs.add(entry.id)
@@ -105,17 +113,20 @@ function validateNotificationSettings(value: unknown): void {
   if (!record(value) || value.schemaVersion !== 1 || typeof value.enabled !== "boolean"
     || !integer(value.hour, 0, 23) || !integer(value.minute, 0, 59)
     || typeof value.includeDueDate !== "boolean" || !Array.isArray(value.mutedItemIDs)
-    || value.mutedItemIDs.some((id: unknown) => !boundedText(id, 160, true))
+    // Older duplicate handling emitted up to 172+ characters. Notification
+    // preferences must migrate that same ID, not make our own backup unusable.
+    || value.mutedItemIDs.some((id: unknown) => !boundedText(id, 512, true)
+      || normalizeManualItemID(id).length > 160)
     || new Set(value.mutedItemIDs).size !== value.mutedItemIDs.length) {
     throw new Error("备份通知设置无效，导入已取消。")
   }
 }
 
 function validateItem(item: unknown, label: string): asserts item is Record<string, any> {
-  if (!record(item) || !boundedText(item.id, 160, true) || !boundedText(item.title, 120, true)
+  if (!record(item) || !validManualID(item.id) || !boundedText(item.title, 120, true)
     || !parseDateKey(item.dueDate) || !isItemKind(item.kind)
     || typeof item.includesTime !== "boolean" || !integer(item.hour, 0, 23) || !integer(item.minute, 0, 59)
-    || typeof item.enabled !== "boolean" || !finite(item.createdAt) || !finite(item.updatedAt)
+    || typeof item.enabled !== "boolean" || !isStateTimestamp(item.createdAt) || !isStateTimestamp(item.updatedAt)
     || !boundedText(item.amount, 60) || !boundedText(item.note, 1000)
     || (item.remindBeforeDays != null && !integer(item.remindBeforeDays, 0, MAX_REMIND_BEFORE_DAYS))
     || (item.iconName != null && normalizeIconOverride(item.iconName) !== item.iconName)) {
@@ -128,6 +139,11 @@ function validateItem(item: unknown, label: string): asserts item is Record<stri
     || !["feb28", "mar1"].includes(rule.leapDayPolicy))) {
     throw new Error(`${label}的周期规则无效，导入已取消。`)
   }
+}
+
+function validManualID(value: unknown): value is string {
+  if (!boundedText(value, 512, true)) return false
+  return value.length <= 160 || /-duplicate-\d+$/.test(value)
 }
 
 function validateSettings(settings: Record<string, any>): void {
