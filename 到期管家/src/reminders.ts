@@ -193,7 +193,7 @@ export async function completeReminderOccurrence(
   // a local history/cache failure must never invite repeating the completion.
   let historySaved = true
   try {
-    recordReminderCompletion(current)
+    recordReminderCompletion({ ...current, title: localizedReminderTitle(current.title) })
   } catch (error) {
     historySaved = false
     console.error("Reminder completed but local history was not saved", error)
@@ -262,8 +262,12 @@ function reminderToCacheItem(reminder: any): CachedReminderItem | null {
   const dueTimestamp = includesTime
     ? computed.getTime()
     : dateKeyToLocalDate(dueDate, false).getTime()
-  const title = normalizedReminderTitle(reminder.title)
-  const calendarTitle = String(reminder.calendar?.title ?? "提醒事项").slice(0, 80)
+  // Keep fallback presentation text out of the cache so a later system-language
+  // change can localize blank titles and missing List names at render time.
+  const title = normalizedReminderCacheTitle(reminder.title)
+  const calendarTitle = typeof reminder.calendar?.title === "string"
+    ? reminder.calendar.title.trim().slice(0, 80)
+    : ""
 
   return {
     id: String(reminder.identifier ?? `${reminder.title}-${dueTimestamp}`),
@@ -302,7 +306,7 @@ function cacheItemToDisplay(item: CachedReminderItem, stale: boolean): DisplayDu
     id: item.id,
     source: "reminder",
     completionKey: reminderOccurrenceKey(item),
-    title: item.title,
+    title: localizedReminderTitle(item.title),
     kind: "reminder",
     iconName: icon.name,
     iconColor: icon.color,
@@ -375,13 +379,13 @@ function normalizeCachedItem(raw: any): CachedReminderItem | null {
   }
   return {
     id: raw.id,
-    title: normalizedReminderTitle(raw.title),
+    title: normalizedReminderCacheTitle(raw.title),
     dueDate: raw.dueDate,
     includesTime: raw.includesTime,
     hour: boundedInteger(raw.hour, 0, 23, 0),
     minute: boundedInteger(raw.minute, 0, 59, 0),
     dueTimestamp: raw.dueTimestamp,
-    calendarTitle: typeof raw.calendarTitle === "string" ? raw.calendarTitle.slice(0, 80) : "提醒事项",
+    calendarTitle: typeof raw.calendarTitle === "string" ? raw.calendarTitle.trim().slice(0, 80) : "",
     noteIconHint: normalizeIconOverride(raw.noteIconHint),
     priority: boundedInteger(raw.priority, 0, 3, 0),
     canComplete: typeof raw.canComplete === "boolean" ? raw.canComplete : true,
@@ -394,9 +398,16 @@ function urgencyRank(overdue: boolean, needsAction: boolean): number {
   return 2
 }
 
-function normalizedReminderTitle(value: unknown): string {
+function normalizedReminderCacheTitle(value: unknown): string {
   const title = typeof value === "string" ? value.trim().slice(0, 200) : ""
-  return title || widgetText("untitledReminder", currentWidgetLocale())
+  // v2.5.1 could persist these generated values. Treat them as presentation
+  // fallbacks so an offline widget can switch language without a live refetch.
+  return ["Untitled Reminder", "未命名提醒"].includes(title) ? "" : title
+}
+
+function localizedReminderTitle(value: unknown): string {
+  return normalizedReminderCacheTitle(value)
+    || widgetText("untitledReminder", currentWidgetLocale())
 }
 
 function integerOr(value: unknown, fallback: number): number {

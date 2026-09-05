@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.5.1 fixes notification replacement after language or time-zone changes, rechecks deadlines before scheduling, and adds protected startup recovery. Backup restoration preserves eligible undo records; malformed revisions and legacy IDs are handled safely. Reminder completion no longer fails because cache cleanup fails, and cached dates follow the current time zone. Widget warnings open a real status page. Existing widget layouts are unchanged.",
-    "zh": "2.5.1 修复语言或时区变化时通知被部分撤销、过期时刻仍被排程等问题。新增独立恢复入口，先隔离保全损坏原文再恢复；修复恢复后无法撤销及旧备份、异常版本数字兼容问题。缓存异常不再误报提醒完成失败，缓存日期与当前时区保持一致。「检查操作」可查看结果并安全清除提示。小中大型组件布局不变。",
-    "zh-Hans": "2.5.1 修复语言或时区变化时通知被部分撤销、过期时刻仍被排程等问题。新增独立恢复入口，先隔离保全损坏原文再恢复；修复恢复后无法撤销及旧备份、异常版本数字兼容问题。缓存异常不再误报提醒完成失败，缓存日期与当前时区保持一致。「检查操作」可查看结果并安全清除提示。小中大型组件布局不变。",
-    "zh-Hant": "2.5.1 修復語言或時區變化時通知被部分撤銷、過期時刻仍被排程等問題。新增獨立還原入口，先隔離保留損壞原文再還原；修復還原後無法撤銷及舊備份、異常版本數字相容問題。快取異常不再誤報提醒完成失敗，快取日期與目前時區保持一致。「檢查操作」可查看結果並安全清除提示。小中大型元件版面不變。"
+    "en": "2.5.2 makes every widget use the iPhone system language even when Scripting has a different per-app language. Compact icon names, dates, headings, sections, empty states, and errors now share that language source. Existing data and layouts are unchanged.",
+    "zh": "2.5.2 修复 Scripting 单独设置为中文时组件误用中文的问题。所有小、中、大及锁屏组件现在优先读取 iPhone 系统语言；图标名称、日期、标题、分区、空状态和错误提示使用同一语言来源。现有数据与布局不变。",
+    "zh-Hans": "2.5.2 修复 Scripting 单独设置为中文时组件误用中文的问题。所有小、中、大及锁屏组件现在优先读取 iPhone 系统语言；图标名称、日期、标题、分区、空状态和错误提示使用同一语言来源。现有数据与布局不变。",
+    "zh-Hant": "2.5.2 修復 Scripting 單獨設為中文時元件誤用中文的問題。所有小、中、大及鎖定畫面元件現在優先讀取 iPhone 系統語言；圖示名稱、日期、標題、分區、空狀態和錯誤提示使用同一語言來源。現有資料與版面不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

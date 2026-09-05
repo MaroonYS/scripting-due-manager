@@ -213,6 +213,36 @@ test("blank live and legacy cached Reminder titles share a nonempty fallback", a
   }
 })
 
+test("blank Reminder presentation follows a changed system language while offline", async () => {
+  await withRuntime(async store => {
+    globals.Device = {
+      preferredLanguages: ["zh-Hans-CN"],
+      systemLanguageTag: "en-US",
+      systemLanguageCode: "en",
+    }
+    const current = reminder({ title: "", calendar: { allowsContentModifications: true } })
+    globals.Reminder = { getIncompletes: async () => [current] }
+    const live = await loadReminderItems(365)
+    assert.equal(live.items[0].title, "Untitled Reminder")
+    assert.equal(live.items[0].note, "")
+    const saved = store.get(`shared:${REMINDER_SNAPSHOT_KEY}`)
+    assert.equal(saved.items[0].title, "")
+    assert.equal(saved.items[0].calendarTitle, "")
+
+    globals.Device = {
+      preferredLanguages: ["en-US"],
+      systemLanguageTag: "zh-Hant-HK",
+      systemLanguageCode: "zh",
+      systemScriptCode: "Hant",
+      systemCountryCode: "HK",
+    }
+    globals.Reminder.getIncompletes = async () => { throw new Error("offline") }
+    const cached = await loadReminderItems(365)
+    assert.equal(cached.items[0].title, "未命名提醒")
+    assert.equal(cached.items[0].note, "")
+  })
+})
+
 test("expired cache retains its successful fetch timestamp without returning expired rows", async () => {
   await withRuntime(async store => {
     const fetchedAt = Date.now() - 25 * 60 * 60 * 1000

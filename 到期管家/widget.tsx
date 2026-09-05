@@ -1,4 +1,4 @@
-import { Script, Text, VStack, Widget } from "scripting"
+import { Device, Script, Text, VStack, Widget } from "scripting"
 import { loadReminderItems, nextWidgetRefresh, sortDueItems } from "./src/reminders"
 import {
   loadState,
@@ -8,10 +8,11 @@ import {
 import {
   readWidgetCompletionTransition,
 } from "./src/widget_completion"
-import { currentWidgetLocale, widgetText } from "./src/widget_localization"
+import { configureWidgetLocale, currentWidgetLocale, widgetText } from "./src/widget_localization"
 import { DueManagerWidget } from "./src/widget_view"
 import { reconcileNotifications } from "./src/notifications"
 
+configureWidgetLocale(Device)
 const WIDGET_LOCALE = currentWidgetLocale()
 
 async function main() {

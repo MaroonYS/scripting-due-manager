@@ -11,6 +11,7 @@ declare module "scripting" {
   export const Circle: any
   export const DateLabel: any
   export const DatePicker: any
+  export const Device: any
   export const Divider: any
   export const HStack: any
   export const Image: any

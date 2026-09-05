@@ -1,4 +1,5 @@
-import { AppIntentManager, AppIntentProtocol } from "scripting"
+import { AppIntentManager, AppIntentProtocol, Device } from "scripting"
+import { configureWidgetLocale } from "./src/widget_localization"
 import {
   completeReminderOccurrence,
   findReminderDisplayItemForCompletion,
@@ -18,6 +19,8 @@ import {
 } from "./src/widget_refresh"
 import { reconcileNotifications } from "./src/notifications"
 import { loadState } from "./src/storage"
+
+configureWidgetLocale(Device)
 
 export type CompleteDueItemParams = {
   source: "manual" | "reminder"

@@ -1139,7 +1139,7 @@ export function normalizeIconOverride(value: unknown): string | null {
 /** Human-readable catalog label for a resolved SF Symbol used by widgets. */
 export function dueIconLabel(
   iconName: string | null | undefined,
-  language: DueIconLabelLanguage = "zh-Hans",
+  language: DueIconLabelLanguage,
 ): string {
   const icon = resolvedIcon(iconName ?? DEFAULT_ICON.name)
   if (language === "en") {

@@ -1,6 +1,7 @@
 import {
   Button,
   DatePicker,
+  Device,
   HStack,
   Image,
   Label,
@@ -22,6 +23,7 @@ import {
   useEffect,
   useState,
 } from "scripting"
+import { configureWidgetLocale } from "./src/widget_localization"
 import {
   advanceManualItem,
   actionDateKey,
@@ -37,6 +39,7 @@ import {
   parseRemindBeforeDaysInput,
   parseRecurrenceIntervalInput,
 } from "./src/date"
+
 import {
   DUE_ICON_GROUPS,
   DUE_ICON_OPTIONS,
@@ -77,6 +80,8 @@ import { RecoveryView } from "./src/recovery_view"
 import { UpdateView } from "./src/update_view"
 import { readRecoveryStatus } from "./src/recovery"
 import { WidgetActionStatusView } from "./src/widget_action_view"
+
+configureWidgetLocale(Device)
 
 type ReminderStatus = {
   loading: boolean

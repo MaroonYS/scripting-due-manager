@@ -54,8 +54,10 @@ type WidgetIssue = {
   color: string
 }
 
-const WIDGET_LOCALE = currentWidgetLocale()
-const WIDGET_LANGUAGE = widgetLanguage(WIDGET_LOCALE)
+// Read after the entry point configures the explicitly imported Device API.
+// This avoids freezing the host process locale during module initialization.
+function widgetRuntimeLocale(): string { return currentWidgetLocale() }
+function widgetRuntimeLanguage() { return widgetLanguage(widgetRuntimeLocale()) }
 
 // Animation and Transition are Scripting runtime globals (like Storage), not
 // named exports. A persisted generation drives one WidgetKit timeline diff.
@@ -139,7 +141,7 @@ function WidgetHeader({
         lineLimit={1}
         minScaleFactor={compact ? 0.65 : 1}
       >
-        {compact ? compactTitle ?? widgetText("due", WIDGET_LOCALE) : widgetText("appName", WIDGET_LOCALE)}
+        {compact ? compactTitle ?? widgetText("due", widgetRuntimeLocale()) : widgetText("appName", widgetRuntimeLocale())}
       </Text>
       <Spacer />
       {issue
@@ -159,7 +161,7 @@ function WidgetHeader({
           monospacedDigit
           contentTransition="numericTextCountsDown"
         >
-          {items[0] ? formatWidgetDate(items[0].dueDate, WIDGET_LOCALE) : items.length}
+          {items[0] ? formatWidgetDate(items[0].dueDate, widgetRuntimeLocale()) : items.length}
         </Text>
         : null}
     </HStack>
@@ -175,8 +177,8 @@ function LargeSummaryHeader({
   issue: WidgetIssue | null
   height: number
 }) {
-  const date = largeSummaryDate(item, WIDGET_LOCALE)
-  const context = largeSummaryContext(item, WIDGET_LOCALE)
+  const date = largeSummaryDate(item, widgetRuntimeLocale())
+  const context = largeSummaryContext(item, widgetRuntimeLocale())
   const subtitle = `${date.month} · ${context}`
   return <Link url={Script.createRunURLScheme(Script.name)}>
     <VStack
@@ -285,8 +287,8 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number }) {
         compact
         issue={issue}
         compactTitle={item
-          ? dueIconLabel(item.iconName, WIDGET_LANGUAGE)
-          : widgetText("due", WIDGET_LOCALE)}
+          ? dueIconLabel(item.iconName, widgetRuntimeLanguage())
+          : widgetText("due", widgetRuntimeLocale())}
       />
       <CompletionContent
         generation={completionGeneration}
@@ -323,7 +325,7 @@ function SmallWidgetBody({
     : <Link url={Script.createRunURLScheme(Script.name)}>
       <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
         {issue
-          ? <ErrorState compact title={widgetText("unableToLoad", WIDGET_LOCALE)} detail={issue.text} />
+          ? <ErrorState compact title={widgetText("unableToLoad", widgetRuntimeLocale())} detail={issue.text} />
           : <EmptyState compact />}
       </VStack>
     </Link>
@@ -412,7 +414,7 @@ function SmallCurrentDetail({
   detail: string
   issue: WidgetIssue | null
 }) {
-  const time = formatWidgetItemTime(item, WIDGET_LOCALE)
+  const time = formatWidgetItemTime(item, widgetRuntimeLocale())
   const supportingText = issue?.compactText ?? detail
   return <VStack
     alignment="leading"
@@ -494,7 +496,7 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
           lineLimit={1}
           minScaleFactor={0.72}
         >
-          {formatWidgetItemDate(item, WIDGET_LOCALE)}
+          {formatWidgetItemDate(item, widgetRuntimeLocale())}
         </Text>
       </HStack>
     </Link>
@@ -637,7 +639,7 @@ function ListWidgetBody({
       : <Link url={Script.createRunURLScheme(Script.name)}>
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
           {issue
-            ? <ErrorState title={widgetText("unableToLoad", WIDGET_LOCALE)} detail={issue.text} />
+            ? <ErrorState title={widgetText("unableToLoad", widgetRuntimeLocale())} detail={issue.text} />
             : <EmptyState />}
         </VStack>
       </Link>}
@@ -673,13 +675,13 @@ function LargeListWidgetBody({
     title: string
     rows: Array<{ item: DisplayDueItem; index: number }>
   }> = maximumSections === 1
-    ? [{ title: widgetText("recentItems", WIDGET_LOCALE), rows: indexedItems }]
+    ? [{ title: widgetText("recentItems", widgetRuntimeLocale()), rows: indexedItems }]
     : []
   if (maximumSections === 2 && needsAction.length > 0) {
-    sections.push({ title: widgetText("needsAction", WIDGET_LOCALE), rows: needsAction })
+    sections.push({ title: widgetText("needsAction", widgetRuntimeLocale()), rows: needsAction })
   }
   if (maximumSections === 2 && upcoming.length > 0) {
-    sections.push({ title: widgetText("nextItems", WIDGET_LOCALE), rows: upcoming })
+    sections.push({ title: widgetText("nextItems", widgetRuntimeLocale()), rows: upcoming })
   }
 
   return <VStack
@@ -703,7 +705,7 @@ function LargeListWidgetBody({
       : <Link url={Script.createRunURLScheme(Script.name)}>
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
           {issue
-            ? <ErrorState title={widgetText("unableToLoad", WIDGET_LOCALE)} detail={issue.text} />
+            ? <ErrorState title={widgetText("unableToLoad", widgetRuntimeLocale())} detail={issue.text} />
             : <EmptyState />}
         </VStack>
       </Link>}
@@ -876,7 +878,7 @@ function DueItemRow({
               lineLimit={1}
               minScaleFactor={0.72}
             >
-              {formatWidgetItemDate(item, WIDGET_LOCALE)}
+              {formatWidgetItemDate(item, widgetRuntimeLocale())}
             </Text>
             {item.stale
               ? <Image
@@ -914,7 +916,7 @@ function ListCompletionIcon({
   return <Button
     buttonStyle="plain"
     contentShape="rectangle"
-    title={widgetCompletionLabel(item, WIDGET_LOCALE)}
+    title={widgetCompletionLabel(item, widgetRuntimeLocale())}
     systemImage={item.iconName}
     labelStyle="iconOnly"
     font={symbolSize}
@@ -973,10 +975,10 @@ function EmptyState({ compact = false }: { compact?: boolean }) {
       widgetAccentable
     />
     <Text font={compact ? "subheadline" : "headline"} fontWeight="semibold">
-      {widgetText("allDone", WIDGET_LOCALE)}
+      {widgetText("allDone", widgetRuntimeLocale())}
     </Text>
     <Text font="caption2" foregroundStyle="secondaryLabel" multilineTextAlignment="center" lineLimit={2}>
-      {widgetText("openAppToAdd", WIDGET_LOCALE)}
+      {widgetText("openAppToAdd", widgetRuntimeLocale())}
     </Text>
   </VStack>
 }
@@ -1067,29 +1069,29 @@ function widgetIssue(props: {
 }): WidgetIssue | null {
   if (props.interactionError) {
     return {
-      text: localizeWidgetActionError(props.interactionError, WIDGET_LOCALE),
-      compactText: widgetText("reviewAction", WIDGET_LOCALE),
-      statusText: widgetText("reviewAction", WIDGET_LOCALE),
+      text: localizeWidgetActionError(props.interactionError, widgetRuntimeLocale()),
+      compactText: widgetText("reviewAction", widgetRuntimeLocale()),
+      statusText: widgetText("reviewAction", widgetRuntimeLocale()),
       color: "systemRed",
     }
   }
   if (props.reminderError) {
     return {
       text: props.remindersLive
-        ? widgetText("reminderReadCacheFailed", WIDGET_LOCALE)
+        ? widgetText("reminderReadCacheFailed", widgetRuntimeLocale())
         : props.remindersFromCache
-          ? widgetText("reminderSyncCached", WIDGET_LOCALE)
-          : widgetText("reminderReadFailed", WIDGET_LOCALE),
-      compactText: widgetText("retrySync", WIDGET_LOCALE),
-      statusText: `${widgetText("retrySync", WIDGET_LOCALE)} · ${formatWidgetLastSync(props.reminderFetchedAt, WIDGET_LOCALE)}`,
+          ? widgetText("reminderSyncCached", widgetRuntimeLocale())
+          : widgetText("reminderReadFailed", widgetRuntimeLocale()),
+      compactText: widgetText("retrySync", widgetRuntimeLocale()),
+      statusText: `${widgetText("retrySync", widgetRuntimeLocale())} · ${formatWidgetLastSync(props.reminderFetchedAt, widgetRuntimeLocale())}`,
       color: "systemOrange",
     }
   }
   if (props.remindersFromCache) {
     return {
-      text: widgetText("cachedItems", WIDGET_LOCALE),
-      compactText: widgetText("retrySync", WIDGET_LOCALE),
-      statusText: `${widgetText("retrySync", WIDGET_LOCALE)} · ${formatWidgetLastSync(props.reminderFetchedAt, WIDGET_LOCALE)}`,
+      text: widgetText("cachedItems", widgetRuntimeLocale()),
+      compactText: widgetText("retrySync", widgetRuntimeLocale()),
+      statusText: `${widgetText("retrySync", widgetRuntimeLocale())} · ${formatWidgetLastSync(props.reminderFetchedAt, widgetRuntimeLocale())}`,
       color: "systemOrange",
     }
   }

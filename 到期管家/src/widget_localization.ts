@@ -3,7 +3,7 @@ import type { DisplayDueItem, ItemKind } from "./types"
 
 export type WidgetLanguage = "en" | "zh-Hans" | "zh-Hant"
 
-declare const Device: {
+export type WidgetLocaleDevice = {
   preferredLanguages?: string[]
   systemLocale?: string
   systemLanguageTag?: string
@@ -11,6 +11,10 @@ declare const Device: {
   systemCountryCode?: string
   systemScriptCode?: string
 }
+
+declare const Device: WidgetLocaleDevice
+
+let configuredWidgetDevice: WidgetLocaleDevice | null = null
 
 const WIDGET_TEXT = {
   en: {
@@ -154,27 +158,54 @@ const ACTION_ERROR_TEXT_KEYS: Record<string, WidgetTextKey> = {
   "事项完成失败，请打开主脚本检查存储": "itemCompletionFailed",
 }
 
-/** Returns a stable BCP-47 tag, preferring the first language selected in iOS. */
-export function currentWidgetLocale(): string {
+/**
+ * Returns the iPhone system language as a stable BCP-47 tag.
+ *
+ * The language values exposed by Scripting can disagree. On hosts that expose
+ * both forms, systemLanguageTag/systemLanguageCode are authoritative;
+ * preferredLanguages remains the compatibility fallback for older releases.
+ */
+export function configureWidgetLocale(device: WidgetLocaleDevice): void {
+  configuredWidgetDevice = device
+}
+
+export function currentWidgetLocale(device?: WidgetLocaleDevice): string {
   try {
-    if (typeof Device !== "undefined") {
-      const preferredValue = Array.isArray(Device.preferredLanguages)
-        ? Device.preferredLanguages.find(value => typeof value === "string" && value.trim())
+    const runtimeDevice = device
+      ?? configuredWidgetDevice
+      ?? (typeof Device !== "undefined" ? Device : undefined)
+    if (runtimeDevice) {
+      // Read each optional host value independently. One unavailable getter on
+      // an older Scripting build must not hide another valid system-language
+      // property and force the widget back to the host process locale.
+      const preferredLanguages = readOptionalDeviceValue(() => runtimeDevice.preferredLanguages)
+      const preferredValue = Array.isArray(preferredLanguages)
+        ? preferredLanguages.find(value => typeof value === "string" && value.trim())
         : undefined
       const preferred = normalizeLocaleTag(preferredValue)
-      const systemTag = normalizeLocaleTag(Device.systemLanguageTag)
-      const explicitTag = preferred
-        && systemTag
-        && !preferred.includes("-")
-        && systemTag.toLowerCase().startsWith(`${preferred.toLowerCase()}-`)
-        ? systemTag
-        : preferred || systemTag
+      const systemTag = normalizeLocaleTag(readOptionalDeviceValue(() => runtimeDevice.systemLanguageTag))
+      const systemLocale = normalizeLocaleTag(readOptionalDeviceValue(() => runtimeDevice.systemLocale))
+      const systemLanguageCode = readOptionalDeviceValue(() => runtimeDevice.systemLanguageCode)
+      const systemScriptCode = readOptionalDeviceValue(() => runtimeDevice.systemScriptCode)
+      const systemCountryCode = readOptionalDeviceValue(() => runtimeDevice.systemCountryCode)
       const assembledTag = [
-        Device.systemLanguageCode,
-        Device.systemScriptCode,
-        Device.systemCountryCode,
+        systemLanguageCode,
+        systemScriptCode,
+        systemCountryCode,
       ].filter(value => typeof value === "string" && value.trim()).join("-")
-      const normalized = normalizeLocaleTag(explicitTag || assembledTag || Device.systemLocale)
+      const assembled = normalizeLocaleTag(assembledTag)
+      let explicitSystemTag = systemTag
+        && assembled
+        && !systemTag.includes("-")
+        && assembled.toLowerCase().startsWith(`${systemTag.toLowerCase()}-`)
+        ? assembled
+        : systemTag || assembled
+      if (
+        explicitSystemTag
+        && !explicitSystemTag.includes("-")
+        && systemLocale?.toLowerCase().startsWith(`${explicitSystemTag.toLowerCase()}-`)
+      ) explicitSystemTag = systemLocale
+      const normalized = normalizeLocaleTag(explicitSystemTag || systemLocale || preferred)
       if (normalized) return normalized
     }
   } catch {
@@ -188,16 +219,20 @@ export function currentWidgetLocale(): string {
   }
 }
 
+function readOptionalDeviceValue<T>(reader: () => T): T | undefined {
+  try { return reader() }
+  catch { return undefined }
+}
+
 export function widgetLanguage(locale: string, scriptCode = ""): WidgetLanguage {
   const normalized = `${locale}-${scriptCode}`.replaceAll("_", "-").toLowerCase()
   const languageCode = normalized.split("-")[0]
   if (languageCode !== "zh") return "en"
-  if (
-    normalized.includes("hant")
-    || /(?:^|-)(?:tw|hk|mo)(?:-|$)/.test(normalized)
-  ) {
-    return "zh-Hant"
-  }
+  // An explicit script is stronger than the region. This matters for valid
+  // combinations such as zh-Hans-HK, which must remain Simplified Chinese.
+  if (/(?:^|-)hant(?:-|$)/.test(normalized)) return "zh-Hant"
+  if (/(?:^|-)hans(?:-|$)/.test(normalized)) return "zh-Hans"
+  if (/(?:^|-)(?:tw|hk|mo)(?:-|$)/.test(normalized)) return "zh-Hant"
   return "zh-Hans"
 }
 
