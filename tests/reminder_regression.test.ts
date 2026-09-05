@@ -243,6 +243,35 @@ test("blank Reminder presentation follows a changed system language while offlin
   })
 })
 
+test("literal fallback-looking Reminder titles are never rewritten", async () => {
+  for (const [title, systemLanguageTag] of [
+    ["Untitled Reminder", "zh-Hant-HK"],
+    ["未命名提醒", "en-US"],
+  ] as const) {
+    await withRuntime(async store => {
+      globals.Device = {
+        preferredLanguages: [systemLanguageTag],
+        systemLanguageTag,
+      }
+      const current = reminder({ title })
+      globals.Reminder = {
+        getIncompletes: async () => [current],
+        get: async () => current,
+      }
+      const live = await loadReminderItems(365)
+      assert.equal(live.items[0].title, title)
+      assert.equal(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`).items[0].title, title)
+
+      globals.Reminder.getIncompletes = async () => { throw new Error("offline") }
+      assert.equal((await loadReminderItems(365)).items[0].title, title)
+
+      const result = await completeReminderOccurrence(live.items[0].id, live.items[0].completionKey)
+      assert.equal(result, "applied")
+      assert.equal(loadState().completionHistory?.[0].title, title)
+    })
+  }
+})
+
 test("expired cache retains its successful fetch timestamp without returning expired rows", async () => {
   await withRuntime(async store => {
     const fetchedAt = Date.now() - 25 * 60 * 60 * 1000

@@ -1,9 +1,10 @@
 # 到期管家
 
-## 当前版本 2.5.2
+## 当前版本 2.5.3
 
 - 修复系统语言与 Scripting 的单独应用语言不一致时，小组件误用应用语言的问题。现在优先读取 `Device.systemLanguageTag`／`systemLanguageCode`；旧版运行环境才使用 `Device.preferredLanguages` 后备。
 - 小号左上角图标语义名称以及所有尺寸的日期、内置标题、分区、空状态和错误提示使用同一系统语言来源。英文系统中的 `doc.text.magnifyingglass` 显示为 “Tax & Accounting”，不再显示“税务会计”。
+- 明确的 `Hans`／`Hant` 脚本优先于地区推断；用户真实命名为 “Untitled Reminder” 或“未命名提醒”的事项不会被当作空标题改写。
 - 本次不修改事项数据、布局、字号、行高、点击区域、容量或通知逻辑。
 
 ### 2.5.1

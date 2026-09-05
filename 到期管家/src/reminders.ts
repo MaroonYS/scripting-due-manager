@@ -399,10 +399,9 @@ function urgencyRank(overdue: boolean, needsAction: boolean): number {
 }
 
 function normalizedReminderCacheTitle(value: unknown): string {
-  const title = typeof value === "string" ? value.trim().slice(0, 200) : ""
-  // v2.5.1 could persist these generated values. Treat them as presentation
-  // fallbacks so an offline widget can switch language without a live refetch.
-  return ["Untitled Reminder", "未命名提醒"].includes(title) ? "" : title
+  // Only a genuinely blank EventKit title receives localized presentation
+  // text. A user is allowed to name a reminder exactly like our fallback.
+  return typeof value === "string" ? value.trim().slice(0, 200) : ""
 }
 
 function localizedReminderTitle(value: unknown): string {

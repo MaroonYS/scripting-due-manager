@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.5.2 makes every widget use the iPhone system language even when Scripting has a different per-app language. Compact icon names, dates, headings, sections, empty states, and errors now share that language source. Existing data and layouts are unchanged.",
-    "zh": "2.5.2 修复 Scripting 单独设置为中文时组件误用中文的问题。所有小、中、大及锁屏组件现在优先读取 iPhone 系统语言；图标名称、日期、标题、分区、空状态和错误提示使用同一语言来源。现有数据与布局不变。",
-    "zh-Hans": "2.5.2 修复 Scripting 单独设置为中文时组件误用中文的问题。所有小、中、大及锁屏组件现在优先读取 iPhone 系统语言；图标名称、日期、标题、分区、空状态和错误提示使用同一语言来源。现有数据与布局不变。",
-    "zh-Hant": "2.5.2 修復 Scripting 單獨設為中文時元件誤用中文的問題。所有小、中、大及鎖定畫面元件現在優先讀取 iPhone 系統語言；圖示名稱、日期、標題、分區、空狀態和錯誤提示使用同一語言來源。現有資料與版面不變。"
+    "en": "2.5.3 makes every widget use the iPhone system language even when Scripting has a different per-app language. Compact icon names, dates, headings, sections, empty states, and errors share that source. Explicit Simplified or Traditional Chinese is respected, and real Reminder titles resembling fallback text are preserved. Existing data and layouts are unchanged.",
+    "zh": "2.5.3 修复 Scripting 单独设置为中文时组件误用中文的问题。所有小、中、大及锁屏组件优先读取 iPhone 系统语言；明确的简繁体设置不会被地区覆盖，真实提醒标题也不会被后备文案误改。现有数据与布局不变。",
+    "zh-Hans": "2.5.3 修复 Scripting 单独设置为中文时组件误用中文的问题。所有小、中、大及锁屏组件优先读取 iPhone 系统语言；明确的简繁体设置不会被地区覆盖，真实提醒标题也不会被后备文案误改。现有数据与布局不变。",
+    "zh-Hant": "2.5.3 修復 Scripting 單獨設為中文時元件誤用中文的問題。所有小、中、大及鎖定畫面元件優先讀取 iPhone 系統語言；明確的簡繁體設定不會被地區覆蓋，真實提醒標題也不會被後備文字誤改。現有資料與版面不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

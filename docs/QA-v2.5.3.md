@@ -1,12 +1,13 @@
-# v2.5.2 回归与验收
+# v2.5.3 回归与验收
 
 ## 自动化验证
 
 - 系统语言标记与 Scripting 首选语言冲突时，系统语言必须优先；英文系统下 `doc.text.magnifyingglass` 必须显示 “Tax & Accounting”。
 - 只提供 `preferredLanguages` 的旧运行环境仍能识别英文；只提供中文语言码、脚本与地区时仍能区分简体和繁体。
+- `zh-Hans-HK` 保持简体，`zh-Hant-CN` 保持繁体；与本地化后备文案同名的真实提醒在在线、缓存与完成记录中均不得改写。
 - 运行完整测试、TypeScript 检查、安装包解压比对与云端发布检查。
 
-本地结果：默认时区、UTC 与 America/Los_Angeles 各通过 226 项测试，0 失败；TypeScript 无诊断；安装包完整且与源码一致。发布包 SHA-256：`e0f35fda7c9375c15437f90809d5fd8add3733f762cac9c6df8a4258a4b68109`。
+本地结果：默认时区、UTC 与 America/Los_Angeles 各通过 227 项测试，0 失败；TypeScript 无诊断；安装包完整且与源码一致。发布包 SHA-256：`6692fcf6ad1b730bc989372958ade95b9c9c524f2b74545ab6c027a5cf01674e`。
 
 ## iPhone 待验收
 
