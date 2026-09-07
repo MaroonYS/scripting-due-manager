@@ -67,6 +67,8 @@ export interface CompletionRecord {
   after?: ManualDueItem
 }
 
+export type ReminderNoteIconConfidence = "strong" | "ordinary"
+
 export interface LocalSnapshot {
   id: string
   createdAt: number
@@ -86,6 +88,8 @@ export interface CachedReminderItem {
   calendarTitle: string
   /** Icon inferred from Apple Reminders notes; the notes text itself is never cached. */
   noteIconHint: string | null
+  /** Lets a specific product/category note supplement only an otherwise generic List. */
+  noteIconConfidence: ReminderNoteIconConfidence | null
   priority: number
   /** False for read-only shared reminder lists. */
   canComplete: boolean

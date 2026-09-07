@@ -51,6 +51,7 @@ function cachedItem(overrides: Record<string, any> = {}) {
     dueTimestamp: new Date(2026, 8, 4, 23, 59, 59, 999).getTime(),
     calendarTitle: "Reminders",
     noteIconHint: null,
+    noteIconConfidence: null,
     priority: 0,
     canComplete: true,
     ...overrides,

@@ -6,7 +6,7 @@ import {
   parseDateKey,
 } from "./date"
 import {
-  inferReminderNoteIcon,
+  inferReminderNoteIconCandidate,
   normalizeIconOverride,
   resolveReminderIcon,
 } from "./icons"
@@ -268,6 +268,7 @@ function reminderToCacheItem(reminder: any): CachedReminderItem | null {
   const calendarTitle = typeof reminder.calendar?.title === "string"
     ? reminder.calendar.title.trim().slice(0, 80)
     : ""
+  const noteIconInference = inferReminderNoteIconCandidate(reminder.notes)
 
   return {
     id: String(reminder.identifier ?? `${reminder.title}-${dueTimestamp}`),
@@ -279,7 +280,8 @@ function reminderToCacheItem(reminder: any): CachedReminderItem | null {
     dueTimestamp,
     calendarTitle,
     // Keep the widget cache useful without persisting private reminder notes.
-    noteIconHint: inferReminderNoteIcon(reminder.notes),
+    noteIconHint: noteIconInference?.iconName ?? null,
+    noteIconConfidence: noteIconInference?.confidence ?? null,
     priority: normalizedReminderPriority(reminder.priority),
     canComplete: reminder.calendar?.allowsContentModifications !== false,
   }
@@ -301,6 +303,7 @@ function cacheItemToDisplay(item: CachedReminderItem, stale: boolean): DisplayDu
     item.calendarTitle,
     null,
     item.noteIconHint,
+    item.noteIconConfidence,
   )
   return {
     id: item.id,
@@ -377,6 +380,10 @@ function normalizeCachedItem(raw: any): CachedReminderItem | null {
   ) {
     return null
   }
+  const noteIconHint = normalizeIconOverride(raw.noteIconHint)
+  const noteIconConfidence = noteIconHint
+    ? raw.noteIconConfidence === "strong" ? "strong" : "ordinary"
+    : null
   return {
     id: raw.id,
     title: normalizedReminderCacheTitle(raw.title),
@@ -386,7 +393,8 @@ function normalizeCachedItem(raw: any): CachedReminderItem | null {
     minute: boundedInteger(raw.minute, 0, 59, 0),
     dueTimestamp: raw.dueTimestamp,
     calendarTitle: typeof raw.calendarTitle === "string" ? raw.calendarTitle.trim().slice(0, 80) : "",
-    noteIconHint: normalizeIconOverride(raw.noteIconHint),
+    noteIconHint,
+    noteIconConfidence,
     priority: boundedInteger(raw.priority, 0, 3, 0),
     canComplete: typeof raw.canComplete === "boolean" ? raw.canComplete : true,
   }

@@ -1,5 +1,5 @@
 import { ITEM_KIND_DEFINITIONS } from "./item_kinds"
-import type { ItemKind } from "./types"
+import type { ItemKind, ReminderNoteIconConfidence } from "./types"
 
 export type DueIconGroup =
   | "财务"
@@ -355,6 +355,7 @@ type IconRule = {
   icon: string
   keywords: string[]
   exactKeywords?: string[]
+  noteConfidence?: ReminderNoteIconConfidence
 }
 
 type CompiledKeyword = {
@@ -368,6 +369,18 @@ type CompiledIconRule = {
   icon: string
   keywords: CompiledKeyword[]
   exactKeywords: CompiledKeyword[]
+  noteConfidence: ReminderNoteIconConfidence
+}
+
+type MatchedIconRule = {
+  iconName: string
+  confidence: ReminderNoteIconConfidence
+  score: number
+}
+
+export type ReminderNoteIconInference = {
+  iconName: string
+  confidence: ReminderNoteIconConfidence
 }
 
 // Rules stay deliberately conservative: manual choices cover the long tail, while
@@ -822,6 +835,7 @@ const ICON_RULES: IconRule[] = [
 const REMINDER_CONTENT_RULES: IconRule[] = [
   {
     icon: "creditcard.fill",
+    noteConfidence: "strong",
     keywords: [
       "ventureone", "venture one", "venture x",
       "quicksilver autopay", "savor autopay", "chase sapphire", "chase freedom",
@@ -978,6 +992,8 @@ const REMINDER_CONTENT_RULES: IconRule[] = [
 export type ReminderListIconRule = {
   icon: string
   aliases: string[]
+  /** Catch-all Lists should not hide a specific product/category found in notes. */
+  generic?: boolean
 }
 
 // Generic category words are trustworthy for a List name, but too broad for an
@@ -987,8 +1003,8 @@ export const REMINDER_LIST_ICON_RULES: ReminderListIconRule[] = [
   // Work and productivity
   { icon: "briefcase.fill", aliases: ["工作", "我的工作", "辦公", "办公", "職場", "职场", "商務", "商务", "work", "office", "business", "career"] },
   { icon: "rectangle.3.group.fill", aliases: ["項目", "项目", "工作項目", "工作项目", "項目管理", "项目管理", "工作流", "projects", "work projects", "project management", "workflows"] },
-  { icon: "checkmark.circle.fill", aliases: ["待辦", "待办", "任務", "任务", "差事", "雜事", "杂事", "to do", "todo", "tasks", "errands"] },
-  { icon: "checklist", aliases: ["提醒事項", "提醒事项", "提醒", "收件箱", "默認", "默认", "reminders", "my reminders", "inbox", "personal", "personal tasks"] },
+  { icon: "checkmark.circle.fill", aliases: ["待辦", "待办", "任務", "任务", "差事", "雜事", "杂事", "to do", "todo", "tasks", "errands"], generic: true },
+  { icon: "checklist", aliases: ["提醒事項", "提醒事项", "提醒", "收件箱", "默認", "默认", "reminders", "my reminders", "inbox", "personal", "personal tasks"], generic: true },
   { icon: "calendar", aliases: ["日程", "安排", "預約", "预约", "行事曆", "日历", "calendar", "schedule", "appointments", "planning"] },
   { icon: "note.text", aliases: ["筆記", "笔记", "備忘", "备忘", "會議記錄", "会议记录", "notes", "memos", "meeting notes"] },
   { icon: "envelope.fill", aliases: ["郵件", "邮件", "郵箱", "邮箱", "電子郵件", "电子邮件", "email", "emails", "mail"] },
@@ -1145,6 +1161,8 @@ const ICON_OPTION_NAMES = new Set(DUE_ICON_OPTIONS.map(option => option.name))
 const ICON_OPTIONS_BY_NAME = new Map(DUE_ICON_OPTIONS.map(option => [option.name, option]))
 const COMPILED_ICON_RULES = compileIconRules(ICON_RULES)
 const COMPILED_REMINDER_CONTENT_RULES = compileIconRules(REMINDER_CONTENT_RULES)
+const COMPILED_STRONG_REMINDER_CONTENT_RULES = COMPILED_REMINDER_CONTENT_RULES
+  .filter(rule => rule.noteConfidence === "strong")
 const REMINDER_LIST_ICONS_BY_TITLE = buildReminderListIconMap(REMINDER_LIST_ICON_RULES)
 
 export function normalizeIconOverride(value: unknown): string | null {
@@ -1178,28 +1196,79 @@ export function resolveDueIcon(
   return resolvedIcon(inferredName)
 }
 
-/** Returns only a local icon hint; reminder notes themselves must not be cached. */
-export function inferReminderNoteIcon(notes: unknown): string | null {
+/**
+ * Returns only a local icon hint and confidence; reminder notes themselves must
+ * never be cached. Product names are strong, while broader daily action phrases
+ * are ordinary. Notes do not reuse exact List aliases: a lone word such as
+ * “Video” or “Work” is too ambiguous outside an actual List title.
+ */
+export function inferReminderNoteIconCandidate(
+  notes: unknown,
+): ReminderNoteIconInference | null {
   if (typeof notes !== "string") return null
-  return bestMatchingReminderTextIcon(notes.slice(0, 1000))
+  const excerpt = notes.slice(0, 1000)
+
+  const productMatch = bestMatchingIconMatchFromRules(excerpt, COMPILED_ICON_RULES)
+  const strongContentMatch = bestMatchingStrongReminderNoteMatch(excerpt)
+  let strongMatch = productMatch
+  if (strongContentMatch && (!strongMatch || strongContentMatch.score >= strongMatch.score)) {
+    strongMatch = strongContentMatch
+  }
+  if (strongMatch) {
+    return { iconName: strongMatch.iconName, confidence: "strong" }
+  }
+
+  const contentMatch = bestMatchingIconMatchFromRules(
+    excerpt,
+    COMPILED_REMINDER_CONTENT_RULES,
+  )
+
+  if (contentMatch) {
+    return { iconName: contentMatch.iconName, confidence: "ordinary" }
+  }
+  return null
+}
+
+/** Backward-compatible icon-only form used by callers that do not need priority. */
+export function inferReminderNoteIcon(notes: unknown): string | null {
+  return inferReminderNoteIconCandidate(notes)?.iconName ?? null
 }
 
 /**
- * Apple Reminders use their own layered inference so a specific title always
- * outranks the List name, and the List always outranks optional notes.
+ * Apple Reminders use layered inference. A specific title always wins. A
+ * specific List remains authoritative, while a strong product/category found
+ * in notes may supplement catch-all Lists such as Tasks, Inbox or Personal.
  */
 export function resolveReminderIcon(
   title: string,
   calendarTitle: string,
   notes: string | null = null,
   cachedNoteIconHint: string | null = null,
+  cachedNoteIconConfidence: ReminderNoteIconConfidence | null = null,
 ): ResolvedDueIcon {
-  const inferredName = bestMatchingReminderTextIcon(title)
-    ?? bestMatchingReminderListIcon(calendarTitle)
-    ?? bestMatchingIcon(calendarTitle)
-    ?? inferReminderNoteIcon(notes)
-    ?? normalizeIconOverride(cachedNoteIconHint)
-    ?? "checklist"
+  const titleIcon = bestMatchingReminderTextIcon(title)
+  if (titleIcon) return resolvedIcon(titleIcon)
+
+  const listMatch = bestMatchingReminderListMatch(calendarTitle)
+  if (listMatch && !listMatch.generic) return resolvedIcon(listMatch.iconName)
+
+  const listProductIcon = bestMatchingIcon(calendarTitle)
+  if (listProductIcon) return resolvedIcon(listProductIcon)
+
+  const liveNoteMatch = inferReminderNoteIconCandidate(notes)
+  const cachedIconName = normalizeIconOverride(cachedNoteIconHint)
+  const cachedNoteMatch: ReminderNoteIconInference | null = cachedIconName
+    ? {
+        iconName: cachedIconName,
+        confidence: cachedNoteIconConfidence === "strong" ? "strong" : "ordinary",
+      }
+    : null
+  const noteMatch = liveNoteMatch ?? cachedNoteMatch
+  if (noteMatch?.confidence === "strong") return resolvedIcon(noteMatch.iconName)
+  if (listMatch) return resolvedIcon(listMatch.iconName)
+  if (noteMatch) return resolvedIcon(noteMatch.iconName)
+
+  const inferredName = "checklist"
   return resolvedIcon(inferredName)
 }
 
@@ -1250,8 +1319,34 @@ function bestMatchingIconFromRules(
   title: string,
   rules: readonly CompiledIconRule[],
 ): string | null {
+  return bestMatchingIconMatchFromRules(title, rules)?.iconName ?? null
+}
+
+function bestMatchingStrongReminderNoteMatch(notes: string): MatchedIconRule | null {
+  let bestMatch = bestMatchingIconMatchFromRules(
+    notes,
+    COMPILED_STRONG_REMINDER_CONTENT_RULES,
+  )
+  // Exact short actions such as “Card Setup” stay safe when they occupy their
+  // own note segment. We deliberately do not split commas or spaces, so
+  // “Gift Card Setup” and “SIM Card Setup” cannot manufacture an exact match.
+  const segments = notes.split(/[\r\n;；•|]+/u).slice(0, 20)
+  for (const segment of segments) {
+    const match = bestMatchingIconMatchFromRules(
+      segment,
+      COMPILED_STRONG_REMINDER_CONTENT_RULES,
+    )
+    if (match && (!bestMatch || match.score > bestMatch.score)) bestMatch = match
+  }
+  return bestMatch
+}
+
+function bestMatchingIconMatchFromRules(
+  title: string,
+  rules: readonly CompiledIconRule[],
+): MatchedIconRule | null {
   const normalizedTitle = normalizeTitle(title)
-  let bestIcon: string | null = null
+  let bestMatch: MatchedIconRule | null = null
   let bestScore = -1
 
   for (const rule of rules) {
@@ -1264,7 +1359,11 @@ function bestMatchingIconFromRules(
       if (exactRaw || exactWords) {
         const score = 10_000 + exactKeyword.score
         if (score > bestScore) {
-          bestIcon = rule.icon
+          bestMatch = {
+            iconName: rule.icon,
+            confidence: rule.noteConfidence,
+            score,
+          }
           bestScore = score
         }
       }
@@ -1272,27 +1371,36 @@ function bestMatchingIconFromRules(
     for (const keyword of rule.keywords) {
       const score = keywordMatchScore(normalizedTitle, keyword)
       if (score !== null && score > bestScore) {
-        bestIcon = rule.icon
+        bestMatch = {
+          iconName: rule.icon,
+          confidence: rule.noteConfidence,
+          score,
+        }
         bestScore = score
       }
     }
   }
 
-  return bestIcon
+  return bestMatch
 }
 
-function bestMatchingReminderListIcon(title: string): string | null {
+type ReminderListIconMatch = {
+  iconName: string
+  generic: boolean
+}
+
+function bestMatchingReminderListMatch(title: string): ReminderListIconMatch | null {
   for (const candidate of reminderListTitleCandidates(title)) {
-    const iconName = REMINDER_LIST_ICONS_BY_TITLE.get(candidate)
-    if (iconName && ICON_OPTION_NAMES.has(iconName)) return iconName
+    const match = REMINDER_LIST_ICONS_BY_TITLE.get(candidate)
+    if (match && ICON_OPTION_NAMES.has(match.iconName)) return match
   }
   return null
 }
 
 function buildReminderListIconMap(
   rules: readonly ReminderListIconRule[],
-): Map<string, string> {
-  const result = new Map<string, string>()
+): Map<string, ReminderListIconMatch> {
+  const result = new Map<string, ReminderListIconMatch>()
   for (const rule of rules) {
     if (!ICON_OPTION_NAMES.has(rule.icon)) {
       throw new Error(`Unknown reminder List icon: ${rule.icon}`)
@@ -1302,13 +1410,16 @@ function buildReminderListIconMap(
       if (!normalizedAlias) {
         throw new Error(`Empty reminder List alias for ${rule.icon}`)
       }
-      const previousIcon = result.get(normalizedAlias)
-      if (previousIcon) {
+      const previousMatch = result.get(normalizedAlias)
+      if (previousMatch) {
         throw new Error(
-          `Duplicate reminder List alias "${normalizedAlias}": ${previousIcon} / ${rule.icon}`,
+          `Duplicate reminder List alias "${normalizedAlias}": ${previousMatch.iconName} / ${rule.icon}`,
         )
       }
-      result.set(normalizedAlias, rule.icon)
+      result.set(normalizedAlias, {
+        iconName: rule.icon,
+        generic: rule.generic === true,
+      })
     }
   }
   return result
@@ -1373,6 +1484,7 @@ function compileIconRules(rules: readonly IconRule[]): CompiledIconRule[] {
     icon: rule.icon,
     keywords: rule.keywords.map(compileKeyword),
     exactKeywords: (rule.exactKeywords ?? []).map(compileKeyword),
+    noteConfidence: rule.noteConfidence ?? "ordinary",
   }))
 }
 

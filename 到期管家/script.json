@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.5.4",
+  "version": "2.5.5",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.5.4 recognizes Card Setup, VentureOne and related credit-card actions from Apple Reminder titles, with Wallet Plan as an exact List fallback. Strict word boundaries prevent similar unrelated titles from matching. Existing data, layouts, language behavior and notifications are unchanged.",
-    "zh": "2.5.4 补齐 Apple 提醒事项中的 Card Setup、VentureOne 及相关信用卡操作标题识别，并将完整 List 名 Wallet Plan 作为分类后备。严格边界可避免相近无关标题误判；现有数据、布局、语言和通知逻辑不变。",
-    "zh-Hans": "2.5.4 补齐 Apple 提醒事项中的 Card Setup、VentureOne 及相关信用卡操作标题识别，并将完整 List 名 Wallet Plan 作为分类后备。严格边界可避免相近无关标题误判；现有数据、布局、语言和通知逻辑不变。",
-    "zh-Hant": "2.5.4 補齊 Apple 提醒事項中的 Card Setup、VentureOne 及相關信用卡操作標題識別，並將完整 List 名 Wallet Plan 作為分類後備。嚴格邊界可避免相近無關標題誤判；現有資料、版面、語言和通知邏輯不變。"
+    "en": "2.5.5 improves Apple Reminder icon matching with note confidence. Specific products or categories in notes can supplement generic Tasks, Inbox, or Personal Lists, while explicit titles and specific Lists remain authoritative. Only a validated icon hint and confidence are cached; note text stays private. Existing data, layouts, language behavior and notifications are unchanged.",
+    "zh": "2.5.5 增加 Apple 提醒事项备注图标的置信度分层。备注中的明确产品或类别可补充 Tasks、Inbox、Personal 等通用 List；明确标题和具体 List 仍保持优先。缓存只保存经校验的图标提示与置信度，不保存备注正文；现有数据、布局、语言和通知逻辑不变。",
+    "zh-Hans": "2.5.5 增加 Apple 提醒事项备注图标的置信度分层。备注中的明确产品或类别可补充 Tasks、Inbox、Personal 等通用 List；明确标题和具体 List 仍保持优先。缓存只保存经校验的图标提示与置信度，不保存备注正文；现有数据、布局、语言和通知逻辑不变。",
+    "zh-Hant": "2.5.5 增加 Apple 提醒事項備註圖示的信心分層。備註中的明確產品或類別可補充 Tasks、Inbox、Personal 等通用 List；明確標題和具體 List 仍保持優先。快取只保存經驗證的圖示提示與信心，不保存備註正文；現有資料、版面、語言和通知邏輯不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

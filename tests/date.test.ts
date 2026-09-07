@@ -19,6 +19,7 @@ import {
   DUE_ICON_GROUPS,
   DUE_ICON_OPTIONS,
   dueIconLabel,
+  inferReminderNoteIconCandidate,
   normalizeIconOverride,
   REMINDER_LIST_ICON_RULES,
   resolveDueIcon,
@@ -708,6 +709,93 @@ test("reminder icons resolve title, list and notes in strict priority order", ()
   }
 })
 
+test("specific reminder notes supplement generic Lists without overriding stronger sources", () => {
+  assert.deepEqual(
+    inferReminderNoteIconCandidate("账号资料\n1Password Families"),
+    { iconName: "key.fill", confidence: "strong" },
+  )
+  assert.deepEqual(
+    inferReminderNoteIconCandidate("Card Setup"),
+    { iconName: "creditcard.fill", confidence: "strong" },
+  )
+  assert.deepEqual(
+    inferReminderNoteIconCandidate("VentureOne follow-up; pick up package afterwards"),
+    { iconName: "creditcard.fill", confidence: "strong" },
+    "a longer ordinary phrase must not hide a strong note signal",
+  )
+  assert.deepEqual(
+    inferReminderNoteIconCandidate("Netflix and VentureOne follow-up"),
+    { iconName: "creditcard.fill", confidence: "strong" },
+    "strong matches from both rule layers must compete by specificity",
+  )
+  for (const notes of [
+    "Card Setup; payment due",
+    "VentureOne Bonus; payment due soon",
+    "VentureOne Bonus; Netflix annual plan",
+  ]) {
+    assert.deepEqual(
+      inferReminderNoteIconCandidate(notes),
+      { iconName: "creditcard.fill", confidence: "strong" },
+      notes,
+    )
+  }
+  assert.equal(inferReminderNoteIconCandidate("Gift Card Setup"), null)
+  assert.equal(inferReminderNoteIconCandidate("SIM Card Setup"), null)
+  assert.deepEqual(
+    inferReminderNoteIconCandidate("pick up package"),
+    { iconName: "shippingbox.fill", confidence: "ordinary" },
+  )
+  assert.equal(inferReminderNoteIconCandidate("Video"), null)
+
+  assert.equal(
+    resolveReminderIcon("月底处理", "Tasks", "1Password Families").name,
+    "key.fill",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "Personal", "VentureOne Bonus").name,
+    "creditcard.fill",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "Inbox", "Card Setup").name,
+    "creditcard.fill",
+  )
+  assert.equal(
+    resolveReminderIcon("家庭电费", "Tasks", "Netflix annual plan").name,
+    "bolt.fill",
+    "a specific title must always win",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "Delivery", "Netflix annual plan").name,
+    "shippingbox.fill",
+    "a specific List must stay authoritative",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "Adobe Creative Cloud", "NordVPN renewal").name,
+    "paintpalette.fill",
+    "product text in a List must stay authoritative",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "Tasks", "pick up package").name,
+    "checkmark.circle.fill",
+    "an ordinary action in notes must not displace a recognized generic List",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "Unsorted 847291", "pick up package").name,
+    "shippingbox.fill",
+    "an ordinary note remains useful when the List has no meaning",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "Tasks", null, "key.fill", null).name,
+    "checkmark.circle.fill",
+    "a legacy cached hint without confidence must not jump over a generic List",
+  )
+  assert.equal(
+    resolveReminderIcon("月底处理", "Tasks", null, "key.fill", "strong").name,
+    "key.fill",
+    "a freshly synchronized strong hint may supplement a generic List",
+  )
+})
+
 test("reminder icons recognize common task language and list categories", () => {
   const titleCases = [
     ["Card Setup", "creditcard.fill"],
@@ -831,9 +919,12 @@ test("reminder List matching keeps exact boundaries and layered priority", () =>
     source.indexOf("export function resolveReminderIcon"),
     source.indexOf("function resolvedIcon"),
   )
+  const exactListIndex = resolver.indexOf("bestMatchingReminderListMatch(calendarTitle)")
+  const listProductIndex = resolver.indexOf("bestMatchingIcon(calendarTitle)")
+  assert.ok(exactListIndex >= 0, "the resolver must inspect an exact List category")
+  assert.ok(listProductIndex >= 0, "the resolver must inspect product text in a List")
   assert.ok(
-    resolver.indexOf("bestMatchingReminderListIcon(calendarTitle)")
-      < resolver.indexOf("bestMatchingIcon(calendarTitle)"),
+    exactListIndex < listProductIndex,
     "an exact List category must outrank product-text inference within the List name",
   )
 })
@@ -1587,7 +1678,7 @@ test("reminder loading resolves every selected list by Calendar.identifier", asy
   }
 })
 
-test("live reminders cache only a note icon hint and keep List as display note", async () => {
+test("live reminders cache only note icon metadata and keep List as display note", async () => {
   const originalStorage = (globalThis as any).Storage
   const originalReminder = (globalThis as any).Reminder
   const saved = new Map<string, unknown>()
@@ -1612,7 +1703,7 @@ test("live reminders cache only a note icon hint and keep List as display note",
           hour: null,
           minute: null,
         },
-        calendar: { title: "个人", allowsContentModifications: true },
+        calendar: { title: "Personal", allowsContentModifications: true },
         priority: 0,
       }],
     }
@@ -1621,8 +1712,9 @@ test("live reminders cache only a note icon hint and keep List as display note",
     const snapshot = saved.get(REMINDER_SNAPSHOT_KEY) as any
     assert.equal(result.live, true)
     assert.equal(result.items[0].iconName, "key.fill")
-    assert.equal(result.items[0].note, "个人")
+    assert.equal(result.items[0].note, "Personal")
     assert.equal(snapshot.items[0].noteIconHint, "key.fill")
+    assert.equal(snapshot.items[0].noteIconConfidence, "strong")
     assert.equal("notes" in snapshot.items[0], false)
     assert.doesNotMatch(JSON.stringify(snapshot), /secret-token-42|1Password Families/)
   } finally {
@@ -1671,6 +1763,22 @@ test("cached reminder hints follow title and List priority and accept legacy row
       },
       {
         ...base,
+        id: "strong-note-over-generic-list",
+        title: "月底处理",
+        calendarTitle: "Tasks",
+        noteIconHint: "key.fill",
+        noteIconConfidence: "strong",
+      },
+      {
+        ...base,
+        id: "ordinary-note-under-generic-list",
+        title: "月底处理",
+        calendarTitle: "Tasks",
+        noteIconHint: "shippingbox.fill",
+        noteIconConfidence: "ordinary",
+      },
+      {
+        ...base,
         id: "invalid-hint",
         title: "月底处理",
         calendarTitle: "个人",
@@ -1709,6 +1817,8 @@ test("cached reminder hints follow title and List priority and accept legacy row
     assert.equal(icons.get("title-before-hint"), "bolt.fill")
     assert.equal(icons.get("list-before-hint"), "music.note")
     assert.equal(icons.get("valid-hint"), "key.fill")
+    assert.equal(icons.get("strong-note-over-generic-list"), "key.fill")
+    assert.equal(icons.get("ordinary-note-under-generic-list"), "checkmark.circle.fill")
     assert.equal(icons.get("invalid-hint"), "checklist")
     assert.equal(icons.get("legacy-without-hint"), "cart.fill")
     assert.equal(icons.get("delivery-list-with-numeric-title"), "shippingbox.fill")
@@ -3079,7 +3189,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.5.4")
+  assert.equal(manifest.version, "2.5.5")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 
