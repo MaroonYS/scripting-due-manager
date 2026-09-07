@@ -288,6 +288,65 @@ test("cached Reminder titles and Lists are re-inferred with the current icon rul
   })
 })
 
+test("one Wallet Plan List preserves mixed module icons in live and cached rows", async () => {
+  await withRuntime(async store => {
+    const rows = [
+      reminder({
+        identifier: "wallet-bank",
+        title: "BANK 06 | Ally 后备资格",
+        dueDateComponents: { year: 2026, month: 9, day: 4, date: new Date(2026, 8, 4) },
+        calendar: { title: "Wallet Plan", allowsContentModifications: true },
+      }),
+      reminder({
+        identifier: "wallet-credit",
+        title: "CREDIT 09 | Quicksilver AutoPay",
+        dueDateComponents: { year: 2026, month: 9, day: 5, date: new Date(2026, 8, 5) },
+        calendar: { title: "Wallet Plan", allowsContentModifications: true },
+      }),
+      reminder({
+        identifier: "wallet-report",
+        title: "Equifax Complete Premier",
+        dueDateComponents: { year: 2026, month: 9, day: 6, date: new Date(2026, 8, 6) },
+        calendar: { title: "Wallet Plan", allowsContentModifications: true },
+      }),
+      reminder({
+        identifier: "wallet-note",
+        title: "847291",
+        notes: "1Password Families",
+        dueDateComponents: { year: 2026, month: 9, day: 7, date: new Date(2026, 8, 7) },
+        calendar: { title: "Wallet Plan", allowsContentModifications: true },
+      }),
+      reminder({
+        identifier: "wallet-unknown",
+        title: "4994",
+        dueDateComponents: { year: 2026, month: 9, day: 8, date: new Date(2026, 8, 8) },
+        calendar: { title: "Wallet Plan", allowsContentModifications: true },
+      }),
+    ]
+    globals.Reminder = { getIncompletes: async () => rows }
+
+    const live = await loadReminderItems(365)
+    const expected = [
+      "building.columns.fill",
+      "creditcard.fill",
+      "doc.text.magnifyingglass",
+      "key.fill",
+      "checklist",
+    ]
+    assert.deepEqual(live.items.map(item => item.iconName), expected)
+
+    const cached = store.get(`shared:${REMINDER_SNAPSHOT_KEY}`)
+    assert.equal(cached.items[3].notes, undefined, "private note text must not enter the cache")
+    assert.equal(cached.items[3].noteIconHint, "key.fill")
+    assert.equal(cached.items[3].noteIconConfidence, "strong")
+
+    globals.Reminder.getIncompletes = async () => { throw new Error("offline") }
+    const offline = await loadReminderItems(365)
+    assert.equal(offline.fromCache, true)
+    assert.deepEqual(offline.items.map(item => item.iconName), expected)
+  })
+})
+
 test("expired cache retains its successful fetch timestamp without returning expired rows", async () => {
   await withRuntime(async store => {
     const fetchedAt = Date.now() - 25 * 60 * 60 * 1000

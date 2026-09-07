@@ -583,6 +583,12 @@ test("intelligent icons cover common App Store and subscription directions local
     ["AllTrails+", "subscription", "map.fill"],
     ["BANK 03 | SoFi", "reminder", "building.columns.fill"],
     ["CREDIT 03 | Venture", "reminder", "creditcard.fill"],
+    ["Equifax Complete Premier", "reminder", "doc.text.magnifyingglass"],
+    ["Experian CreditWorks", "reminder", "doc.text.magnifyingglass"],
+    ["TransUnion credit monitoring", "reminder", "doc.text.magnifyingglass"],
+    ["myFICO subscription", "reminder", "doc.text.magnifyingglass"],
+    ["Credit Karma", "reminder", "doc.text.magnifyingglass"],
+    ["徵信報告", "reminder", "doc.text.magnifyingglass"],
     ["家庭电费", "bill", "bolt.fill"],
     ["车辆车险", "bill", "car.fill"],
   ])
@@ -715,6 +721,10 @@ test("specific reminder notes supplement generic Lists without overriding strong
     { iconName: "key.fill", confidence: "strong" },
   )
   assert.deepEqual(
+    inferReminderNoteIconCandidate("徵信報告"),
+    { iconName: "doc.text.magnifyingglass", confidence: "strong" },
+  )
+  assert.deepEqual(
     inferReminderNoteIconCandidate("Card Setup"),
     { iconName: "creditcard.fill", confidence: "strong" },
   )
@@ -819,7 +829,7 @@ test("reminder icons recognize common task language and list categories", () => 
   }
 
   const listCases = [
-    ["Wallet Plan", "creditcard.fill"],
+    ["Wallet Plan", "checklist"],
     ["工作", "briefcase.fill"],
     ["购物", "cart.fill"],
     ["家庭", "house.fill"],
@@ -842,6 +852,54 @@ test("reminder icons recognize common task language and list categories", () => 
       calendarTitle,
     )
   }
+})
+
+test("Wallet Plan remains a neutral container while numbered finance modules choose their own icons", () => {
+  const moduleCases = [
+    ["BANK 06 | Ally 后备资格与一次性申请", "building.columns.fill"],
+    ["BANK06 | SoFi", "building.columns.fill"],
+    ["BANK-107 | Fidelity CMA", "building.columns.fill"],
+    ["BANK 08 | Quicksilver review", "building.columns.fill"],
+    ["CREDIT 05 | Quicksilver", "creditcard.fill"],
+    ["CREDIT#26 | Savor", "creditcard.fill"],
+    ["CREDIT 08 | SoFi application", "creditcard.fill"],
+    ["POINTS 03 | Membership Rewards", "gift.fill"],
+    ["INVEST 12 | Brokerage review", "chart.line.uptrend.xyaxis"],
+    ["LOAN 02 | APR review", "percent"],
+    ["INSURANCE 08 | Policy renewal", "shield.fill"],
+    ["TAX 01 | Filing", "doc.text.magnifyingglass"],
+    ["BILL 14 | Utilities", "doc.text.fill"],
+    ["信用卡 18 | 每月检查", "creditcard.fill"],
+    ["銀行—07 | 新戶口復盤", "building.columns.fill"],
+    ["🏦 BANK 06 | Ally", "building.columns.fill"],
+    ["☑️ CREDIT 09 | Savor", "creditcard.fill"],
+    ["👨‍💼 BANK 06 | Ally", "building.columns.fill"],
+    ["[BANK 06] Ally", "building.columns.fill"],
+    ["「BANK 06」 Ally", "building.columns.fill"],
+    ["BANK • 06 | Ally", "building.columns.fill"],
+    ["BANK 06, Ally", "building.columns.fill"],
+    ["BANK 06（Ally）", "building.columns.fill"],
+    ["BANK 06(Ally)", "building.columns.fill"],
+    ["POLICIES 01 | Home", "shield.fill"],
+    ["MORTGAGES 01 | Home", "percent"],
+    ["BONUSES 01 | Welcome offer", "gift.fill"],
+    ["徵信 01 | 年度檢查", "doc.text.magnifyingglass"],
+  ] as const
+  for (const [title, expected] of moduleCases) {
+    assert.equal(resolveReminderIcon(title, "Wallet Plan", "").name, expected, title)
+  }
+
+  assert.equal(
+    resolveReminderIcon("847291", "Wallet Plan", "1Password Families").name,
+    "key.fill",
+    "a strong note must be able to supplement the neutral container",
+  )
+  assert.equal(
+    resolveReminderIcon("847291", "Wallet Plan", "pick up package").name,
+    "checklist",
+    "an ordinary action note must not misclassify a finance container",
+  )
+  assert.equal(resolveReminderIcon("847291", "Wallet Plan", "").name, "checklist")
 })
 
 test("reminder List taxonomy covers every declared alias and common suffix", () => {
@@ -936,6 +994,15 @@ test("reminder icon matching keeps false-positive protection in every source", (
     ["SIM Card Setup", "Personal", "checklist"],
     ["Venture Capital Review", "Tasks", "checkmark.circle.fill"],
     ["847291", "Wallet Planning Workshop", "checklist"],
+    ["Bank holiday 06", "Wallet Plan", "checklist"],
+    ["Bankruptcy 06", "Wallet Plan", "checklist"],
+    ["CREDIT UNION 01", "Wallet Plan", "checklist"],
+    ["Course credit 06", "Wallet Plan", "checklist"],
+    ["BANK 1234 | Ally", "Wallet Plan", "checklist"],
+    ["BANK 06A | Ally", "Wallet Plan", "checklist"],
+    ["CARD 2 | Birthday design", "Birthdays", "birthday.cake.fill"],
+    ["ACCOUNT 1 | Team access", "Work", "briefcase.fill"],
+    ["BONUS 1 | Annual review", "Work", "briefcase.fill"],
   ]) {
     assert.equal(resolveReminderIcon(title, calendarTitle, "").name, expected)
   }
@@ -3189,7 +3256,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.5.6")
+  assert.equal(manifest.version, "2.5.7")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

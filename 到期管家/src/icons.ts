@@ -778,7 +778,14 @@ const ICON_RULES: IconRule[] = [
   },
   {
     icon: "doc.text.magnifyingglass",
-    keywords: ["tax filing", "tax preparation", "accounting subscription", "报税服务", "税务申报", "会计服务"],
+    keywords: [
+      "equifax", "experian", "transunion", "myfico", "credit karma",
+      "credit report", "credit score", "credit monitoring", "credit bureau",
+      "tax filing", "tax preparation", "accounting subscription",
+      "征信报告", "徵信報告", "信用报告", "信用報告",
+      "信用评分", "信用評分", "信用监控", "信用監控",
+      "报税服务", "税务申报", "会计服务",
+    ],
   },
   {
     icon: "percent",
@@ -994,7 +1001,70 @@ export type ReminderListIconRule = {
   aliases: string[]
   /** Catch-all Lists should not hide a specific product/category found in notes. */
   generic?: boolean
+  /** This List uses a strict numbered prefix to preserve unavailable Sections. */
+  numberedModules?: boolean
 }
+
+type ReminderNumberedModuleIconRule = {
+  icon: string
+  prefixes: string[]
+}
+
+// Reminders does not expose the Section that contains an item. Wallet-style
+// Lists often preserve that missing structure in a short numbered title prefix,
+// so recognize only an anchored prefix followed by 1–3 digits. Requiring the
+// number keeps broad words such as “bank” and “credit” safe in ordinary prose.
+const REMINDER_NUMBERED_MODULE_ICON_RULES: ReminderNumberedModuleIconRule[] = [
+  {
+    icon: "doc.text.magnifyingglass",
+    prefixes: [
+      "credit report", "credit score", "credit monitoring", "tax", "taxes", "accounting",
+      "征信", "徵信", "信用报告", "信用報告", "信用评分", "信用評分",
+      "税务", "税務", "会计", "會計",
+    ],
+  },
+  {
+    icon: "building.columns.fill",
+    prefixes: [
+      "bank", "banking", "account", "accounts", "checking", "savings", "cma",
+      "银行", "銀行", "账户", "賬戶", "帳戶", "存款",
+    ],
+  },
+  {
+    icon: "creditcard.fill",
+    prefixes: ["credit card", "credit", "card", "cards", "信用卡", "卡片"],
+  },
+  {
+    icon: "gift.fill",
+    prefixes: [
+      "reward", "rewards", "points", "miles", "bonus", "bonuses",
+      "奖励", "獎勵", "积分", "積分", "里程", "開卡獎勵", "开卡奖励",
+    ],
+  },
+  {
+    icon: "chart.line.uptrend.xyaxis",
+    prefixes: [
+      "invest", "investment", "investments", "brokerage", "stock", "stocks", "fund", "funds",
+      "投资", "投資", "证券", "證券", "股票", "基金",
+    ],
+  },
+  {
+    icon: "percent",
+    prefixes: ["loan", "loans", "debt", "mortgage", "mortgages", "贷款", "貸款", "债务", "債務", "利率"],
+  },
+  {
+    icon: "shield.fill",
+    prefixes: ["insurance", "policy", "policies", "保险", "保險", "保单", "保單"],
+  },
+  {
+    icon: "doc.text.fill",
+    prefixes: ["bill", "bills", "invoice", "invoices", "账单", "賬單", "帳單", "发票", "發票"],
+  },
+  {
+    icon: "banknote.fill",
+    prefixes: ["payment", "payments", "pay", "付款", "缴款", "繳款"],
+  },
+]
 
 // Generic category words are trustworthy for a List name, but too broad for an
 // arbitrary title. Matching remains exact after removing decoration and a common
@@ -1017,7 +1087,8 @@ export const REMINDER_LIST_ICON_RULES: ReminderListIconRule[] = [
   { icon: "scanner.fill", aliases: ["掃描", "扫描", "掃描件", "扫描件", "scanning", "scans"] },
 
   // Finance, bills, subscriptions and expirations
-  { icon: "creditcard.fill", aliases: ["信用卡", "卡賬", "卡账", "卡賬單", "卡账单", "信用卡還款", "信用卡还款", "還款", "还款", "credit card", "credit cards", "card bills", "card payments", "wallet plan"] },
+  { icon: "creditcard.fill", aliases: ["信用卡", "卡賬", "卡账", "卡賬單", "卡账单", "信用卡還款", "信用卡还款", "還款", "还款", "credit card", "credit cards", "card bills", "card payments"] },
+  { icon: "checklist", aliases: ["wallet plan"], generic: true, numberedModules: true },
   { icon: "building.columns.fill", aliases: ["財務", "财务", "金融", "銀行", "银行", "資金", "资金", "finance", "finances", "banking", "money"] },
   { icon: "banknote.fill", aliases: ["付款", "待付款", "收付款", "繳款", "缴款", "payment", "payments", "payables", "payments due"] },
   { icon: "chart.line.uptrend.xyaxis", aliases: ["投資", "投资", "股票", "基金", "證券", "证券", "investment", "investments", "stocks", "funds", "investing"] },
@@ -1246,10 +1317,13 @@ export function resolveReminderIcon(
   cachedNoteIconHint: string | null = null,
   cachedNoteIconConfidence: ReminderNoteIconConfidence | null = null,
 ): ResolvedDueIcon {
-  const titleIcon = bestMatchingReminderTextIcon(title)
+  const listMatch = bestMatchingReminderListMatch(calendarTitle)
+  const numberedModuleIcon = listMatch?.numberedModules
+    ? bestMatchingReminderNumberedModuleIcon(title)
+    : null
+  const titleIcon = numberedModuleIcon ?? bestMatchingReminderTextIcon(title)
   if (titleIcon) return resolvedIcon(titleIcon)
 
-  const listMatch = bestMatchingReminderListMatch(calendarTitle)
   if (listMatch && !listMatch.generic) return resolvedIcon(listMatch.iconName)
 
   const listProductIcon = bestMatchingIcon(calendarTitle)
@@ -1313,6 +1387,31 @@ function bestMatchingIcon(title: string): string | null {
 function bestMatchingReminderTextIcon(text: string): string | null {
   return bestMatchingIcon(text)
     ?? bestMatchingIconFromRules(text, COMPILED_REMINDER_CONTENT_RULES)
+}
+
+function bestMatchingReminderNumberedModuleIcon(text: string): string | null {
+  const normalized = normalizeText(text)
+    .trim()
+    // Strip the whole leading decoration run, including emoji variation
+    // selectors and zero-width joiners that are not punctuation/symbols.
+    .replace(/^[^\p{L}\p{N}]+/u, "")
+  if (!normalized) return null
+
+  for (const rule of REMINDER_NUMBERED_MODULE_ICON_RULES) {
+    if (!ICON_OPTION_NAMES.has(rule.icon)) continue
+    for (const rawPrefix of rule.prefixes) {
+      const prefix = normalizeText(rawPrefix).trim()
+      if (!prefix || !normalized.startsWith(prefix)) continue
+      const suffix = normalized.slice(prefix.length)
+      // A following letter means this was only the start of a different word,
+      // for example “bankruptcy” or “credit union”.
+      if (/^[\p{L}]/u.test(suffix)) continue
+      if (/^\s*(?:(?:#|no\.?|nº|№)\s*|[-‐-—−_:|/.•]\s*)?\p{Nd}{1,3}(?=$|\s*[\[\](){}（）【】「」『』|:;/._,，、·•・‐-—−-])/u.test(suffix)) {
+        return rule.icon
+      }
+    }
+  }
+  return null
 }
 
 function bestMatchingIconFromRules(
@@ -1387,6 +1486,7 @@ function bestMatchingIconMatchFromRules(
 type ReminderListIconMatch = {
   iconName: string
   generic: boolean
+  numberedModules: boolean
 }
 
 function bestMatchingReminderListMatch(title: string): ReminderListIconMatch | null {
@@ -1419,6 +1519,7 @@ function buildReminderListIconMap(
       result.set(normalizedAlias, {
         iconName: rule.icon,
         generic: rule.generic === true,
+        numberedModules: rule.numberedModules === true,
       })
     }
   }
