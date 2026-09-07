@@ -13,6 +13,7 @@ import {
 import { CompleteDueItemIntent } from "../app_intents"
 import { dueStatus } from "./date"
 import { dueIconLabel } from "./icons"
+import { APPLE_REMINDERS_URL, appleReminderDeepLink } from "./reminder_links"
 import type { DisplayDueItem } from "./types"
 import {
   currentWidgetLocale,
@@ -112,7 +113,10 @@ function WidgetHeader({
   issue: WidgetIssue | null
   compactTitle?: string
 }) {
-  return <Link url={Script.createRunURLScheme(Script.name)}>
+  const url = compact && items[0]
+    ? itemURL(items[0])
+    : Script.createRunURLScheme(Script.name)
+  return <Link url={url}>
     <HStack
       alignment="center"
       spacing={5}
@@ -180,7 +184,8 @@ function LargeSummaryHeader({
   const date = largeSummaryDate(item, widgetRuntimeLocale())
   const context = largeSummaryContext(item, widgetRuntimeLocale())
   const subtitle = `${date.month} · ${context}`
-  return <Link url={Script.createRunURLScheme(Script.name)}>
+  const url = item ? itemURL(item) : Script.createRunURLScheme(Script.name)
+  return <Link url={url}>
     <VStack
       alignment="leading"
       spacing={0}
@@ -1099,6 +1104,8 @@ function widgetIssue(props: {
 }
 
 function itemURL(item: DisplayDueItem): string {
-  if (item.source === "reminder") return Script.createRunURLScheme(Script.name)
+  if (item.source === "reminder") {
+    return appleReminderDeepLink(item.id) ?? APPLE_REMINDERS_URL
+  }
   return Script.createRunURLScheme(Script.name, { action: "edit", id: item.id })
 }

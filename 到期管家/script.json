@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.5.5",
+  "version": "2.5.6",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.5.5 improves Apple Reminder icon matching with note confidence. Specific products or categories in notes can supplement generic Tasks, Inbox, or Personal Lists, while explicit titles and specific Lists remain authoritative. Only a validated icon hint and confidence are cached; note text stays private. Existing data, layouts, language behavior and notifications are unchanged.",
-    "zh": "2.5.5 增加 Apple 提醒事项备注图标的置信度分层。备注中的明确产品或类别可补充 Tasks、Inbox、Personal 等通用 List；明确标题和具体 List 仍保持优先。缓存只保存经校验的图标提示与置信度，不保存备注正文；现有数据、布局、语言和通知逻辑不变。",
-    "zh-Hans": "2.5.5 增加 Apple 提醒事项备注图标的置信度分层。备注中的明确产品或类别可补充 Tasks、Inbox、Personal 等通用 List；明确标题和具体 List 仍保持优先。缓存只保存经校验的图标提示与置信度，不保存备注正文；现有数据、布局、语言和通知逻辑不变。",
-    "zh-Hant": "2.5.5 增加 Apple 提醒事項備註圖示的信心分層。備註中的明確產品或類別可補充 Tasks、Inbox、Personal 等通用 List；明確標題和具體 List 仍保持優先。快取只保存經驗證的圖示提示與信心，不保存備註正文；現有資料、版面、語言和通知邏輯不變。"
+    "en": "2.5.6 lets Apple Reminder content and current-item summaries in small, medium and large widgets open the corresponding item in Reminders, while the left icon remains completion-only. UUIDs and supported legacy URL wrappers use the undocumented x-apple-reminderkit URL; values without a valid UUID fall back to opening Reminders generically. This navigation requires on-device verification and may change with iOS.",
+    "zh": "2.5.6 支持点击小、中、大组件中 Apple 提醒事项的内容与当前事项摘要，直达系统「提醒事项」中的对应事项；左侧图标仍只用于完成。UUID 与可确认的旧 URL 包装使用未公开的 x-apple-reminderkit 地址，无法提取有效 UUID 时回退打开「提醒事项」主界面。该跳转需真机验证，可能随 iOS 变化。",
+    "zh-Hans": "2.5.6 支持点击小、中、大组件中 Apple 提醒事项的内容与当前事项摘要，直达系统「提醒事项」中的对应事项；左侧图标仍只用于完成。UUID 与可确认的旧 URL 包装使用未公开的 x-apple-reminderkit 地址，无法提取有效 UUID 时回退打开「提醒事项」主界面。该跳转需真机验证，可能随 iOS 变化。",
+    "zh-Hant": "2.5.6 支援點擊小、中、大元件中 Apple 提醒事項的內容與當前事項摘要，直達系統「提醒事項」中的對應事項；左側圖示仍只用於完成。UUID 與可確認的舊 URL 包裝使用未公開的 x-apple-reminderkit 位址，無法擷取有效 UUID 時退回開啟「提醒事項」主畫面。此跳轉須以真機驗證，可能隨 iOS 變更。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",
