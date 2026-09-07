@@ -57,6 +57,32 @@ test("loading and saving more than 1000 manual items never truncates them", () =
   } finally { env.cleanup() }
 })
 
+test("out-of-range recurrence completion cannot write an unreadable date or false history", () => {
+  for (const unit of ["day", "week", "month", "year"] as const) {
+    const last = item({ dueDate: "9999-12-31", recurrence: createRecurrenceRule(unit, 1, "9999-12-31") })
+    const env = setup([last])
+    try {
+      const before = structuredClone(env.values)
+      assert.throws(() => completeManualOccurrence(last.id, manualOccurrenceKey(last)), /日期超出支持范围/)
+      assert.throws(() => completeManualItem(last, last.updatedAt), /日期超出支持范围/)
+      assert.deepEqual(env.values, before)
+      assert.equal(loadState().items[0].dueDate, "9999-12-31")
+    } finally { env.cleanup() }
+  }
+})
+
+test("invalid new item dates are rejected before replacing state or creating a snapshot", () => {
+  const env = setup()
+  try {
+    const before = structuredClone(env.values)
+    for (const dueDate of ["NaN-NaN-NaN", "2026-02-30", "10000-01-01", "0000-01-01"]) {
+      assert.throws(() => upsertItem(item({ dueDate }), 2), /日期无效/)
+      assert.deepEqual(env.values, before)
+    }
+    assert.equal(loadState().items.length, 1)
+  } finally { env.cleanup() }
+})
+
 test("manual completion stores its exact before and after in the same state write", () => {
   const env = setup()
   try {

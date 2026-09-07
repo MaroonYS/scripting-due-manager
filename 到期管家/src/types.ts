@@ -98,6 +98,9 @@ export interface CachedReminderItem {
 export interface ReminderSnapshot {
   schemaVersion: 1
   fetchedAt: number
+  /** Orders successful overlapping queries; absent in older compatible caches. */
+  queryStartedAt?: number
+  queryHorizonDays?: number
   /** Query scope for this snapshot. Empty means every reminders list. */
   calendarFilterIDs: string[]
   items: CachedReminderItem[]

@@ -53,6 +53,7 @@ type WidgetIssue = {
   compactText: string
   statusText: string
   color: string
+  url: string
 }
 
 // Read after the entry point configures the explicitly imported Device API.
@@ -426,7 +427,7 @@ function SmallCurrentDetail({
     spacing={0}
     frame={{ maxWidth: "infinity", height: 19, alignment: "leading" }}
   >
-    <Link url={issue ? Script.createRunURLScheme(Script.name, { action: "widget-status" }) : itemURL(item)}>
+    <Link url={issue ? issue.url : itemURL(item)}>
       <HStack
         alignment="center"
         spacing={time && supportingText ? 5 : 0}
@@ -1052,7 +1053,7 @@ function WidgetFrame({
 }
 
 function WidgetIssueLink({ issue }: { issue: WidgetIssue }) {
-  return <Link url={Script.createRunURLScheme(Script.name, { action: "widget-status" })}>
+  return <Link url={issue.url}>
     <Text
       font="caption2"
       foregroundStyle={issue.color}
@@ -1078,6 +1079,7 @@ function widgetIssue(props: {
       compactText: widgetText("reviewAction", widgetRuntimeLocale()),
       statusText: widgetText("reviewAction", widgetRuntimeLocale()),
       color: "systemRed",
+      url: Script.createRunURLScheme(Script.name, { action: "widget-status" }),
     }
   }
   if (props.reminderError) {
@@ -1090,6 +1092,7 @@ function widgetIssue(props: {
       compactText: widgetText("retrySync", widgetRuntimeLocale()),
       statusText: `${widgetText("retrySync", widgetRuntimeLocale())} · ${formatWidgetLastSync(props.reminderFetchedAt, widgetRuntimeLocale())}`,
       color: "systemOrange",
+      url: Script.createRunURLScheme(Script.name),
     }
   }
   if (props.remindersFromCache) {
@@ -1098,6 +1101,7 @@ function widgetIssue(props: {
       compactText: widgetText("retrySync", widgetRuntimeLocale()),
       statusText: `${widgetText("retrySync", widgetRuntimeLocale())} · ${formatWidgetLastSync(props.reminderFetchedAt, widgetRuntimeLocale())}`,
       color: "systemOrange",
+      url: Script.createRunURLScheme(Script.name),
     }
   }
   return null

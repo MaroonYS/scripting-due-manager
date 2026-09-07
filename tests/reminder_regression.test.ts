@@ -5,9 +5,11 @@ import {
   completeReminderOccurrence,
   findReminderDisplayItemForCompletion,
   loadReminderItems,
+  clearReminderSnapshot,
 } from "../到期管家/src/reminders.ts"
 import { createBackupJSON, parseBackupJSON } from "../到期管家/src/recovery.ts"
-import { REMINDER_SNAPSHOT_KEY, loadState } from "../到期管家/src/storage.ts"
+import { REMINDER_SNAPSHOT_KEY, STATE_KEY, defaultState, loadState } from "../到期管家/src/storage.ts"
+import { loadWidgetData } from "../到期管家/src/widget_data.ts"
 
 const globals = globalThis as Record<string, any>
 const remindersModule = new URL("../到期管家/src/reminders.ts", import.meta.url).href
@@ -75,7 +77,7 @@ function reminder(overrides: Record<string, any> = {}) {
 }
 
 async function withRuntime(operation: (store: Map<string, any>) => Promise<void>) {
-  const originals = new Map(["Storage", "Reminder", "Device"].map(key => [key, globals[key]]))
+  const originals = new Map(["Storage", "Reminder", "Device", "Calendar"].map(key => [key, globals[key]]))
   const previousTimeZone = process.env.TZ
   const store = new Map<string, any>()
   const keyFor = (key: string, options?: { shared?: boolean }) => `${options?.shared ? "shared" : "private"}:${key}`
@@ -357,5 +359,192 @@ test("expired cache retains its successful fetch timestamp without returning exp
     assert.equal(result.fromCache, false)
     assert.deepEqual(result.items, [])
     assert.match(result.error ?? "", /缓存已过期/)
+  })
+})
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(done => { resolve = done })
+  return { promise, resolve }
+}
+
+test("a slower earlier sync cannot overwrite or display the newer same-list result", async () => {
+  await withRuntime(async store => {
+    const old = deferred<any[]>()
+    let calls = 0
+    globals.Reminder = { getIncompletes: () => ++calls === 1
+      ? old.promise : Promise.resolve([reminder({ title: "New title" })]) }
+    const first = loadReminderItems(365)
+    const latest = await loadReminderItems(365)
+    old.resolve([reminder({ title: "Old title" })])
+    const late = await first
+    assert.equal(latest.items[0].title, "New title")
+    assert.equal(late.items[0].title, "New title")
+    assert.equal(late.error, null, "normal overlapping widget loads should not create an error banner")
+    assert.equal(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`).items[0].title, "New title")
+  })
+})
+
+test("clearing the cache invalidates pending reads before they can repopulate it", async () => {
+  await withRuntime(async store => {
+    const old = deferred<any[]>()
+    store.set(`shared:${REMINDER_SNAPSHOT_KEY}`, snapshot())
+    globals.Reminder = { getIncompletes: () => old.promise }
+    const loading = loadReminderItems(365)
+    clearReminderSnapshot()
+    old.resolve([reminder()])
+    const result = await loading
+    assert.deepEqual(result.items, [])
+    assert.equal(result.live, false)
+    assert.equal(store.has(`shared:${REMINDER_SNAPSHOT_KEY}`), false)
+  })
+})
+
+test("completion invalidates an in-flight query from a separate module runtime", async () => {
+  await withRuntime(async store => {
+    const otherRuntime = await import(`${remindersModule}?race=completion`)
+    const old = deferred<any[]>()
+    store.set(`shared:${REMINDER_SNAPSHOT_KEY}`, snapshot())
+    globals.Reminder = { getIncompletes: () => old.promise, get: async () => reminder() }
+    const loading = otherRuntime.loadReminderItems(365)
+    assert.equal(await completeReminderOccurrence("reminder-regression", "date:2026-09-04"), "applied")
+    old.resolve([reminder()])
+    const result = await loading
+    assert.deepEqual(result.items, [])
+    assert.deepEqual(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`).items, [])
+    assert.equal(loadState().completionHistory?.length, 1)
+  })
+})
+
+test("shared query start times prevent an older runtime from replacing a newer cache", async () => {
+  await withRuntime(async store => {
+    const otherRuntime = await import(`${remindersModule}?race=ordering`)
+    const old = deferred<any[]>()
+    const originalNow = Date.now
+    let now = originalNow()
+    Date.now = () => now
+    try {
+      globals.Reminder = { getIncompletes: () => old.promise }
+      const loading = otherRuntime.loadReminderItems(365)
+      now += 10
+      globals.Reminder.getIncompletes = async () => [reminder({ title: "New runtime result" })]
+      await loadReminderItems(365)
+      old.resolve([reminder({ title: "Old runtime result" })])
+      assert.equal((await loading).items[0].title, "New runtime result")
+      assert.equal(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`).items[0].title, "New runtime result")
+    } finally { Date.now = originalNow }
+  })
+})
+
+test("offline fallback respects a shortened date horizon", async () => {
+  await withRuntime(async store => {
+    store.set(`shared:${REMINDER_SNAPSHOT_KEY}`, snapshot([
+      cachedItem(), cachedItem({ id: "far", dueDate: "2026-12-01",
+        dueTimestamp: new Date(2026, 11, 1, 23, 59, 59, 999).getTime() }),
+    ]))
+    globals.Reminder = { getIncompletes: async () => { throw new Error("offline") } }
+    const result = await loadReminderItems(30, [], new Date(2026, 8, 4))
+    assert.deepEqual(result.items.map(item => item.id), ["reminder-regression"])
+  })
+})
+
+test("all-day reminders on the horizon boundary use the calendar day, not the display day-end", async () => {
+  await withRuntime(async store => {
+    store.set(`shared:${REMINDER_SNAPSHOT_KEY}`, snapshot([
+      cachedItem({ id: "all-day", dueDate: "2026-10-04",
+        dueTimestamp: new Date(2026, 9, 4, 23, 59, 59, 999).getTime() }),
+      cachedItem({ id: "timed", dueDate: "2026-10-04", includesTime: true,
+        dueTimestamp: new Date(2026, 9, 4, 18).getTime() }),
+    ]))
+    globals.Reminder = { getIncompletes: async () => { throw new Error("offline") } }
+    const result = await loadReminderItems(30, [], new Date(2026, 8, 4, 12))
+    assert.deepEqual(result.items.map(item => item.id), ["all-day"])
+  })
+})
+
+test("an overlapping narrower query cannot silently shrink a wider live result", async () => {
+  await withRuntime(async store => {
+    const old = deferred<any[]>()
+    globals.Reminder = { getIncompletes: () => old.promise }
+    const wider = loadReminderItems(730)
+    globals.Reminder.getIncompletes = async () => [reminder({ identifier: "near" })]
+    await loadReminderItems(30)
+    old.resolve([reminder({ identifier: "near" }), reminder({ identifier: "far",
+      dueDateComponents: { year: 2027, month: 1, day: 1, date: new Date(2027, 0, 1) } })])
+    assert.deepEqual((await wider).items.map(item => item.id), ["near", "far"])
+    assert.equal(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`).queryHorizonDays, 30)
+  })
+})
+
+test("unreadable synchronization metadata leaves successful live data usable without claiming a saved cache", async () => {
+  await withRuntime(async store => {
+    const originalGet = globals.Storage.get
+    globals.Storage.get = (key: string, options?: { shared: boolean }) => {
+      if (key === "due-manager-reminder-sync-token-v1") throw new Error("storage unavailable")
+      return originalGet(key, options)
+    }
+    globals.Reminder = { getIncompletes: async () => [reminder()] }
+    const result = await loadReminderItems(365)
+    assert.equal(result.live, true)
+    assert.equal(result.items.length, 1)
+    assert.match(result.error ?? "", /无法保存提醒缓存/)
+    assert.equal(store.has(`shared:${REMINDER_SNAPSHOT_KEY}`), false)
+  })
+})
+
+test("clock rollback does not let a future-dated old cache block a fresh successful query", async () => {
+  await withRuntime(async store => {
+    const future = Date.now() + 60 * 60 * 1000
+    store.set(`shared:${REMINDER_SNAPSHOT_KEY}`, { ...snapshot([cachedItem({ title: "Old" })], future),
+      queryStartedAt: future - 10, queryHorizonDays: 365 })
+    globals.Reminder = { getIncompletes: async () => [reminder({ title: "Fresh" })] }
+    const result = await loadReminderItems(365)
+    assert.equal(result.items[0].title, "Fresh")
+    assert.equal(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`).items[0].title, "Fresh")
+  })
+})
+
+test("widget refresh re-reads manual changes and disabled Reminder integration after awaiting EventKit", async () => {
+  await withRuntime(async store => {
+    const state = defaultState()
+    state.settings.includeReminders = true
+    store.set(`shared:${STATE_KEY}`, state)
+    const old = deferred<any[]>()
+    globals.Reminder = { getIncompletes: () => old.promise }
+    const loading = loadWidgetData()
+    state.settings.includeReminders = false
+    state.items.push({ id: "added-during-sync", title: "New manual item", kind: "custom", iconName: null,
+      dueDate: "2026-09-05", includesTime: false, hour: 9, minute: 0, remindBeforeDays: 0,
+      recurrence: null, amount: "", note: "", enabled: true, createdAt: 1, updatedAt: 1 })
+    store.set(`shared:${STATE_KEY}`, state)
+    old.resolve([reminder()])
+    const result = await loading
+    assert.deepEqual(result.items.map(item => item.id), ["added-during-sync"])
+    assert.equal(result.reminderResult.error, null)
+    assert.equal(result.state.settings.includeReminders, false)
+  })
+})
+
+test("widget refresh reloads the changed List instead of mixing old reminders with new settings", async () => {
+  await withRuntime(async store => {
+    const state = defaultState()
+    state.settings.includeReminders = true
+    store.set(`shared:${STATE_KEY}`, state)
+    const old = deferred<any[]>()
+    const filters: string[][] = []
+    globals.Calendar = { forReminders: async () => [{ identifier: "new-list" }] }
+    globals.Reminder = { getIncompletes: (options: any) => {
+      filters.push(options.calendars?.map((calendar: any) => calendar.identifier) ?? [])
+      return filters.length === 1 ? old.promise
+        : Promise.resolve([reminder({ identifier: "new-list-item", calendar: { title: "Delivery" } })])
+    } }
+    const loading = loadWidgetData()
+    state.settings.reminderCalendarIDs = ["new-list"]
+    store.set(`shared:${STATE_KEY}`, state)
+    old.resolve([reminder({ identifier: "old-list-item" })])
+    const result = await loading
+    assert.deepEqual(filters, [[], ["new-list"]])
+    assert.deepEqual(result.items.map(item => item.id), ["new-list-item"])
+    assert.equal(result.items[0].iconName, "shippingbox.fill")
   })
 })

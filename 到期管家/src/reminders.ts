@@ -24,21 +24,64 @@ import type {
 } from "./types"
 import { currentWidgetLocale, widgetText } from "./widget_localization"
 
+const REMINDER_SYNC_TOKEN_KEY = "due-manager-reminder-sync-token-v1"
+let reminderMutationToken = ""
+let reminderQuerySequence = 0
+let lastWrittenQuerySequence = 0
+
+class SupersededReminderSync extends Error {
+  constructor() { super("提醒事项在读取期间已更新，本次旧结果已丢弃，请重新同步。") }
+}
+
+// Shared Storage has no atomic compare-and-set. Check a fresh token immediately
+// before writing, and invalidate pending reads whenever completion/cleanup runs.
+// Failure of this optional guard must not hide a successful EventKit query.
+function invalidatePendingReminderReads(): boolean {
+  const token = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  reminderMutationToken = token
+  try {
+    return Storage.set(REMINDER_SYNC_TOKEN_KEY, token, SHARED_STORAGE_OPTIONS)
+  } catch { return false }
+}
+
+function readReminderMutationToken(): string | null {
+  const value = Storage.get(REMINDER_SYNC_TOKEN_KEY, SHARED_STORAGE_OPTIONS)
+  return typeof value === "string" ? value : null
+}
+
+function withinReminderHorizon(item: DisplayDueItem, endDate: Date): boolean {
+  const timestamp = item.includesTime ? item.dueTimestamp
+    : dateKeyToLocalDate(item.dueDate, true, 0, 0).getTime()
+  return timestamp < endDate.getTime()
+}
+
 export async function loadReminderItems(
   horizonDays: number,
   calendarIDs: readonly string[] = [],
   now = new Date(),
 ): Promise<ReminderLoadResult> {
   const calendarFilterIDs = normalizeReminderCalendarIDs(calendarIDs)
+  const localMutationToken = reminderMutationToken
+  const querySequence = ++reminderQuerySequence
+  const queryStartedAt = Date.now()
+  let sharedMutationToken: string | null = null
+  let guardReadable = false
   try {
-    const endDate = new Date(now)
-    endDate.setDate(endDate.getDate() + Math.max(30, Math.min(3650, horizonDays)))
+    sharedMutationToken = readReminderMutationToken()
+    guardReadable = true
+  } catch { /* Live results remain usable if optional cache storage is unavailable. */ }
+  const endDate = new Date(now)
+  const queryHorizonDays = Number.isFinite(horizonDays)
+    ? Math.max(30, Math.min(3650, Math.trunc(horizonDays))) : 730
+  endDate.setDate(endDate.getDate() + queryHorizonDays)
+  try {
     const calendars = calendarFilterIDs.length > 0
       ? await resolveReminderCalendars(calendarFilterIDs)
       : undefined
     const reminders = await Reminder.getIncompletes(
       calendars ? { endDate, calendars } : { endDate },
     )
+    if (reminderMutationToken !== localMutationToken) throw new SupersededReminderSync()
     const cached = reminders
       .map(reminderToCacheItem)
       .filter((item): item is CachedReminderItem => item != null)
@@ -47,15 +90,35 @@ export async function loadReminderItems(
     const snapshot: ReminderSnapshot = {
       schemaVersion: 1,
       fetchedAt: Date.now(),
+      queryStartedAt,
+      queryHorizonDays,
       calendarFilterIDs,
       items: cached,
     }
     let snapshotError: string | null = null
     try {
-      if (!Storage.set(REMINDER_SNAPSHOT_KEY, snapshot, SHARED_STORAGE_OPTIONS)) {
-        snapshotError = "已读取提醒事项，但无法保存提醒缓存；小组件稍后可能无法离线显示这些事项。"
+      if (!guardReadable) throw new Error("无法读取同步标记，已跳过本次缓存写入")
+      const existing = readSnapshot()
+      if (readReminderMutationToken() !== sharedMutationToken) {
+        throw new SupersededReminderSync()
       }
+      const newerQueryHasSaved = existing && !isSnapshotStale(existing.fetchedAt)
+        && (querySequence < lastWrittenQuerySequence
+          || (existing.queryStartedAt != null && existing.queryStartedAt > queryStartedAt))
+      if (newerQueryHasSaved) {
+        // Multiple Home Screen sizes may load together. Use the newer same-
+        // scope live result without turning ordinary overlap into an error.
+        if (existing && sameCalendarFilter(existing.calendarFilterIDs, calendarFilterIDs)
+          && existing.queryHorizonDays === queryHorizonDays) {
+          return { items: existing.items.map(item => cacheItemToDisplay(item, false))
+            .filter(item => withinReminderHorizon(item, endDate)),
+            fetchedAt: existing.fetchedAt, live: true, fromCache: false, error: null }
+        }
+      } else if (!Storage.set(REMINDER_SNAPSHOT_KEY, snapshot, SHARED_STORAGE_OPTIONS)) {
+        snapshotError = "已读取提醒事项，但无法保存提醒缓存；小组件稍后可能无法离线显示这些事项。"
+      } else lastWrittenQuerySequence = querySequence
     } catch (error) {
+      if (error instanceof SupersededReminderSync) throw error
       snapshotError = `已读取提醒事项，但无法保存提醒缓存：${readableError(error)}`
     }
     return {
@@ -85,6 +148,7 @@ export async function loadReminderItems(
     return {
       items: canUseCache
         ? matchingSnapshot.items.map(item => cacheItemToDisplay(item, true))
+          .filter(item => withinReminderHorizon(item, endDate))
         : [],
       fetchedAt: matchingSnapshot?.fetchedAt ?? null,
       live: false,
@@ -237,6 +301,7 @@ export function isSnapshotStale(fetchedAt: number | null, now = Date.now()): boo
 }
 
 export function clearReminderSnapshot(): void {
+  invalidatePendingReminderReads()
   Storage.remove(REMINDER_SNAPSHOT_KEY, SHARED_STORAGE_OPTIONS)
   Storage.remove(REMINDER_SNAPSHOT_KEY)
 }
@@ -328,18 +393,20 @@ function cacheItemToDisplay(item: CachedReminderItem, stale: boolean): DisplayDu
 }
 
 function removeReminderFromSnapshot(id: string): boolean {
+  const invalidated = invalidatePendingReminderReads()
   try {
     // Reads, legacy migration and writes can all fail after EventKit saved.
     // None of them may reclassify an applied completion as a failed action.
     const snapshot = readSnapshot()
-    if (!snapshot) return true
+    if (!snapshot) return invalidated
     const items = snapshot.items.filter(item => item.id !== id)
-    if (items.length === snapshot.items.length) return true
-    return Storage.set(
+    if (items.length === snapshot.items.length) return invalidated
+    const saved = Storage.set(
       REMINDER_SNAPSHOT_KEY,
       { ...snapshot, items },
       SHARED_STORAGE_OPTIONS,
     )
+    return saved && invalidated
   } catch {
     return false
   }
@@ -357,6 +424,10 @@ function readSnapshot(): ReminderSnapshot | null {
   const snapshot: ReminderSnapshot = {
     schemaVersion: 1,
     fetchedAt: typeof raw.fetchedAt === "number" ? raw.fetchedAt : 0,
+    queryStartedAt: typeof raw.queryStartedAt === "number" && Number.isFinite(raw.queryStartedAt)
+      && raw.queryStartedAt <= raw.fetchedAt ? raw.queryStartedAt : undefined,
+    queryHorizonDays: typeof raw.queryHorizonDays === "number" && Number.isInteger(raw.queryHorizonDays)
+      && raw.queryHorizonDays >= 30 && raw.queryHorizonDays <= 3650 ? raw.queryHorizonDays : undefined,
     calendarFilterIDs: normalizeReminderCalendarIDs(raw.calendarFilterIDs),
     items,
   }

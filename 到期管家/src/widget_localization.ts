@@ -1,4 +1,4 @@
-import { localDateKey, pad2, parseDateKey } from "./date"
+import { dateKeyToLocalDate, localDateKey, pad2, parseDateKey } from "./date"
 import type { DisplayDueItem, ItemKind } from "./types"
 
 export type WidgetLanguage = "en" | "zh-Hans" | "zh-Hant"
@@ -319,7 +319,7 @@ export function formatWidgetDate(
   const hour = clampInteger(options.hour ?? 0, 0, 23)
   const minute = clampInteger(options.minute ?? 0, 0, 59)
   const now = options.now ?? new Date()
-  const date = new Date(parts.year, parts.month - 1, parts.day, hour, minute)
+  const date = dateKeyToLocalDate(dateKey, true, hour, minute)
 
   try {
     return new Intl.DateTimeFormat(locale, {
@@ -359,7 +359,7 @@ export function formatWidgetItemDate(
 export function formatWidgetMonth(dateKey: string, locale: string): string {
   const parts = parseDateKey(dateKey)
   if (!parts) return ""
-  const date = new Date(parts.year, parts.month - 1, parts.day)
+  const date = dateKeyToLocalDate(dateKey, true, 0, 0)
   try {
     return new Intl.DateTimeFormat(locale, { month: "short" }).format(date)
   } catch {

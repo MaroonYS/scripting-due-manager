@@ -96,6 +96,7 @@ export function loadState(): AppState {
 }
 
 export function saveState(state: AppState, snapshotReason = "自动备份"): boolean {
+  assertStateMetadata(state)
   const previous = Storage.get<unknown>(STATE_KEY, SHARED_STORAGE_OPTIONS)
   if (previous != null && !saveSnapshotOfState(normalizeStoredState(previous), snapshotReason)) {
     return false
@@ -743,6 +744,9 @@ function incrementRevision(requested: number, ...previous: Array<number | undefi
 function assertItemMetadata(item: ManualDueItem): void {
   assertStateTimestamp(item.createdAt)
   assertStateTimestamp(item.updatedAt)
+  if (typeof item.title !== "string" || !item.title.trim() || !parseDateKey(item.dueDate)) {
+    throw new Error("事项名称或日期无效，未保存；请检查名称和到期日期。")
+  }
 }
 
 function assertStateMetadata(state: AppState): void {

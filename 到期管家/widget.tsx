@@ -1,8 +1,8 @@
 import { Device, Script, Text, VStack, Widget } from "scripting"
-import { loadReminderItems, nextWidgetRefresh, sortDueItems } from "./src/reminders"
+import { nextWidgetRefresh } from "./src/reminders"
+import { loadWidgetData } from "./src/widget_data"
 import {
   loadState,
-  manualItemsForDisplay,
   readWidgetActionError,
 } from "./src/storage"
 import {
@@ -16,17 +16,7 @@ configureWidgetLocale(Device)
 const WIDGET_LOCALE = currentWidgetLocale()
 
 async function main() {
-  const state = loadState()
-  const reminderResult = state.settings.includeReminders
-    ? await loadReminderItems(
-      state.settings.reminderHorizonDays,
-      state.settings.reminderCalendarIDs,
-    )
-    : { items: [], fetchedAt: null, live: false, fromCache: false, error: null }
-  const items = sortDueItems([
-    ...manualItemsForDisplay(state),
-    ...reminderResult.items,
-  ])
+  const { state, reminderResult, items } = await loadWidgetData()
   const completionTransition = readWidgetCompletionTransition()
   const refreshAt = nextWidgetRefresh(items, new Date(), state.settings.includeReminders)
 

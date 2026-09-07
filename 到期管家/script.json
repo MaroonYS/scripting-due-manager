@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.5.7",
+  "version": "2.5.8",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.5.7 fixes mixed Wallet Plan lists being forced to one credit-card icon. Wallet Plan is now a neutral container; within it, strict numbered prefixes such as BANK, CREDIT, POINTS, INVEST, LOAN, INSURANCE, TAX, BILL and PAYMENT, plus specific titles and high-confidence note hints, resolve each item independently. Credit-monitoring services such as Equifax also receive a distinct document-search icon. Existing items and widget layouts are unchanged.",
-    "zh": "2.5.7 修复 Wallet Plan 混合列表全部被识别为信用卡的问题。Wallet Plan 改为中性容器；在该 List 内，BANK、CREDIT、POINTS、INVEST、LOAN、INSURANCE、TAX、BILL、PAYMENT 等严格编号前缀、具体标题与高置信度备注会为每条事项独立推断。Equifax 等信用监控服务也使用独立的文档查询图标。已有事项与组件排版不变。",
-    "zh-Hans": "2.5.7 修复 Wallet Plan 混合列表全部被识别为信用卡的问题。Wallet Plan 改为中性容器；在该 List 内，BANK、CREDIT、POINTS、INVEST、LOAN、INSURANCE、TAX、BILL、PAYMENT 等严格编号前缀、具体标题与高置信度备注会为每条事项独立推断。Equifax 等信用监控服务也使用独立的文档查询图标。已有事项与组件排版不变。",
-    "zh-Hant": "2.5.7 修復 Wallet Plan 混合清單全部被識別為信用卡的問題。Wallet Plan 改為中性容器；在該 List 內，BANK、CREDIT、POINTS、INVEST、LOAN、INSURANCE、TAX、BILL、PAYMENT 等嚴格編號前綴、具體標題與高置信度備註會為每條事項獨立推斷。Equifax 等信用監控服務也使用獨立的文件查詢圖示。現有事項與元件排版不變。"
+    "en": "2.5.8 fixes sync retry navigation, out-of-order reminder cache writes and in-flight reads after completion. Widgets re-read current items and List settings before presentation. Offline data respects the query horizon, List selection prevents duplicate saves, and invalid dates or recurrence overflow are rejected before writing.",
+    "zh": "2.5.8 修复同步重试跳转错误、旧请求覆盖新缓存和完成后旧查询回填的问题。组件展示前核对最新事项与列表设置，离线缓存遵循当前日期范围。列表选择防止重复保存，写入前拒绝无效日期与周期越界，并修正小于 100 年的日期计算。",
+    "zh-Hans": "2.5.8 修复同步重试跳转错误、旧请求覆盖新缓存和完成后旧查询回填的问题。组件展示前核对最新事项与列表设置，离线缓存遵循当前日期范围。列表选择防止重复保存，写入前拒绝无效日期与周期越界，并修正小于 100 年的日期计算。",
+    "zh-Hant": "2.5.8 修復同步重試跳轉錯誤、舊請求覆蓋新快取及完成後舊查詢回填的問題。元件顯示前核對最新事項與清單設定，離線快取遵循目前日期範圍。清單選擇防止重複儲存，寫入前拒絕無效日期與週期越界，並修正小於 100 年的日期計算。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

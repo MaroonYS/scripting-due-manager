@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs"
 import test from "node:test"
 import {
   advanceManualItem,
+  addCalendarDays,
+  dateKeyToLocalDate,
   calendarDayDifference,
   createRecurrenceRule,
   dueStatus,
@@ -15,6 +17,18 @@ import {
   parseRemindBeforeDaysInput,
   parseRecurrenceIntervalInput,
 } from "../到期管家/src/date.ts"
+
+test("calendar dates preserve years below 100 across parsing, arithmetic and localized display", () => {
+  const date = dateKeyToLocalDate("0004-02-29", true, 12, 30)
+  assert.equal(date.getFullYear(), 4)
+  assert.equal(date.getMonth(), 1)
+  assert.equal(date.getDate(), 29)
+  assert.equal(calendarDayDifference("0099-12-31", "0100-01-01"), 1)
+  assert.equal(addCalendarDays("0099-12-31", 1), "0100-01-01")
+  assert.equal(addCalendarDays("0004-02-28", 1), "0004-02-29")
+  assert.equal(parseDateKey("0100-02-29"), null)
+  assert.doesNotMatch(formatWidgetDate("0004-02-29", "en-US"), /1904/)
+})
 import {
   DUE_ICON_GROUPS,
   DUE_ICON_OPTIONS,
@@ -3256,7 +3270,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.5.7")
+  assert.equal(manifest.version, "2.5.8")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

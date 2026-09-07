@@ -6,6 +6,7 @@ import {
   formatWidgetLastSync,
   localizeWidgetActionError,
   widgetCompletionLabel,
+  widgetText,
 } from "../到期管家/src/widget_localization.ts"
 import type { DisplayDueItem } from "../到期管家/src/types.ts"
 
@@ -125,18 +126,39 @@ test("small precise time reuses the detail row without taking title or preview s
 test("small issue status replaces only auxiliary text and offers an app link", () => {
   const detail = source.slice(source.indexOf("function SmallCurrentDetail"), source.indexOf("function SmallNextItemPreview"))
   assert.match(detail, /supportingText = issue\?\.compactText \?\? detail/)
-  assert.match(detail, /<Link url=\{issue \? Script\.createRunURLScheme\(Script\.name, \{ action: "widget-status" \}\) : itemURL\(item\)\}>/)
+  assert.match(detail, /<Link url=\{issue \? issue\.url : itemURL\(item\)\}>/)
   assert.match(detail, /\{time\}/)
   assert.equal(detail.match(/height: 19/g)?.length, 1)
 })
 
 test("cached and failed list widgets show actionable last-sync feedback only when needed", () => {
   const issue = source.slice(source.indexOf("function WidgetIssueLink"), source.indexOf("function itemURL"))
-  assert.match(issue, /<Link url=\{Script\.createRunURLScheme\(Script\.name, \{ action: "widget-status" \}\)\}>/)
+  assert.match(issue, /<Link url=\{issue\.url\}>/)
   assert.match(issue, /if \(props\.remindersFromCache\)/)
   assert.match(issue, /formatWidgetLastSync\(props\.reminderFetchedAt, widgetRuntimeLocale\(\)\)/)
   assert.match(issue, /return null/)
   assert.equal(source.match(/visible\.length > 0 && issue\s*\? <WidgetIssueLink issue=\{issue\} \/>/g)?.length, 2)
+})
+
+test("sync retries open the main refresh flow while completion warnings open action inspection", () => {
+  const compiled = new Bun.Transpiler({ loader: "ts" }).transformSync(
+    source.slice(source.indexOf("function widgetIssue("), source.indexOf("function itemURL(")),
+  )
+  const bindings = {
+    Script: { name: "Due Manager", createRunURLScheme: (_name: string, parameters: unknown = {}) => JSON.stringify(parameters) },
+    widgetRuntimeLocale: () => "en-US", widgetText, localizeWidgetActionError, formatWidgetLastSync,
+  }
+  const evaluate = new Function(...Object.keys(bindings), `${compiled}\nreturn widgetIssue`)(...Object.values(bindings))
+  const base = { remindersLive: false, remindersFromCache: false, reminderFetchedAt: null,
+    reminderError: null, interactionError: null }
+  assert.equal(evaluate(base), null)
+  for (const patch of [{ reminderError: "offline" }, { remindersFromCache: true },
+    { remindersLive: true, reminderError: "cache save failed" }]) {
+    const issue = evaluate({ ...base, ...patch })
+    assert.deepEqual(JSON.parse(issue.url), {}, "retry must mount DueManagerApp, which refreshes reminders")
+  }
+  assert.deepEqual(JSON.parse(evaluate({ ...base, interactionError: "failed", reminderError: "offline" }).url),
+    { action: "widget-status" })
 })
 
 test("completion buttons use a native semantic icon-only label and retain tap size", () => {

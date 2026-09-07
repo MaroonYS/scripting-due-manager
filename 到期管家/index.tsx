@@ -177,7 +177,7 @@ function DueManagerApp() {
   }, [])
 
   const setReminderIntegration = async (enabled: boolean) => {
-    ++reminderRequests.generation
+    const request = ++reminderRequests.generation
     if (!enabled) {
       try {
         const next = updateSettings({ includeReminders: false })
@@ -201,6 +201,7 @@ function DueManagerApp() {
       const granted = needsCalendarAccess
         ? await Script.requestAccess(["calendar", "reminders"])
         : await Script.requestAccess(["reminders"])
+      if (request !== reminderRequests.generation) return
       const missingReminderAccess = !granted.includes("reminders")
       const missingCalendarAccess = needsCalendarAccess && !granted.includes("calendar")
       if (missingReminderAccess || missingCalendarAccess) {
@@ -221,6 +222,7 @@ function DueManagerApp() {
         next.settings.reminderHorizonDays,
         next.settings.reminderCalendarIDs,
       )
+      if (request !== reminderRequests.generation) return
       setReminderStatus({
         loading: false,
         count: result.items.length,
@@ -242,13 +244,14 @@ function DueManagerApp() {
       }
       await refreshWidgetsWithWarning()
     } catch (error) {
+      if (request !== reminderRequests.generation) return
       setReminderStatus({ ...EMPTY_REMINDER_STATUS, error: String(error) })
       await Dialog.alert({ title: "授权失败", message: String(error) })
     }
   }
 
   const setReminderCalendarSelection = async (calendarIDs: string[]) => {
-    ++reminderRequests.generation
+    const request = ++reminderRequests.generation
     const current = loadState()
 
     if (!current.settings.includeReminders) {
@@ -263,6 +266,7 @@ function DueManagerApp() {
       current.settings.reminderHorizonDays,
       calendarIDs,
     )
+    if (request !== reminderRequests.generation) return
     setReminderStatus({
       loading: false,
       count: result.items.length,
@@ -1028,6 +1032,7 @@ function ReminderCalendarPicker({
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [saveGate] = useState(() => ({ busy: false }))
 
   const loadCalendars = async () => {
     setLoading(true)
@@ -1067,20 +1072,23 @@ function ReminderCalendarPicker({
   }, [])
 
   const toggleCalendar = (id: string) => {
+    if (saveGate.busy) return
     const knownIDs = new Set(calendars.map(calendar => calendar.id))
-    const current = selection.filter(identifier => knownIDs.has(identifier))
-    setSelection(normalizeReminderCalendarIDs(
-      current.includes(id)
-        ? current.filter(identifier => identifier !== id)
-        : [...current, id],
-    ))
+    setSelection(previous => {
+      const current = previous.filter(identifier => knownIDs.has(identifier))
+      return normalizeReminderCalendarIDs(
+        current.includes(id)
+          ? current.filter(identifier => identifier !== id)
+          : [...current, id],
+      )
+    })
   }
 
   const availableIDs = new Set(calendars.map(calendar => calendar.id))
   const unavailableCount = selection.filter(identifier => !availableIDs.has(identifier)).length
 
   const save = async () => {
-    if (saving || loading || loadError) return
+    if (saveGate.busy || loading || loadError) return
     if (unavailableCount > 0) {
       await Dialog.alert({
         title: "无法保存列表选择",
@@ -1088,6 +1096,7 @@ function ReminderCalendarPicker({
       })
       return
     }
+    saveGate.busy = true
     setSaving(true)
     try {
       await onChanged(normalizeReminderCalendarIDs(selection))
@@ -1095,6 +1104,7 @@ function ReminderCalendarPicker({
     } catch (error) {
       await Dialog.alert({ title: "列表设置保存失败", message: String(error) })
     } finally {
+      saveGate.busy = false
       setSaving(false)
     }
   }
@@ -1103,9 +1113,11 @@ function ReminderCalendarPicker({
     listStyle="insetGroup"
     navigationTitle="提醒事项列表"
     navigationBarTitleDisplayMode="inline"
+    disabled={saving}
     toolbar={{
       confirmationAction: <Button
         title={saving ? "正在保存…" : "完成"}
+        disabled={saving || loading || loadError != null}
         action={() => { void save() }}
       />,
     }}

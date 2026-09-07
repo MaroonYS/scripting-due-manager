@@ -47,7 +47,14 @@ export function isLeapYear(year: number): boolean {
 }
 
 export function daysInMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate()
+  return utcCalendarDate(year, month, 0).getUTCDate()
+}
+
+function utcCalendarDate(year: number, month: number, day: number): Date {
+  const date = new Date(0)
+  // Date.UTC and the multi-argument Date constructor map years 0–99 to 1900–1999.
+  date.setUTCFullYear(year, month, day)
+  return date
 }
 
 export function localDateKey(date: Date): string {
@@ -66,21 +73,21 @@ export function dateKeyToLocalDate(
 ): Date {
   const parts = parseDateKey(dateKey)
   if (!parts) return new Date(Number.NaN)
-  return new Date(
-    parts.year,
-    parts.month - 1,
-    parts.day,
+  const date = new Date(0)
+  date.setFullYear(parts.year, parts.month - 1, parts.day)
+  date.setHours(
     includesTime ? clamp(hour, 0, 23) : 23,
     includesTime ? clamp(minute, 0, 59) : 59,
     includesTime ? 0 : 59,
     includesTime ? 0 : 999,
   )
+  return date
 }
 
 export function calendarOrdinal(dateKey: string): number {
   const parts = parseDateKey(dateKey)
   if (!parts) return Number.NaN
-  return Math.floor(Date.UTC(parts.year, parts.month - 1, parts.day) / DAY_MS)
+  return Math.floor(utcCalendarDate(parts.year, parts.month - 1, parts.day).getTime() / DAY_MS)
 }
 
 export function calendarDayDifference(fromDateKey: string, toDateKey: string): number {
@@ -90,7 +97,7 @@ export function calendarDayDifference(fromDateKey: string, toDateKey: string): n
 export function addCalendarDays(dateKey: string, days: number): string {
   const parts = parseDateKey(dateKey)
   if (!parts) return dateKey
-  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days))
+  const date = utcCalendarDate(parts.year, parts.month - 1, parts.day + days)
   return formatDateKey(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
 }
 
@@ -200,6 +207,9 @@ export function advanceManualItem(
     }
   }
 
+  if (!parseDateKey(dueDate) || dueDate <= item.dueDate) {
+    throw new Error("下一期日期超出支持范围或未向前推进，请调整到期日期或重复规则。")
+  }
   return { ...item, dueDate, updatedAt: now.getTime() }
 }
 
