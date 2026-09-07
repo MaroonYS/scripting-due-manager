@@ -272,6 +272,21 @@ test("literal fallback-looking Reminder titles are never rewritten", async () =>
   }
 })
 
+test("cached Reminder titles and Lists are re-inferred with the current icon rules", async () => {
+  await withRuntime(async store => {
+    store.set(`shared:${REMINDER_SNAPSHOT_KEY}`, snapshot([
+      cachedItem({ title: "Card Setup", calendarTitle: "Wallet Plan" }),
+    ]))
+    globals.Reminder = { getIncompletes: async () => { throw new Error("offline") } }
+
+    const result = await loadReminderItems(365)
+    assert.equal(result.fromCache, true)
+    assert.equal(result.items[0].title, "Card Setup")
+    assert.equal(result.items[0].note, "Wallet Plan")
+    assert.equal(result.items[0].iconName, "creditcard.fill")
+  })
+})
+
 test("expired cache retains its successful fetch timestamp without returning expired rows", async () => {
   await withRuntime(async store => {
     const fetchedAt = Date.now() - 25 * 60 * 60 * 1000

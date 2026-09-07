@@ -1,6 +1,13 @@
 # 到期管家
 
-## 当前版本 2.5.3
+## 当前版本 2.5.4
+
+- 补齐 Apple 提醒事项信用卡场景的标题识别：`Card Setup`、破折号变体、`VentureOne`／`Venture One` 及常见开卡、激活、自动还款表达会使用橙色信用卡图标。
+- 将完整 List 名 `Wallet Plan` 加入信用卡分类后备；仍保持“标题 → 精确 List → List 产品词 → 备注 → 默认值”的优先级。
+- 继续使用英文整词边界和精确 List 匹配，不加入单独的 `card`、`wallet` 或“卡”，避免相近词误判。旧缓存会在渲染时按新规则重新推断，无需重建事项。
+- 本次不修改事项数据、组件布局、字号、点击区域或通知逻辑。
+
+### 2.5.3
 
 - 修复系统语言与 Scripting 的单独应用语言不一致时，小组件误用应用语言的问题。现在优先读取 `Device.systemLanguageTag`／`systemLanguageCode`；旧版运行环境才使用 `Device.preferredLanguages` 后备。
 - 小号左上角图标语义名称以及所有尺寸的日期、内置标题、分区、空状态和错误提示使用同一系统语言来源。英文系统中的 `doc.text.magnifyingglass` 显示为 “Tax & Accounting”，不再显示“税务会计”。

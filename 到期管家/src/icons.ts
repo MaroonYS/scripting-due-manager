@@ -367,7 +367,7 @@ type CompiledKeyword = {
 type CompiledIconRule = {
   icon: string
   keywords: CompiledKeyword[]
-  exactKeywords: string[]
+  exactKeywords: CompiledKeyword[]
 }
 
 // Rules stay deliberately conservative: manual choices cover the long tail, while
@@ -821,6 +821,22 @@ const ICON_RULES: IconRule[] = [
 // Keep these broader daily-life phrases isolated from manually managed due items.
 const REMINDER_CONTENT_RULES: IconRule[] = [
   {
+    icon: "creditcard.fill",
+    keywords: [
+      "ventureone", "venture one", "venture x",
+      "quicksilver autopay", "savor autopay", "chase sapphire", "chase freedom",
+      "信用卡开卡", "信用卡開卡", "开卡设置", "開卡設定", "卡片设置", "卡片設定",
+      "卡片激活", "卡片啟用", "激活卡片", "啟用卡片", "申请信用卡", "申請信用卡",
+      "信用卡自动还款", "信用卡自動還款",
+    ],
+    // These short English phrases are intentionally exact after punctuation
+    // normalization so “Gift/SIM/Business Card Setup” cannot become a card bill.
+    exactKeywords: [
+      "Card Setup", "Set Up Card", "Card Activation", "Activate Card",
+      "Card Application", "Apply for Card", "Card Autopay",
+    ],
+  },
+  {
     icon: "briefcase.fill",
     keywords: [
       "team meeting", "staff meeting", "client meeting", "project review", "weekly report",
@@ -985,7 +1001,7 @@ export const REMINDER_LIST_ICON_RULES: ReminderListIconRule[] = [
   { icon: "scanner.fill", aliases: ["掃描", "扫描", "掃描件", "扫描件", "scanning", "scans"] },
 
   // Finance, bills, subscriptions and expirations
-  { icon: "creditcard.fill", aliases: ["信用卡", "卡賬", "卡账", "卡賬單", "卡账单", "信用卡還款", "信用卡还款", "還款", "还款", "credit card", "credit cards", "card bills", "card payments"] },
+  { icon: "creditcard.fill", aliases: ["信用卡", "卡賬", "卡账", "卡賬單", "卡账单", "信用卡還款", "信用卡还款", "還款", "还款", "credit card", "credit cards", "card bills", "card payments", "wallet plan"] },
   { icon: "building.columns.fill", aliases: ["財務", "财务", "金融", "銀行", "银行", "資金", "资金", "finance", "finances", "banking", "money"] },
   { icon: "banknote.fill", aliases: ["付款", "待付款", "收付款", "繳款", "缴款", "payment", "payments", "payables", "payments due"] },
   { icon: "chart.line.uptrend.xyaxis", aliases: ["投資", "投资", "股票", "基金", "證券", "证券", "investment", "investments", "stocks", "funds", "investing"] },
@@ -1241,8 +1257,12 @@ function bestMatchingIconFromRules(
   for (const rule of rules) {
     if (!ICON_OPTION_NAMES.has(rule.icon)) continue
     for (const exactKeyword of rule.exactKeywords) {
-      if (normalizedTitle.raw.trim() === exactKeyword) {
-        const score = 10_000 + exactKeyword.length
+      const exactRaw = normalizedTitle.raw.trim() === exactKeyword.raw
+      const exactWords = !exactKeyword.containsNonASCII
+        && exactKeyword.words.length > 0
+        && normalizedTitle.words === exactKeyword.words
+      if (exactRaw || exactWords) {
+        const score = 10_000 + exactKeyword.score
         if (score > bestScore) {
           bestIcon = rule.icon
           bestScore = score
@@ -1352,7 +1372,7 @@ function compileIconRules(rules: readonly IconRule[]): CompiledIconRule[] {
   return rules.map(rule => ({
     icon: rule.icon,
     keywords: rule.keywords.map(compileKeyword),
-    exactKeywords: (rule.exactKeywords ?? []).map(keyword => normalizeText(keyword).trim()),
+    exactKeywords: (rule.exactKeywords ?? []).map(compileKeyword),
   }))
 }
 

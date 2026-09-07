@@ -710,6 +710,12 @@ test("reminder icons resolve title, list and notes in strict priority order", ()
 
 test("reminder icons recognize common task language and list categories", () => {
   const titleCases = [
+    ["Card Setup", "creditcard.fill"],
+    ["CARD—SETUP", "creditcard.fill"],
+    ["VentureOne Bonus", "creditcard.fill"],
+    ["Venture One Bonus", "creditcard.fill"],
+    ["卡片激活", "creditcard.fill"],
+    ["卡片啟用", "creditcard.fill"],
     ["下班买菜", "cart.fill"],
     ["去驿站取快递", "shippingbox.fill"],
     ["晚饭后吃药", "pills.fill"],
@@ -725,6 +731,7 @@ test("reminder icons recognize common task language and list categories", () => 
   }
 
   const listCases = [
+    ["Wallet Plan", "creditcard.fill"],
     ["工作", "briefcase.fill"],
     ["购物", "cart.fill"],
     ["家庭", "house.fill"],
@@ -832,6 +839,15 @@ test("reminder List matching keeps exact boundaries and layered priority", () =>
 })
 
 test("reminder icon matching keeps false-positive protection in every source", () => {
+  for (const [title, calendarTitle, expected] of [
+    ["Cardinal Setup", "Personal", "checklist"],
+    ["Gift Card Setup", "Personal", "checklist"],
+    ["SIM Card Setup", "Personal", "checklist"],
+    ["Venture Capital Review", "Tasks", "checkmark.circle.fill"],
+    ["847291", "Wallet Planning Workshop", "checklist"],
+  ]) {
+    assert.equal(resolveReminderIcon(title, calendarTitle, "").name, expected)
+  }
   assert.equal(
     resolveReminderIcon(
       "会议时间移动到周五",
@@ -3063,7 +3079,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.5.3")
+  assert.equal(manifest.version, "2.5.4")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

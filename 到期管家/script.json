@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.5.3 makes every widget use the iPhone system language even when Scripting has a different per-app language. Compact icon names, dates, headings, sections, empty states, and errors share that source. Explicit Simplified or Traditional Chinese is respected, and real Reminder titles resembling fallback text are preserved. Existing data and layouts are unchanged.",
-    "zh": "2.5.3 修复 Scripting 单独设置为中文时组件误用中文的问题。所有小、中、大及锁屏组件优先读取 iPhone 系统语言；明确的简繁体设置不会被地区覆盖，真实提醒标题也不会被后备文案误改。现有数据与布局不变。",
-    "zh-Hans": "2.5.3 修复 Scripting 单独设置为中文时组件误用中文的问题。所有小、中、大及锁屏组件优先读取 iPhone 系统语言；明确的简繁体设置不会被地区覆盖，真实提醒标题也不会被后备文案误改。现有数据与布局不变。",
-    "zh-Hant": "2.5.3 修復 Scripting 單獨設為中文時元件誤用中文的問題。所有小、中、大及鎖定畫面元件優先讀取 iPhone 系統語言；明確的簡繁體設定不會被地區覆蓋，真實提醒標題也不會被後備文字誤改。現有資料與版面不變。"
+    "en": "2.5.4 recognizes Card Setup, VentureOne and related credit-card actions from Apple Reminder titles, with Wallet Plan as an exact List fallback. Strict word boundaries prevent similar unrelated titles from matching. Existing data, layouts, language behavior and notifications are unchanged.",
+    "zh": "2.5.4 补齐 Apple 提醒事项中的 Card Setup、VentureOne 及相关信用卡操作标题识别，并将完整 List 名 Wallet Plan 作为分类后备。严格边界可避免相近无关标题误判；现有数据、布局、语言和通知逻辑不变。",
+    "zh-Hans": "2.5.4 补齐 Apple 提醒事项中的 Card Setup、VentureOne 及相关信用卡操作标题识别，并将完整 List 名 Wallet Plan 作为分类后备。严格边界可避免相近无关标题误判；现有数据、布局、语言和通知逻辑不变。",
+    "zh-Hant": "2.5.4 補齊 Apple 提醒事項中的 Card Setup、VentureOne 及相關信用卡操作標題識別，並將完整 List 名 Wallet Plan 作為分類後備。嚴格邊界可避免相近無關標題誤判；現有資料、版面、語言和通知邏輯不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",
