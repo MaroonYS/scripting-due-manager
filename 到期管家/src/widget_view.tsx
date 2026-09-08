@@ -21,6 +21,7 @@ import { APPLE_REMINDERS_URL, appleReminderDeepLink } from "./reminder_links"
 import type { AppSettings, DisplayDueItem } from "./types"
 import { resolveItemBrand } from "./brand_preferences"
 import { brandAsset, loadBrandLogo, type LoadedBrandLogo } from "./brand_assets"
+import { BrandCompletionLabel } from "./brand_logo"
 import {
   currentWidgetLocale,
   formatWidgetDate,
@@ -937,29 +938,31 @@ function ListCompletionIcon({
       enabled={false}
     />
   }
+  if (logo) return <Button
+    buttonStyle="plain"
+    frame={{ width: hitSize, height: hitSize }}
+    contentShape="rect"
+    widgetAccentable={false}
+    intent={CompleteDueItemIntent({
+      source: item.source,
+      id: item.id,
+      occurrenceKey: item.completionKey,
+    })}
+  >
+    <BrandCompletionLabel logo={logo} title={widgetCompletionLabel(item, widgetRuntimeLocale())} hitSize={hitSize} />
+  </Button>
   return <Button
     buttonStyle="plain"
-    contentShape="rectangle"
+    contentShape="rect"
     title={widgetCompletionLabel(item, widgetRuntimeLocale())}
     systemImage={item.iconName}
     labelStyle="iconOnly"
     font={symbolSize}
-    foregroundStyle={logo ? "clear" : item.iconColor}
+    foregroundStyle={item.iconColor}
     symbolRenderingMode="hierarchical"
     frame={{ width: hitSize, height: hitSize }}
     contentTransition="symbolEffectReplace"
-    widgetAccentable={!logo}
-    background={logo ? {
-      content: <Image
-        image={logo.image}
-        resizable
-        scaleToFit
-        renderingMode="original"
-        widgetAccentedRenderingMode="fullColor"
-        frame={{ width: logo.size, height: logo.size }}
-      />,
-      alignment: "center",
-    } : undefined}
+    widgetAccentable
     intent={CompleteDueItemIntent({
       source: item.source,
       id: item.id,

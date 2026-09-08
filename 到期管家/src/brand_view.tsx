@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
-import { Button, Image, Label, List, NavigationLink, Picker, Script, Section, Text, TextField, VStack, useEffect, useState } from "scripting"
+import { Button, Label, List, NavigationLink, Picker, Script, Section, Text, TextField, VStack, useEffect, useState } from "scripting"
 import { BRAND_CATALOG } from "./brand_catalog"
 import { BRAND_ASSETS, brandAsset, inspectBrandLogo, brandLogoStatusText } from "./brand_assets"
+import { BrandLogo } from "./brand_logo"
 import { inferItemBrand, itemBrandChoice, type SmallWidgetIconStyle } from "./brand_preferences"
 import { loadState, manualItemsForDisplay, updateItemBrandChoice, updateSettings } from "./storage"
 import { loadWidgetData } from "./widget_data"
@@ -41,7 +42,7 @@ export function BrandSettingsView({ onChanged }: { onChanged: (state: AppState) 
     finally { gate.busy = false; setBusy(false) }
   }
   return <List listStyle="insetGroup" navigationTitle="小组件图标" navigationBarTitleDisplayMode="inline">
-    <Section footer={<Text>仅改变小号组件当前事项的主图标。点击主图标仍是“完成事项”，不会打开品牌 App；标题保留原来的详情跳转。底部预告、中号和大号仍用系统图标。</Text>}>
+    <Section footer={<Text>控制小号组件主图标及主界面的自动匹配。主界面会显示已明确选择的品牌，不受此处系统模式影响。左图标完成事项，文字查看详情，不会打开品牌 App；底部预告、中号和大号仍用系统图标。</Text>}>
       <Picker title="图标样式" value={state.settings.smallWidgetIconStyle ?? "system"} pickerStyle="menu" disabled={busy}
         onChanged={(value: unknown) => { if (value === "system" || value === "brand") void setStyle(value) }}>
         <Text tag="system">系统图标</Text>
@@ -60,14 +61,14 @@ export function BrandSettingsView({ onChanged }: { onChanged: (state: AppState) 
         return <NavigationLink key={`${item.source}:${item.id}`} destination={<BrandChoiceView item={item} onChanged={changed} />}>
           <VStack alignment="leading" spacing={3}>
             <Text>{item.title || "未命名事项"}</Text>
-            <Text font="caption" foregroundStyle="secondaryLabel">{summary}{fallback}{state.settings.smallWidgetIconStyle !== "brand" ? " · 系统模式" : ""}</Text>
+            <Text font="caption" foregroundStyle="secondaryLabel">{summary}{fallback}{state.settings.smallWidgetIconStyle !== "brand" ? " · 小组件系统模式" : ""}</Text>
           </VStack>
         </NavigationLink>
       })}
     </Section>
     <Section header={<Text>素材与品牌</Text>} footer={<Text>品牌及商标属于各自权利人，仅用于识别你的事项，不表示合作、背书或支付安全保证。不会读取 SIM、联系人或上传事项。</Text>}>
       <Text>{`${BRAND_CATALOG.length} 个品牌 · ${BRAND_ASSETS.length} 个已内置 Logo`}</Text>
-      <Text font="caption" foregroundStyle="secondaryLabel">图片随安装包内置，离线可用。来源包括品牌网站、对应官方 App 图标和署名图标库；不代表品牌授权或背书。编辑事项的“选择图标”也可直接选择品牌。</Text>
+      <Text font="caption" foregroundStyle="secondaryLabel">图片随安装包内置，离线可用，统一圆形显示并裁去打包外圈留白。来源包括品牌网站、对应官方 App 图标和署名图标库；不代表品牌授权或背书。编辑事项的“选择图标”也可直接选择品牌。</Text>
       <NavigationLink destination={<BrandCatalogView />}><Label title="浏览品牌与素材状态" systemImage="square.grid.2x2" /></NavigationLink>
     </Section>
   </List>
@@ -101,7 +102,7 @@ export function BrandCatalogView({ title = "品牌与素材", choice, busy = fal
   const groups = [...new Set(BRAND_CATALOG.map(brand => brand.group))]
   return <List listStyle="insetGroup" navigationTitle={title} navigationBarTitleDisplayMode="inline">
     {topContent ? <Section>{topContent}</Section> : null}
-    <Section footer={<Text>{selectionHint ?? "选中只保存图标偏好，不会完成事项。需要在上一页开启‘品牌 Logo 优先’才生效。"}</Text>}>
+    <Section footer={<Text>{selectionHint ?? "选中只保存图标偏好，不会完成事项。手动事项在主界面显示所选品牌；小号组件需在上一页开启‘品牌 Logo 优先’。"}</Text>}>
       <TextField title="搜索" prompt="品牌、银行、运营商、汽车、订阅" value={search} onChanged={(value: string) => { setSearch(value); setPage(0) }} />
       <Picker title="品牌分类" value={group} pickerStyle="menu" onChanged={(value: string) => { setGroup(value); setPage(0) }}>
         <Text tag="">全部品牌</Text>
@@ -116,7 +117,7 @@ export function BrandCatalogView({ title = "品牌与素材", choice, busy = fal
         const logo = inspection.logo
         const label = `${choice === brand.id ? "✓ " : ""}${brand.name}`
         const content = <VStack alignment="leading" spacing={3}>
-            {logo ? <VStack frame={{ width: 40, height: 40 }}><Image image={logo.image} resizable scaleToFit renderingMode="original" frame={{ width: logo.size, height: logo.size }} /></VStack> : null}
+            {logo ? <VStack frame={{ width: 40, height: 40 }}><BrandLogo logo={logo} /></VStack> : null}
             <Text>{label}</Text>
             <Text font="caption" foregroundStyle="secondaryLabel">{brandLogoStatusText(inspection.status)}</Text>
           </VStack>

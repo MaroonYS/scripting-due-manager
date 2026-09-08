@@ -64,9 +64,17 @@ export function inferItemBrand(title: string): BrandDefinition | null {
   return matches.length === 1 ? matches[0] : null
 }
 
-export function resolveItemBrand(item: DisplayDueItem, settings: AppSettings): BrandDefinition | null {
-  if (settings.smallWidgetIconStyle !== "brand" || item.stale || !item.canComplete) return null
+export function resolveItemBrand(
+  item: Pick<DisplayDueItem, "source" | "id" | "title" | "iconIsExplicit" | "stale" | "canComplete">,
+  settings: AppSettings,
+  options: { showExplicitChoice?: boolean } = {},
+): BrandDefinition | null {
+  if (item.stale || !item.canComplete) return null
   const choice = itemBrandChoice(settings, item)
+  // The small-widget mode must not hide an explicitly selected icon in its
+  // own app/editor. Automatic app matches still obey the user's chosen mode.
+  if (settings.smallWidgetIconStyle !== "brand"
+    && !(options.showExplicitChoice && choice !== null && choice !== "system")) return null
   if (choice === "system") return null
   if (choice !== null) return BRAND_CATALOG.find(brand => brand.id === choice) ?? null
   if (item.iconIsExplicit) return null

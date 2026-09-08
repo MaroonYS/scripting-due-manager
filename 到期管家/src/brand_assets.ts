@@ -18,7 +18,7 @@ export function brandAsset(brandID: string): BrandAsset | null {
   return BRAND_ASSETS.find(asset => asset.brandID === brandID) ?? null
 }
 
-export type LoadedBrandLogo = { image: { light: UIImage; dark: UIImage }; size: number }
+export type LoadedBrandLogo = { image: { light: UIImage; dark: UIImage }; size: number; contentScale?: number }
 export type BrandLogoStatus = "ready" | "not-bundled" | "decoder-unavailable" | "decode-failed"
 export type BrandLogoInspection = { status: BrandLogoStatus; logo: LoadedBrandLogo | null }
 
@@ -45,7 +45,12 @@ export function inspectBrandLogo(asset: BrandAsset | null, directory: string): B
   const light = decodeImage(asset.light, directory)
   const dark = asset.light === asset.dark ? light : decodeImage(asset.dark, directory)
   return light && dark
-    ? { status: "ready", logo: { image: { light, dark }, size: asset.size } }
+    ? { status: "ready", logo: {
+      image: { light, dark }, size: asset.size,
+      // Generated PNGs contain a 120 px content box on a 144 px canvas.
+      // Original SafePal / Telegram files have no added packaging margin.
+      contentScale: /^assets\/brands\/brand-[a-f0-9]+\.png$/.test(asset.light) ? 144 / 120 : 1,
+    } }
     : { status: "decode-failed", logo: null }
 }
 

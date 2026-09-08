@@ -311,7 +311,7 @@ test("actual logo button JSX preserves the native completion label, target and e
   const code = source.slice(source.indexOf("function ListCompletionIcon("), source.indexOf("function listItemSupportingText("))
   const bindings = {
     h: (type: any, props: any, ...children: any[]) => typeof type === "function" ? type(props) : ({ type, props, children }),
-    Button: "Button", Image: "Image", widgetCompletionLabel, widgetRuntimeLocale: () => "en-US",
+    Button: "Button", Image: "Image", BrandCompletionLabel: "BrandCompletionLabel", widgetCompletionLabel, widgetRuntimeLocale: () => "en-US",
     CompleteDueItemIntent: (value: any) => ({ intent: "complete", ...value }),
   }
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(code)
@@ -320,18 +320,22 @@ test("actual logo button JSX preserves the native completion label, target and e
   for (const value of [null, logo]) {
     const node = render({ item, hitSize: 40, symbolSize: 17, logo: value })
     assert.equal(node.type, "Button")
-    assert.equal(node.props.title, widgetCompletionLabel(item, "en-US"))
-    assert.equal(node.props.labelStyle, "iconOnly")
     assert.deepEqual(node.props.frame, { width: 40, height: 40 })
+    assert.equal(node.props.contentShape, "rect")
     assert.deepEqual(node.props.intent, { intent: "complete", source: item.source, id: item.id, occurrenceKey: item.completionKey })
-    assert.equal(node.props.foregroundStyle, value ? "clear" : item.iconColor)
+    assert.equal(node.props.foregroundStyle, value ? undefined : item.iconColor)
     assert.equal(node.props.widgetAccentable, !value)
     if (value) {
-      assert.equal(node.props.background.content.type, "Image")
-      assert.equal(node.props.background.content.props.renderingMode, "original")
-      assert.equal(node.props.background.content.props.widgetAccentedRenderingMode, "fullColor")
-      assert.equal(node.props.background.content.props.intent, undefined)
-    } else assert.equal(node.props.background, undefined)
+      assert.equal(node.props.title, undefined, "custom labels must not compete with a native title initializer")
+      assert.equal(node.children[0].type, "BrandCompletionLabel")
+      assert.equal(node.children[0].props.title, widgetCompletionLabel(item, "en-US"))
+      assert.equal(node.children[0].props.hitSize, 40)
+      assert.equal(node.children[0].props.logo, value)
+    } else {
+      assert.equal(node.props.title, widgetCompletionLabel(item, "en-US"))
+      assert.equal(node.props.labelStyle, "iconOnly")
+    }
+    assert.equal(node.props.background, undefined, "the brand image must be inside the tappable label, not outside as a background")
   }
   for (const patch of [{ stale: true }, { canComplete: false }]) {
     const node = render({ item: { ...item, ...patch }, hitSize: 40, symbolSize: 17, logo })
@@ -340,7 +344,7 @@ test("actual logo button JSX preserves the native completion label, target and e
     assert.equal(node.props.foregroundStyle, "tertiaryLabel")
     assert.equal(node.props.intent, undefined)
   }
-  assert.equal(source.match(/logo=\{logo\}/g)?.length, 3, "only the small-widget chain forwards a logo")
+  assert.equal(source.match(/logo=\{logo\}/g)?.length, 4, "only the small-widget chain and its completion label forward a logo")
   assert.doesNotMatch(source.slice(source.indexOf("function SmallNextItemPreview("), source.indexOf("function ListWidget(")), /brandAsset|loadBrandLogo|logo=/)
 })
 
@@ -353,7 +357,7 @@ function brandUIHarness(refreshFailure = false, saveFailure = false) {
   const slots: any[] = []
   const bindings = {
     h: (type: any, props: any, ...children: any[]) => ({ type: typeof type === "function" ? type.name : type, props: props ?? {}, children: children.flat(Infinity).filter(value => value != null) }),
-    ...Object.fromEntries(["Button", "Image", "Label", "List", "NavigationLink", "Picker", "Section", "Text", "TextField", "VStack"].map(name => [name, name])),
+    ...Object.fromEntries(["Button", "Image", "Label", "List", "NavigationLink", "Picker", "Section", "Text", "TextField", "VStack", "BrandLogo"].map(name => [name, name])),
     Script: { directory: "/bundle" }, BRAND_CATALOG, BRAND_ASSETS, brandAsset, inspectBrandLogo, brandLogoStatusText,
     inferItemBrand, itemBrandChoice,
     useState: (initial: any) => {
@@ -390,7 +394,8 @@ test("actual settings picker saves only the style, defaults to system and reques
   const root = env.render("BrandSettingsView", { onChanged: env.changed })
   const picker = allNodes(root).find(node => node.type === "Picker")
   assert.equal(picker.props.value, "system")
-  assert.ok(uiText(root).includes("点击主图标仍是“完成事项”"))
+  assert.ok(uiText(root).includes("左图标完成事项，文字查看详情"))
+  assert.ok(uiText(root).includes("主界面会显示已明确选择的品牌，不受此处系统模式影响"))
   picker.props.onChanged("brand")
   picker.props.onChanged("system") // Same tick: saved first choice is protected by the gate.
   await flush()

@@ -2635,7 +2635,7 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.match(source, /contentTransition="opacity"/)
   assert.match(source, /contentTransition="symbolEffectReplace"/)
   assert.doesNotMatch(source, /zIndex=|allowsHitTesting=|<Toggle|toggleStyle=|buttonStyle="bordered"|buttonBorderShape=|clipShape=/)
-  assert.match(source, /return <Button\s+buttonStyle="plain"\s+contentShape="rectangle"[\s\S]*?CompleteDueItemIntent/)
+  assert.match(source, /return <Button\s+buttonStyle="plain"\s+contentShape="rect"[\s\S]*?CompleteDueItemIntent/)
   assert.match(source, /key=\{`queue-slot-\$\{index\}`\}/)
   assert.match(source, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
   assert.match(source, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
@@ -3275,7 +3275,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.7.0")
+  assert.equal(manifest.version, "2.7.1")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

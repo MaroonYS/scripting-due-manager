@@ -59,15 +59,18 @@ import {
 import {
   createDraftItem,
   completeManualItem,
+  completeManualOccurrence,
   deleteItem,
   findItem,
   loadState,
   manualItemsForDisplay,
+  manualOccurrenceKey,
   normalizeReminderCalendarIDs,
   updateSettings,
   upsertItem,
 } from "./src/storage"
 import type {
+  AppSettings,
   AppState,
   ItemKind,
   ManualDueItem,
@@ -88,8 +91,9 @@ import { readRecoveryStatus } from "./src/recovery"
 import { WidgetActionStatusView } from "./src/widget_action_view"
 import { BrandCatalogView, BrandSettingsView } from "./src/brand_view"
 import { BRAND_CATALOG } from "./src/brand_catalog"
-import { itemBrandChoice } from "./src/brand_preferences"
+import { itemBrandChoice, resolveItemBrand } from "./src/brand_preferences"
 import { brandAsset, loadBrandLogo } from "./src/brand_assets"
+import { BrandCompletionLabel, BrandLogo } from "./src/brand_logo"
 
 configureWidgetLocale(Device)
 
@@ -343,7 +347,7 @@ function DueManagerApp() {
         confirmationAction: <Button title="完成" action={() => dismiss()} />,
       }}
     >
-      <Section footer={<Text>点击组件左侧图标完成当前一期，点击文字查看详情。周期事项只推进一期；误触后可到「记录与数据安全」撤销手动事项的完成。</Text>}>
+      <Section footer={<Text>点击列表或组件左侧图标完成当前一期，点击文字查看详情。周期事项只推进一期；误触后可到「记录与数据安全」撤销手动事项的完成。</Text>}>
         <NavigationLink
           destination={
             <ItemEditor
@@ -364,9 +368,9 @@ function DueManagerApp() {
           : null}
       </Section>
 
-      <ManualItemsSection title="已逾期" items={overdueItems} onChanged={refreshState} />
-      <ManualItemsSection title="需要处理" items={needsActionItems} onChanged={refreshState} />
-      <ManualItemsSection title="接下来" items={upcomingItems} onChanged={refreshState} />
+      <ManualItemsSection title="已逾期" items={overdueItems} settings={state.settings} onChanged={refreshState} />
+      <ManualItemsSection title="需要处理" items={needsActionItems} settings={state.settings} onChanged={refreshState} />
+      <ManualItemsSection title="接下来" items={upcomingItems} settings={state.settings} onChanged={refreshState} />
 
       {inactiveItems.length > 0
         ? <Section header={<Text>已完成或隐藏</Text>}>
@@ -375,7 +379,7 @@ function DueManagerApp() {
               key={item.id}
               destination={<ItemEditor item={item} onChanged={refreshState} />}
             >
-              <ManualItemRow item={item} inactive />
+              <ManualItemRow item={item} settings={state.settings} inactive />
             </NavigationLink>
           ))}
         </Section>
@@ -886,34 +890,85 @@ function ItemEditor({
 function ManualItemsSection({
   title,
   items,
+  settings,
   onChanged,
 }: {
   title: string
   items: ManualDueItem[]
+  settings: AppSettings
   onChanged: (state?: AppState) => void
 }) {
   if (items.length === 0) return null
   return <Section header={<Text>{title}</Text>}>
     {items.map(item => (
-      <NavigationLink
-        key={item.id}
-        destination={<ItemEditor item={item} onChanged={onChanged} />}
-      >
-        <ManualItemRow item={item} />
-      </NavigationLink>
+      <ManualItemRow key={item.id} item={item} settings={settings} onChanged={onChanged} />
     ))}
   </Section>
 }
 
-function ManualItemRow({ item, inactive = false }: { item: ManualDueItem; inactive?: boolean }) {
-  const status = dueStatus(item)
+function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} }: {
+  item: ManualDueItem; settings: AppSettings; inactive?: boolean; onChanged?: (state?: AppState) => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [gate] = useState(() => ({ busy: false }))
   const icon = resolveDueIcon(item.title, item.kind, item.iconName)
-  return <HStack spacing={10}>
-    <Image
-      systemName={icon.name}
-      foregroundStyle={inactive ? "tertiaryLabel" : icon.color}
-      frame={{ width: 24 }}
-    />
+  const brand = resolveItemBrand({ source: "manual", id: item.id, title: item.title,
+    iconIsExplicit: item.iconName !== null, stale: false, canComplete: !inactive && item.enabled }, settings, { showExplicitChoice: true })
+  const logo = loadBrandLogo(brand ? brandAsset(brand.id) : null, Script.directory)
+  const completionKey = manualOccurrenceKey(item)
+  const completionTitle = `完成事项：${item.title}`
+  const complete = async () => {
+    if (gate.busy || inactive || !item.enabled) return
+    gate.busy = true; setBusy(true)
+    try {
+      let result: ReturnType<typeof completeManualOccurrence>
+      try { result = completeManualOccurrence(item.id, completionKey) }
+      catch (error) {
+        await Dialog.alert({ title: "完成失败", message: String(error) })
+        return
+      }
+      // Once committed, display/maintenance errors must not invite a second completion.
+      const warnings: string[] = []
+      try { onChanged(loadState()) }
+      catch (error) { warnings.push(`列表刷新失败，请重新打开主界面。${String(error)}`) }
+      if (result !== "applied") {
+        await Dialog.alert({ title: "事项已变化", message: `这期事项已在别处完成、修改或移除，本次没有再次推进。请以最新列表为准。${warnings.length ? `\n${warnings.join("\n")}` : ""}` })
+        return
+      }
+      try {
+        const warning = await refreshAfterDataChange()
+        if (warning) warnings.push(warning)
+      } catch (error) { warnings.push(`组件或通知刷新未完成。${String(error)}`) }
+      if (warnings.length) await Dialog.alert({ title: "事项已完成", message: `${warnings.join("\n")}\n无需再次点击完成。` })
+    } finally { gate.busy = false; setBusy(false) }
+  }
+  if (inactive || !item.enabled) return <HStack spacing={10}>
+    <Image systemName={icon.name} foregroundStyle="tertiaryLabel" frame={{ width: 24 }} />
+    <ManualItemDetails item={item} inactive />
+  </HStack>
+  return <HStack spacing={2}>
+    {logo ? <Button buttonStyle="borderless" frame={{ width: 40, height: 40 }} contentShape="rect" disabled={busy} action={() => { void complete() }}>
+      <BrandCompletionLabel logo={logo} title={completionTitle} hitSize={40} />
+    </Button> : <Button
+      title={completionTitle}
+      systemImage={icon.name}
+      labelStyle="iconOnly"
+      buttonStyle="borderless"
+      foregroundStyle={icon.color}
+      frame={{ width: 40, height: 40 }}
+      contentShape="rect"
+      disabled={busy}
+      action={() => { void complete() }}
+    />}
+    <NavigationLink destination={<ItemEditor item={item} onChanged={onChanged} />}>
+      <ManualItemDetails item={item} />
+    </NavigationLink>
+  </HStack>
+}
+
+function ManualItemDetails({ item, inactive = false }: { item: ManualDueItem; inactive?: boolean }) {
+  const status = dueStatus(item)
+  return <HStack spacing={10} frame={{ maxWidth: "infinity" }}>
     <VStack alignment="leading" spacing={2}>
       <Text fontWeight="semibold" lineLimit={1} foregroundStyle={inactive ? "secondaryLabel" : "label"}>
         {item.title}
@@ -950,7 +1005,7 @@ function IconSettingRow({
   const brand = BRAND_CATALOG.find(entry => entry.id === brandChoice)
   const logo = loadBrandLogo(brand ? brandAsset(brand.id) : null, Script.directory)
   return <HStack spacing={10}>
-    {logo ? <VStack frame={{ width: 40, height: 40 }}><Image image={logo.image} resizable scaleToFit renderingMode="original" frame={{ width: logo.size, height: logo.size }} /></VStack>
+    {logo ? <VStack frame={{ width: 40, height: 40 }}><BrandLogo logo={logo} /></VStack>
       : <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 24 }} />}
     <Text>图标</Text>
     <Spacer />

@@ -6,6 +6,7 @@ import AppKit
 import ImageIO
 import Foundation
 let root = CommandLine.arguments[1], output = CommandLine.arguments[2]
+let circular = CommandLine.arguments.contains("--circular")
 let manifest = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: root + "/assets/brands/manifest.json"))) as! [String: Any]
 let rows = manifest["assets"] as! [[String: Any]]
 var images: [String: NSImage] = [:]
@@ -41,12 +42,19 @@ for page in 0..<((rows.count + perPage - 1) / perPage) {
             NSColor(calibratedWhite: dark ? 0.11 : 0.98, alpha: 1).setFill()
             NSBezierPath(roundedRect: NSRect(x: left, y: bottom, width: 40, height: 40), xRadius: 6, yRadius: 6).fill()
             let path = files[dark && files.count == 2 ? 1 : 0]["path"] as! String
-            images[path]!.draw(in: NSRect(x: left + (40-size)/2, y: bottom + (40-size)/2, width: size, height: size))
+            NSGraphicsContext.saveGraphicsState()
+            if circular {
+                NSBezierPath(ovalIn: NSRect(x: left + (40-size)/2, y: bottom + (40-size)/2, width: size, height: size)).addClip()
+            }
+            let imageSize = size * (circular && path.contains("/brand-") ? 1.2 : 1.0)
+            images[path]!.draw(in: NSRect(x: left + (40-imageSize)/2, y: bottom + (40-imageSize)/2, width: imageSize, height: imageSize))
+            NSGraphicsContext.restoreGraphicsState()
         }
         let name = "\(index + 1). \(row["name"] as! String)"
         (name as NSString).draw(in: NSRect(x: x + 4, y: y + 6, width: 162, height: 32), withAttributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.black])
     }
     NSGraphicsContext.restoreGraphicsState()
-    try bitmap.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: output + "/bundled-light-dark-\(page+1).png"))
+    let prefix = circular ? "circular-light-dark" : "bundled-light-dark"
+    try bitmap.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: output + "/\(prefix)-\(page+1).png"))
 }
 print("Decoded \(images.count) PNG files for \(rows.count) brands; rendered light/dark 40 pt reference slots")
