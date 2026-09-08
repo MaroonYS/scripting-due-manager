@@ -86,6 +86,7 @@ import { OwnershipView } from "./src/ownership_view"
 import { SettingsRowIcon, SettingsRowLabel } from "./src/settings_icons"
 import { readRecoveryStatus } from "./src/recovery"
 import { WidgetActionStatusView } from "./src/widget_action_view"
+import { BrandSettingsView } from "./src/brand_view"
 
 configureWidgetLocale(Device)
 
@@ -422,6 +423,9 @@ function DueManagerApp() {
       </Section>
 
       <Section header={<Text>显示与组件</Text>}>
+        <NavigationLink destination={<BrandSettingsView onChanged={refreshState} />}>
+          <Label title="小组件图标" systemImage="photo.on.rectangle" />
+        </NavigationLink>
         <NavigationLink destination={<WidgetActionStatusView />}>
           <Label title="上次组件操作" systemImage="exclamationmark.bubble" />
         </NavigationLink>

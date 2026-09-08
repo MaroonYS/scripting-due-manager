@@ -4,6 +4,7 @@
 
 import type { ItemKind } from "./item_kinds"
 import type { NotificationSettings } from "./notifications"
+import type { ItemBrandChoice, SmallWidgetIconStyle } from "./brand_preferences"
 
 export type { ItemKind } from "./item_kinds"
 
@@ -46,6 +47,9 @@ export interface AppSettings {
   /** Empty means every Apple Reminders list. Values are Calendar identifiers. */
   reminderCalendarIDs: string[]
   showAmounts: boolean
+  /** Optional for backups from earlier releases; defaults to system. */
+  smallWidgetIconStyle?: SmallWidgetIconStyle
+  itemBrandChoices?: ItemBrandChoice[]
 }
 
 export interface AppState {
@@ -119,6 +123,8 @@ export interface DisplayDueItem {
   kind: ItemKind | "reminder"
   iconName: string
   iconColor: string
+  /** Preserve a manual SF Symbol selection when automatic brand matching is on. */
+  iconIsExplicit?: boolean
   dueDate: string
   includesTime: boolean
   hour: number

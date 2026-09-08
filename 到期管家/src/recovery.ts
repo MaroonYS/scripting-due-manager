@@ -5,6 +5,7 @@
 import { parseDateKey, MAX_RECURRENCE_INTERVAL, MAX_REMIND_BEFORE_DAYS } from "./date"
 import { isItemKind } from "./item_kinds"
 import { normalizeIconOverride } from "./icons"
+import { normalizeBrandPreferences } from "./brand_preferences"
 import { loadNotificationSettings, normalizeNotificationSettings } from "./notifications"
 import type { NotificationSettings } from "./notifications"
 import { isStateTimestamp, loadState, normalizeManualItemID, normalizeState, readRecoveryArchiveData, restoreStateFromBackup } from "./storage"
@@ -151,6 +152,7 @@ function validManualID(value: unknown): value is string {
 }
 
 function validateSettings(settings: Record<string, any>): void {
+  normalizeBrandPreferences(settings)
   if (typeof settings.includeReminders !== "boolean" || typeof settings.showAmounts !== "boolean"
     || !integer(settings.reminderHorizonDays, 30, 3650) || !Array.isArray(settings.reminderCalendarIDs)
     || settings.reminderCalendarIDs.length > 100

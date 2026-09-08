@@ -108,6 +108,7 @@ declare const DocumentPicker: {
   stopAcessingSecurityScopedResources(): void
 }
 declare const FileManager: { readAsString(path: string): Promise<string> }
+declare class UIImage { static fromFile(path: string): UIImage | null }
 
 declare namespace JSX {
   interface Element {}

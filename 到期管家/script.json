@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.5.11",
+  "version": "2.6.0",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.5.11 changes only the Show Amounts setting icon from a filled banknote to its outline variant. Icon size, color, alignment, other settings icons, widgets and user data remain unchanged.",
-    "zh": "2.5.11 仅将「在组件显示金额」的实心纸币图标改为线框式。图标尺寸、颜色、对齐、其他设置图标、桌面组件和事项数据均保持不变。",
-    "zh-Hans": "2.5.11 仅将「在组件显示金额」的实心纸币图标改为线框式。图标尺寸、颜色、对齐、其他设置图标、桌面组件和事项数据均保持不变。",
-    "zh-Hant": "2.5.11 僅將「在元件顯示金額」的實心紙幣圖示改為線框式。圖示尺寸、顏色、對齊、其他設定圖示、桌面元件和事項資料均保持不變。"
+    "en": "2.6.0 adds system / brand-priority icons for the small widget, per-item selection across 332 brand names and 2 bundled official logos (SafePal and Telegram). Missing artwork falls back to system symbols. Tapping the main icon still completes the exact item; existing settings default to system icons.",
+    "zh": "2.6.0 新增小号组件「系统图标／品牌 Logo 优先」及逐项选择。332 个品牌名称选项，首批内置 SafePal、Telegram 两套官方素材；其余或缺图时回退系统图标。点击主图标仍完成事项，旧数据默认保留系统样式。",
+    "zh-Hans": "2.6.0 新增小号组件「系统图标／品牌 Logo 优先」及逐项选择。332 个品牌名称选项，首批内置 SafePal、Telegram 两套官方素材；其余或缺图时回退系统图标。点击主图标仍完成事项，旧数据默认保留系统样式。",
+    "zh-Hant": "2.6.0 新增小號元件「系統圖示／品牌 Logo 優先」及逐項選擇。332 個品牌名稱選項，首批內置 SafePal、Telegram 兩套官方素材；其餘或缺圖時回退系統圖示。點按主圖示仍完成事項，舊資料預設保留系統樣式。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

@@ -13,6 +13,7 @@ import {
   parseDateKey,
 } from "./date"
 import { normalizeIconOverride, resolveDueIcon } from "./icons"
+import { normalizeBrandPreferences, withItemBrandChoice } from "./brand_preferences"
 import { isItemKind, itemKindPriority } from "./item_kinds"
 import { normalizeManualItemID } from "./item_ids"
 export { normalizeManualItemID } from "./item_ids"
@@ -128,6 +129,12 @@ export function updateSettings(settings: Partial<AppSettings>): AppState {
   return persistOrThrow(next)
 }
 
+/** Read the latest state immediately before changing one item's visual choice. */
+export function updateItemBrandChoice(item: Pick<DisplayDueItem, "source" | "id">, brandID: string | null): AppState {
+  const current = loadState()
+  return updateSettings({ itemBrandChoices: withItemBrandChoice(current.settings, item, brandID) })
+}
+
 export function upsertItem(
   item: ManualDueItem,
   expectedUpdatedAt?: number,
@@ -194,6 +201,7 @@ export function manualItemsForDisplay(state: AppState): DisplayDueItem[] {
         kind: item.kind,
         iconName: icon.name,
         iconColor: icon.color,
+        iconIsExplicit: item.iconName !== null,
         dueDate: item.dueDate,
         includesTime: item.includesTime,
         hour: item.hour,
@@ -583,6 +591,7 @@ function normalizeStoredState(raw: unknown): AppState {
 function normalizeSettings(raw: unknown): AppSettings {
   const value = isRecord(raw) ? raw : {}
   return {
+    ...normalizeBrandPreferences(value),
     includeReminders: typeof value.includeReminders === "boolean"
       ? value.includeReminders
       : DEFAULT_SETTINGS.includeReminders,

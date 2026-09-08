@@ -18,7 +18,9 @@ import { CompleteDueItemIntent } from "../app_intents"
 import { dueStatus } from "./date"
 import { dueIconLabel } from "./icons"
 import { APPLE_REMINDERS_URL, appleReminderDeepLink } from "./reminder_links"
-import type { DisplayDueItem } from "./types"
+import type { AppSettings, DisplayDueItem } from "./types"
+import { resolveItemBrand } from "./brand_preferences"
+import { brandAsset, loadBrandLogo, type LoadedBrandLogo } from "./brand_assets"
 import {
   currentWidgetLocale,
   formatWidgetDate,
@@ -43,6 +45,7 @@ import {
 
 type WidgetDataProps = {
   items: DisplayDueItem[]
+  iconSettings?: AppSettings
   completionGeneration: number
   reminderFetchedAt: number | null
   remindersLive: boolean
@@ -284,6 +287,8 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number }) {
   const item = items[0]
   const nextItem = items[1]
   const issue = widgetIssue(props)
+  const brand = item && props.iconSettings ? resolveItemBrand(item, props.iconSettings) : null
+  const logo = loadBrandLogo(brand ? brandAsset(brand.id) : null, Script.directory)
 
   return <WidgetFrame contentPadding={11}>
     <VStack
@@ -308,6 +313,7 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number }) {
           nextItem={nextItem}
           issue={issue}
           displayWidth={displayWidth}
+          logo={logo}
         />
       </CompletionContent>
     </VStack>
@@ -319,11 +325,13 @@ function SmallWidgetBody({
   nextItem,
   issue,
   displayWidth,
+  logo,
 }: {
   item: DisplayDueItem | undefined
   nextItem: DisplayDueItem | undefined
   issue: WidgetIssue | null
   displayWidth?: number
+  logo?: LoadedBrandLogo | null
 }) {
   return item
     ? <SmallDueItem
@@ -331,6 +339,7 @@ function SmallWidgetBody({
       nextItem={nextItem}
       displayWidth={displayWidth}
       issue={issue}
+      logo={logo}
     />
     : <Link url={Script.createRunURLScheme(Script.name)}>
       <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
@@ -346,11 +355,13 @@ function SmallDueItem({
   nextItem,
   displayWidth,
   issue,
+  logo,
 }: {
   item: DisplayDueItem
   nextItem: DisplayDueItem | undefined
   displayWidth?: number
   issue: WidgetIssue | null
+  logo?: LoadedBrandLogo | null
 }) {
   const detail = smallItemDetail(item)
   const titleFontSize = smallItemTitleFontSize(item.title, displayWidth)
@@ -380,6 +391,7 @@ function SmallDueItem({
             item={item}
             hitSize={40}
             symbolSize={17}
+            logo={logo}
           />
         </VStack>
         <Link url={itemURL(item)}>
@@ -910,10 +922,12 @@ function ListCompletionIcon({
   item,
   hitSize,
   symbolSize,
+  logo,
 }: {
   item: DisplayDueItem
   hitSize: number
   symbolSize: number
+  logo?: LoadedBrandLogo | null
 }) {
   if (!item.canComplete || item.stale) {
     return <ListCompletionSymbol
@@ -930,11 +944,22 @@ function ListCompletionIcon({
     systemImage={item.iconName}
     labelStyle="iconOnly"
     font={symbolSize}
-    foregroundStyle={item.iconColor}
+    foregroundStyle={logo ? "clear" : item.iconColor}
     symbolRenderingMode="hierarchical"
     frame={{ width: hitSize, height: hitSize }}
     contentTransition="symbolEffectReplace"
-    widgetAccentable
+    widgetAccentable={!logo}
+    background={logo ? {
+      content: <Image
+        image={logo.image}
+        resizable
+        scaleToFit
+        renderingMode="original"
+        widgetAccentedRenderingMode="fullColor"
+        frame={{ width: logo.size, height: logo.size }}
+      />,
+      alignment: "center",
+    } : undefined}
     intent={CompleteDueItemIntent({
       source: item.source,
       id: item.id,

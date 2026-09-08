@@ -27,6 +27,7 @@ async function main() {
   Widget.present(
     <DueManagerWidget
       items={items}
+      iconSettings={state.settings}
       completionGeneration={completionTransition.generation}
       reminderFetchedAt={reminderResult.fetchedAt}
       remindersLive={reminderResult.live}
