@@ -27,6 +27,7 @@ declare module "scripting" {
   export const NavigationLink: any
   export const NavigationStack: any
   export const Picker: any
+  export const RoundedRectangle: any
   export const Script: any
   export const Section: any
   export const Spacer: any

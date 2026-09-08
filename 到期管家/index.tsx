@@ -83,6 +83,7 @@ import { NotificationView } from "./src/notification_view"
 import { RecoveryView } from "./src/recovery_view"
 import { UpdateView } from "./src/update_view"
 import { OwnershipView } from "./src/ownership_view"
+import { SettingsRowIcon, SettingsRowLabel } from "./src/settings_icons"
 import { readRecoveryStatus } from "./src/recovery"
 import { WidgetActionStatusView } from "./src/widget_action_view"
 
@@ -381,12 +382,12 @@ function DueManagerApp() {
         footer={<Text>只读取未完成且有到期日期的提醒；数据缓存在本机 Scripting 共享存储中，不会上传。</Text>}
       >
         <Toggle
-          title="显示 Apple 提醒事项"
-          systemImage="checklist"
           value={state.settings.includeReminders}
           disabled={reminderStatus.loading}
           onChanged={(value: boolean) => { void setReminderIntegration(value) }}
-        />
+        >
+          <SettingsRowLabel title="显示 Apple 提醒事项" kind="reminders" />
+        </Toggle>
         {state.settings.includeReminders
           ? <NavigationLink
             destination={
@@ -396,8 +397,8 @@ function DueManagerApp() {
               />
             }
           >
-            <HStack spacing={10}>
-              <Image systemName="list.bullet" foregroundStyle="systemBlue" frame={{ width: 24 }} />
+            <HStack spacing={12}>
+              <SettingsRowIcon kind="reminderLists" />
               <Text>提醒事项列表</Text>
               <Spacer />
               <Text font="subheadline" foregroundStyle="secondaryLabel" lineLimit={1}>
@@ -428,14 +429,20 @@ function DueManagerApp() {
           <Label title="通知与提醒" systemImage="bell.badge" />
         </NavigationLink>
         <Toggle
-          title="在组件显示金额"
-          systemImage="banknote"
           value={state.settings.showAmounts}
           onChanged={(value: boolean) => { void setShowAmounts(value) }}
-        />
-        <Button title="小号组件预览" systemImage="square" action={() => { void preview("systemSmall") }} />
-        <Button title="中号组件预览" systemImage="rectangle" action={() => { void preview("systemMedium") }} />
-        <Button title="大号组件预览" systemImage="rectangle.portrait" action={() => { void preview("systemLarge") }} />
+        >
+          <SettingsRowLabel title="在组件显示金额" kind="amount" />
+        </Toggle>
+        <Button action={() => { void preview("systemSmall") }}>
+          <SettingsRowLabel title="小号组件预览" kind="small" />
+        </Button>
+        <Button action={() => { void preview("systemMedium") }}>
+          <SettingsRowLabel title="中号组件预览" kind="medium" />
+        </Button>
+        <Button action={() => { void preview("systemLarge") }}>
+          <SettingsRowLabel title="大号组件预览" kind="large" />
+        </Button>
         <Button
           title="刷新桌面组件"
           systemImage="arrow.triangle.2.circlepath"
@@ -459,11 +466,6 @@ function DueManagerApp() {
             <Text font="subheadline">本机持久存储已启用</Text>
             <Text font="caption" foregroundStyle="secondaryLabel">保存后自动刷新用户小组件</Text>
           </VStack>
-        </HStack>
-        <HStack>
-          <Text>版本</Text>
-          <Spacer />
-          <Text foregroundStyle="secondaryLabel">{Script.metadata.version}</Text>
         </HStack>
         <NavigationLink destination={<UpdateView />}>
           <Label title="检查并更新版本" systemImage="arrow.down.circle" />

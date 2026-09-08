@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.5.9",
+  "version": "2.5.10",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.5.9 adds a restrictive personal-use license, bundled copyright and third-party notices, and an in-app copyright/origin page. Official releases include SHA-256 checksums and signed publishing provenance. No device tracking, remote lock or data changes.",
-    "zh": "2.5.9 加入限制性个人使用许可、随包版权和第三方声明，以及主界面的「版权与官方来源」。官方发行新增 SHA-256 校验文件和签名来源证明。禁止未经许可摘取再用、冒充、二次分发及商业化；不增加设备追踪、远程锁或数据变更。",
-    "zh-Hans": "2.5.9 加入限制性个人使用许可、随包版权和第三方声明，以及主界面的「版权与官方来源」。官方发行新增 SHA-256 校验文件和签名来源证明。禁止未经许可摘取再用、冒充、二次分发及商业化；不增加设备追踪、远程锁或数据变更。",
-    "zh-Hant": "2.5.9 加入限制性個人使用許可、隨包版權及第三方聲明，以及主介面的「版權與官方來源」。官方發行新增 SHA-256 校驗檔及簽名來源證明。禁止未經許可摘取再用、冒充、二次分發及商業化；不增加裝置追蹤、遠端鎖或資料變更。"
+    "en": "2.5.10 removes the duplicate version row from the main screen. Amount, Apple Reminders and list-filter icons now share consistent sizing and alignment. Small, medium and large preview buttons use miniature widget outlines with content lines. Existing data, widgets and update verification are unchanged.",
+    "zh": "2.5.10 移除主界面重复的版本信息行，版本仍可在检查更新页查看。金额、Apple 提醒事项和列表筛选图标统一尺寸与对齐；小、中、大预览改为带内容线条的微型组件图标。现有数据、桌面组件与更新校验保持不变。",
+    "zh-Hans": "2.5.10 移除主界面重复的版本信息行，版本仍可在检查更新页查看。金额、Apple 提醒事项和列表筛选图标统一尺寸与对齐；小、中、大预览改为带内容线条的微型组件图标。现有数据、桌面组件与更新校验保持不变。",
+    "zh-Hant": "2.5.10 移除主介面重複的版本資訊列，版本仍可在檢查更新頁查看。金額、Apple 提醒事項和清單篩選圖示統一尺寸與對齊；小、中、大預覽改為帶內容線條的微型元件圖示。現有資料、桌面元件與更新驗證保持不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

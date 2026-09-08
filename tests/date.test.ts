@@ -3275,7 +3275,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.5.9")
+  assert.equal(manifest.version, "2.5.10")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 
@@ -3293,16 +3293,13 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
   const versionSectionEnd = source.indexOf("</Section>", versionSectionStart)
   assert.ok(versionSectionStart >= 0 && versionSectionEnd > versionSectionStart)
   const versionSection = source.slice(versionSectionStart, versionSectionEnd)
-  assert.match(versionSection, /<Text>版本<\/Text>[\s\S]*?\{Script\.metadata\.version\}/)
+  assert.doesNotMatch(versionSection, /<Text>版本<\/Text>|Script\.metadata\.version/)
   assert.match(
     versionSection,
     /<NavigationLink destination=\{<UpdateView \/>\}>[\s\S]*?<Label title="检查并更新版本" systemImage="arrow\.down\.circle" \/>[\s\S]*?<\/NavigationLink>/,
   )
-  assert.ok(
-    versionSection.indexOf("Script.metadata.version")
-      < versionSection.indexOf("<UpdateView"),
-    "the update entry must appear beside and immediately after the displayed version",
-  )
+  assert.match(updateView, /<LabeledContent title="当前版本"><Text>\{Script\.metadata\.version\}<\/Text>/)
+  assert.match(updateView, /<LabeledContent title="最新版本">/)
 })
 
 test("storage failure is surfaced instead of pretending settings were saved", () => {
