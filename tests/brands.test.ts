@@ -3,12 +3,11 @@
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { readFileSync, readdirSync } from "node:fs"
 import { createHash } from "node:crypto"
 import test from "node:test"
 import { BRAND_CATALOG } from "../到期管家/src/brand_catalog.ts"
-import { BRAND_ASSETS, brandAsset, loadBrandLogo, inspectBrandLogo, brandLogoStatusText } from "../到期管家/src/brand_assets.ts"
-import { BRAND_ASSET_DATA } from "../到期管家/src/brand_asset_data.ts"
+import { BRAND_ASSETS, brandAsset, brandFallbackPath, loadBrandLogo, inspectBrandLogo, brandLogoStatusText } from "../到期管家/src/brand_assets.ts"
 import { inferItemBrand, itemBrandChoice, normalizeBrandPreferences, resolveItemBrand, withItemBrandChoice } from "../到期管家/src/brand_preferences.ts"
 import { defaultState, loadState, STATE_KEY, updateItemBrandChoice, updateSettings, listLocalSnapshots, upsertItem, completeManualItem, LOCAL_SNAPSHOTS_KEY } from "../到期管家/src/storage.ts"
 import { createRecurrenceRule } from "../到期管家/src/date.ts"
@@ -22,6 +21,7 @@ const item: DisplayDueItem = { source: "manual", id: "same/id", title: "SafePal 
   amount: "", note: "", priority: 0, stale: false, canComplete: true }
 const byName = (name: string) => BRAND_CATALOG.find(brand => brand.name === name)!
 const settings = () => ({ ...defaultState().settings, smallWidgetIconStyle: "brand" as const })
+const fallbackText = (path: string) => readFileSync(new URL(`../到期管家/${brandFallbackPath(path)}`, import.meta.url), "utf8")
 
 test("catalog contains 332 unique stable choices across all requested sectors, separate from artwork", () => {
   assert.equal(BRAND_CATALOG.length, 332)
@@ -62,7 +62,10 @@ test("all 332 source records, PNGs and embedded fallbacks agree byte-for-byte", 
     for (const path of new Set([asset.light, asset.dark])) {
       paths.add(path)
       const bytes = readFileSync(new URL(`../到期管家/${path}`, import.meta.url))
-      assert.deepEqual(Buffer.from(BRAND_ASSET_DATA[path], "base64"), bytes, path)
+      const fallback = JSON.parse(fallbackText(path))
+      assert.equal(fallback.source, path)
+      assert.equal(fallback.encoding, "base64")
+      assert.deepEqual(Buffer.from(fallback.png, "base64"), bytes, path)
       const source = record.outputs.find((output: any) => output.path === path)
       assert.equal(createHash("sha256").update(bytes).digest("hex"), source.sha256, path)
       const width = bytes.readUInt32BE(16), height = bytes.readUInt32BE(20)
@@ -70,7 +73,8 @@ test("all 332 source records, PNGs and embedded fallbacks agree byte-for-byte", 
     }
   }
   assert.equal(paths.size, 333)
-  assert.deepEqual(Object.keys(BRAND_ASSET_DATA).sort(), [...paths].sort())
+  assert.deepEqual(readdirSync(new URL("../到期管家/assets/brands/fallbacks", import.meta.url)).sort(),
+    [...paths].map(path => path.split("/").at(-1)!.replace(".png", ".json")).sort())
   const runtime = readFileSync(new URL("../到期管家/src/brand_assets.ts", import.meta.url), "utf8")
   assert.doesNotMatch(runtime, /fetch\(|Storage\.|XMLHttpRequest|https?:\/\//)
 })
@@ -108,8 +112,8 @@ test("third-party sources retain upstream notices and do not claim artwork owner
   assert.ok(read("assets/brands/simple-icons-disclaimer.txt").includes("all icons within the project are also CC0"))
   assert.ok(read("assets/brands/lobe-icons-license.txt").includes("Copyright (c) 2023 LobeHub"))
   assert.ok(read("assets/brands/lobe-icons-license.txt").includes("Permission is hereby granted, free of charge"))
-  assert.ok(read("NOTICE.md").includes("src/brand_asset_data.ts"))
-  assert.ok(read("src/brand_asset_data.ts").split("\n").slice(0, 6).join("\n").includes("not third-party artwork"))
+  assert.ok(read("NOTICE.md").includes("assets/brands/"))
+  assert.ok(JSON.parse(fallbackText(BRAND_ASSETS[0].light)).notice.includes("Third-party artwork"))
 })
 
 test("automatic matching is conservative, whole-name based and refuses conflicting brands", () => {
@@ -191,47 +195,53 @@ test("preferences survive saves, automatic snapshots and backup export/import wi
   } finally { (globalThis as any).Storage = previous }
 })
 
-test("missing, corrupt or unavailable UIImage decoding never hides the fallback symbol", () => {
-  const previous = (globalThis as any).UIImage
+test("missing, corrupt or unavailable UIImage decoding never hides the fallback symbol", async () => {
+  const previous = (globalThis as any).UIImage, previousFiles = (globalThis as any).FileManager
   const asset = brandAsset(byName("SafePal / Fiat24").id)!
   const calls: string[] = []
   try {
+    ;(globalThis as any).FileManager = { readAsData: async (path: string) => { calls.push(path); return { path } } }
     delete (globalThis as any).UIImage
-    assert.equal(loadBrandLogo(asset, "/bundle"), null)
-    assert.equal(loadBrandLogo(null, "/bundle"), null)
-    ;(globalThis as any).UIImage = { fromFile: (path: string) => { calls.push(path); return { path } } }
-    const logo = loadBrandLogo(asset, "/bundle")!
+    assert.equal(await loadBrandLogo(asset, "/bundle"), null)
+    assert.equal(await loadBrandLogo(null, "/bundle"), null)
+    ;(globalThis as any).UIImage = { fromData: (data: unknown) => data }
+    const logo = (await loadBrandLogo(asset, "/bundle"))!
     assert.ok(logo.image.light && logo.image.dark)
     assert.equal(logo.size, asset.size)
     assert.ok(calls.every(path => path.startsWith("/bundle/assets/brands/")))
-    ;(globalThis as any).UIImage = { fromFile: (path: string) => path.endsWith(asset.dark) ? null : {} }
-    assert.equal(loadBrandLogo(asset, "/bundle"), null)
-    ;(globalThis as any).UIImage = { fromFile: () => { throw Error("corrupt") } }
-    assert.equal(loadBrandLogo(asset, "/bundle"), null)
+    ;(globalThis as any).UIImage = { fromData: (data: any) => data.path.endsWith(asset.dark) ? null : {} }
+    assert.equal(await loadBrandLogo(asset, "/bundle"), null)
+    ;(globalThis as any).UIImage = { fromData: () => { throw Error("corrupt") } }
+    assert.equal(await loadBrandLogo(asset, "/bundle"), null)
     assert.equal(brandAsset("brand-future"), null)
-  } finally { (globalThis as any).UIImage = previous }
+  } finally { (globalThis as any).UIImage = previous; (globalThis as any).FileManager = previousFiles }
 })
 
-test("embedded images rescue missing bundle files and diagnostics distinguish the failure", () => {
-  const previous = (globalThis as any).UIImage
-  const asset = brandAsset(byName("SafePal / Fiat24").id)!
-  const decoded: string[] = []
+test("independent offline image files rescue missing PNG reads and distinguish failures", async () => {
+  const previous = (globalThis as any).UIImage, previousFiles = (globalThis as any).FileManager
+  const asset = brandAsset(byName("SafePal / Fiat24").id)!, decoded: string[] = [], reads: string[] = []
   try {
-    ;(globalThis as any).UIImage = { fromFile: () => null, fromBase64String: (value: string) => { decoded.push(value); return {value} } }
-    assert.equal(inspectBrandLogo(asset, "/moved/bundle").status, "ready")
-    assert.deepEqual(decoded, [BRAND_ASSET_DATA[asset.light], BRAND_ASSET_DATA[asset.dark]])
-    ;(globalThis as any).UIImage = { fromFile: () => { throw Error("file corrupt") }, fromBase64String: () => ({}) }
-    assert.ok(loadBrandLogo(asset, "/bundle"))
+    ;(globalThis as any).FileManager = {
+      readAsData: async () => { throw Error("PNG unavailable") },
+      readAsString: async (path: string) => {
+        reads.push(path)
+        return fallbackText(path.endsWith("safepal-dark.json") ? asset.light : asset.dark)
+      },
+    }
+    ;(globalThis as any).UIImage = { fromData: () => null, fromBase64String: (value: string) => { decoded.push(value); return { value } } }
+    assert.equal((await inspectBrandLogo(asset, "/moved/bundle")).status, "ready")
+    assert.deepEqual(decoded, [JSON.parse(fallbackText(asset.light)).png, JSON.parse(fallbackText(asset.dark)).png])
+    assert.equal(reads.length, 2, "only the two selected variants are read, never the whole library")
     ;(globalThis as any).UIImage = { fromBase64String: () => ({}) }
-    assert.ok(loadBrandLogo(asset, "/bundle"), "base64-only host works")
-    ;(globalThis as any).UIImage = { fromFile: () => null, fromBase64String: () => null }
-    assert.equal(inspectBrandLogo(asset, "/bundle").status, "decode-failed")
+    assert.ok(await loadBrandLogo(asset, "/bundle"), "base64-only decoder remains supported")
+    ;(globalThis as any).UIImage = { fromBase64String: () => null }
+    assert.equal((await inspectBrandLogo(asset, "/bundle")).status, "decode-failed")
     ;(globalThis as any).UIImage = {}
-    assert.equal(inspectBrandLogo(asset, "/bundle").status, "decoder-unavailable")
-    assert.equal(inspectBrandLogo(null, "/bundle").status, "not-bundled")
-    for (const status of ["ready", "not-bundled", "decoder-unavailable", "decode-failed"] as const) assert.ok(brandLogoStatusText(status))
-    assert.equal(new Set(["not-bundled", "decoder-unavailable", "decode-failed"].map(status => brandLogoStatusText(status as any))).size, 3)
-  } finally { (globalThis as any).UIImage = previous }
+    assert.equal((await inspectBrandLogo(asset, "/bundle")).status, "decoder-unavailable")
+    assert.equal((await inspectBrandLogo(null, "/bundle")).status, "not-bundled")
+    const statuses = ["ready", "loading", "not-bundled", "decoder-unavailable", "decode-failed", "timed-out"] as const
+    assert.equal(new Set(statuses.map(brandLogoStatusText)).size, statuses.length)
+  } finally { (globalThis as any).UIImage = previous; (globalThis as any).FileManager = previousFiles }
 })
 
 function brandStorageHarness() {
@@ -331,6 +341,7 @@ test("actual logo button JSX preserves the native completion label, target and e
       assert.equal(node.children[0].props.title, widgetCompletionLabel(item, "en-US"))
       assert.equal(node.children[0].props.hitSize, 40)
       assert.equal(node.children[0].props.logo, value)
+      assert.equal(node.children[0].props.widget, true)
     } else {
       assert.equal(node.props.title, widgetCompletionLabel(item, "en-US"))
       assert.equal(node.props.labelStyle, "iconOnly")
@@ -422,39 +433,39 @@ test("actual per-item UI saves the exact source and ID without completing or edi
   assert.equal(itemBrandChoice(failed.state().settings, item), null)
 })
 
-test("catalog search and pagination expose all 36 operators without decoding more than 32 at a time", () => {
-  const previous = (globalThis as any).UIImage
-  let decodes = 0
-  ;(globalThis as any).UIImage = { fromFile: () => { decodes++; return {} } }
+test("catalog search and pagination expose all 36 operators without reading any image during first render", () => {
+  const previous = (globalThis as any).FileManager
+  let reads = 0
+  ;(globalThis as any).FileManager = { readAsData: async () => { reads++; return {} } }
+  const rowNames = (root: any): string[] => allNodes(root).filter(node => node.type === "BrandCatalogRow").map(node => node.props.brand.name)
   try {
   const env = brandUIHarness()
   let root = env.render("BrandCatalogView")
-  assert.equal(decodes, 32)
-  assert.ok(uiText(root).includes("已内置 Logo · 可离线显示"))
+  assert.equal(reads, 0)
+  assert.equal(rowNames(root).length, 32)
   const field = allNodes(root).find(node => node.type === "TextField")
   field.props.onChanged("运营商")
-  decodes = 0
   root = env.render("BrandCatalogView")
-  const names = allNodes(root).filter(node => node.type === "Text" && BRAND_CATALOG.some(brand => brand.name === uiText(node)))
+  const names = rowNames(root)
   assert.equal(names.length, 32)
-  assert.equal(decodes, 32)
-  assert.ok(uiText(root).includes("中国广电"))
-  assert.ok(!uiText(root).includes("Netflix"))
+  assert.equal(reads, 0)
+  assert.ok(names.includes("中国广电"))
+  assert.ok(!names.includes("Netflix"))
   assert.deepEqual(allNodes(root).filter(node => node.type === "Button").map(node => node.props.title), ["下一页"], "browse-only logo rows are static, not dimmed disabled buttons")
   allNodes(root).find(node => node.type === "Button" && node.props.title === "下一页").props.action()
-  decodes = 0
   root = env.render("BrandCatalogView")
-  const lastNames = allNodes(root).filter(node => node.type === "Text" && BRAND_CATALOG.some(brand => brand.name === uiText(node)))
+  const lastNames = rowNames(root)
   assert.equal(lastNames.length, 4)
-  assert.equal(decodes, 4)
-  assert.equal(new Set([...names, ...lastNames].map(uiText)).size, 36)
+  assert.equal(reads, 0)
+  assert.equal(new Set([...names, ...lastNames]).size, 36)
   allNodes(root).find(node => node.type === "TextField").props.onChanged("Netflix")
   root = env.render("BrandCatalogView")
-  assert.ok(uiText(root).includes("Netflix"), "search resets the page")
+  assert.deepEqual(rowNames(root), ["Netflix"], "search resets the page")
   allNodes(root).find(node => node.type === "TextField").props.onChanged("")
   allNodes(root).find(node => node.type === "Picker").props.onChanged("美国银行与信用卡")
   root = env.render("BrandCatalogView")
-  assert.ok(uiText(root).includes("Chime"))
-  assert.ok(!uiText(root).includes("Netflix"))
-  } finally { (globalThis as any).UIImage = previous }
+  assert.ok(rowNames(root).includes("Chime"))
+  assert.ok(!rowNames(root).includes("Netflix"))
+  assert.equal(reads, 0)
+  } finally { (globalThis as any).FileManager = previous }
 })

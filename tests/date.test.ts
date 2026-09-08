@@ -3066,7 +3066,7 @@ test("every widget family omits relative-day and live countdown labels", () => {
 
 test("settings expose a native multi-list reminder picker", () => {
   const source = readFileSync(
-    new URL("../到期管家/index.tsx", import.meta.url),
+    new URL("../到期管家/src/app.tsx", import.meta.url),
     "utf8",
   )
   assert.match(source, /function ReminderCalendarPicker/)
@@ -3078,7 +3078,7 @@ test("settings expose a native multi-list reminder picker", () => {
 
 test("item editor uses native labeled content for the recurrence interval", () => {
   const source = readFileSync(
-    new URL("../到期管家/index.tsx", import.meta.url),
+    new URL("../到期管家/src/app.tsx", import.meta.url),
     "utf8",
   )
   const editor = source.slice(
@@ -3193,7 +3193,7 @@ test("item editor uses native labeled content for the recurrence interval", () =
 
 test("item editor places advance reminders inside the recurrence section", () => {
   const source = readFileSync(
-    new URL("../到期管家/index.tsx", import.meta.url),
+    new URL("../到期管家/src/app.tsx", import.meta.url),
     "utf8",
   )
   const editor = source.slice(
@@ -3258,7 +3258,7 @@ test("item editor places advance reminders inside the recurrence section", () =>
 
 test("item editor derives its type picker from the centralized definitions", () => {
   const source = readFileSync(
-    new URL("../到期管家/index.tsx", import.meta.url),
+    new URL("../到期管家/src/app.tsx", import.meta.url),
     "utf8",
   )
   assert.match(source, /ITEM_KIND_DEFINITIONS\.map\(definition =>/)
@@ -3275,12 +3275,12 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.7.1")
+  assert.equal(manifest.version, "2.7.2")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 
   const source = readFileSync(
-    new URL("../到期管家/index.tsx", import.meta.url),
+    new URL("../到期管家/src/app.tsx", import.meta.url),
     "utf8",
   )
   const updates = readFileSync(new URL("../到期管家/src/updates.ts", import.meta.url), "utf8")

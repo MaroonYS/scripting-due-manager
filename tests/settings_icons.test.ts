@@ -71,7 +71,7 @@ test("settings labels share icon spacing and preserve the native text and row si
 })
 
 function settings(includeReminders: boolean, loading = false) {
-  const app = read("index.tsx")
+  const app = read("src/app.tsx")
   const start = app.indexOf('      <Section\n        header={<Text>系统提醒事项</Text>}')
   const end = app.indexOf('      <Section>\n        <NavigationLink destination={<RecoveryView', start)
   assert.ok(start > 0 && end > start)
@@ -127,7 +127,7 @@ test("reminder list navigation retains selection and remains hidden when integra
 })
 
 test("standalone version row is removed while update metadata and widget code stay independent", () => {
-  const app = read("index.tsx")
+  const app = read("src/app.tsx")
   const start = app.indexOf("function DueManagerApp(")
   const main = app.slice(start, app.indexOf("function ItemEditor(", start))
   assert.doesNotMatch(main, /<Text>版本<\/Text>|Script\.metadata\.version/)

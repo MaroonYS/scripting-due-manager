@@ -19,8 +19,7 @@ import { dueStatus } from "./date"
 import { dueIconLabel } from "./icons"
 import { APPLE_REMINDERS_URL, appleReminderDeepLink } from "./reminder_links"
 import type { AppSettings, DisplayDueItem } from "./types"
-import { resolveItemBrand } from "./brand_preferences"
-import { brandAsset, loadBrandLogo, type LoadedBrandLogo } from "./brand_assets"
+import type { LoadedBrandLogo } from "./brand_assets"
 import { BrandCompletionLabel } from "./brand_logo"
 import {
   currentWidgetLocale,
@@ -47,6 +46,7 @@ import {
 type WidgetDataProps = {
   items: DisplayDueItem[]
   iconSettings?: AppSettings
+  brandLogo?: LoadedBrandLogo | null
   completionGeneration: number
   reminderFetchedAt: number | null
   remindersLive: boolean
@@ -288,8 +288,7 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number }) {
   const item = items[0]
   const nextItem = items[1]
   const issue = widgetIssue(props)
-  const brand = item && props.iconSettings ? resolveItemBrand(item, props.iconSettings) : null
-  const logo = loadBrandLogo(brand ? brandAsset(brand.id) : null, Script.directory)
+  const logo = props.brandLogo ?? null
 
   return <WidgetFrame contentPadding={11}>
     <VStack
@@ -949,7 +948,7 @@ function ListCompletionIcon({
       occurrenceKey: item.completionKey,
     })}
   >
-    <BrandCompletionLabel logo={logo} title={widgetCompletionLabel(item, widgetRuntimeLocale())} hitSize={hitSize} />
+    <BrandCompletionLabel logo={logo} title={widgetCompletionLabel(item, widgetRuntimeLocale())} hitSize={hitSize} widget />
   </Button>
   return <Button
     buttonStyle="plain"

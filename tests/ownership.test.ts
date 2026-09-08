@@ -103,7 +103,7 @@ test("malformed installed versions still show offline restrictions without unsaf
 })
 
 test("main app exposes copyright navigation without adding ownership UI to widgets", () => {
-  assert.ok(read("到期管家/index.tsx").includes('destination={<OwnershipView />}'))
+  assert.ok(read("到期管家/src/app.tsx").includes('destination={<OwnershipView />}'))
   for (const path of ["到期管家/widget.tsx", "到期管家/src/widget_view.tsx"]) {
     assert.ok(!read(path).includes("OwnershipView"), path)
   }

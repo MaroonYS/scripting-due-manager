@@ -34,7 +34,7 @@ Apple、iOS、WidgetKit、SF Symbols、Scripting 及提及的品牌、商标、�
 主界面与小号组件可选的 332 个品牌图案属于各自权利人，仅作用户事项的描述性识别，
 不是到期管家的品牌或官方合作标识。图片来自品牌网站、对应官方 App 及图标库；
 除 SafePal、Telegram 原文件外，新图案经过等比转换并加中性底板留白。
-`assets/brands/` 图片及 `src/brand_asset_data.ts` 内嵌的同字节图片数据均不受本项目
+`assets/brands/` 图片及 `assets/brands/fallbacks/` 内同字节 Base64 图片数据均不受本项目
 独占版权主张约束，单独适用有效的第三方条款。完整来源、输入／输出哈希、转换及
 使用边界见安装包 `assets/brands/SOURCES.md` 与 `manifest.json`，其中附有 Simple Icons
 的 CC0 和免责声明、LobeHub 的 MIT 条款。图标库许可不等于底层商标授权；公开来源、

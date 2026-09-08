@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
-import { Button, Label, List, NavigationLink, Picker, Script, Section, Text, TextField, VStack, useEffect, useState } from "scripting"
+import { Button, Image, Label, List, NavigationLink, Picker, Script, Section, Text, TextField, VStack, useEffect, useState } from "scripting"
 import { BRAND_CATALOG } from "./brand_catalog"
-import { BRAND_ASSETS, brandAsset, inspectBrandLogo, brandLogoStatusText } from "./brand_assets"
+import { BRAND_ASSETS, brandAsset, brandLogoStatusText } from "./brand_assets"
+import { useBrandLogo } from "./brand_loading"
 import { BrandLogo } from "./brand_logo"
 import { inferItemBrand, itemBrandChoice, type SmallWidgetIconStyle } from "./brand_preferences"
 import { loadState, manualItemsForDisplay, updateItemBrandChoice, updateSettings } from "./storage"
@@ -112,19 +113,8 @@ export function BrandCatalogView({ title = "品牌与素材", choice, busy = fal
       {onSelect ? <Button title={`${choice === "system" ? "✓ " : ""}固定使用系统图标`} disabled={busy} action={() => onSelect("system")} /> : null}
     </Section>
     {[...new Set(visible.map(brand => brand.group))].map(group => <Section key={group} header={<Text>{group}</Text>}>
-      {visible.filter(brand => brand.group === group).map(brand => {
-        const inspection = inspectBrandLogo(brandAsset(brand.id), Script.directory)
-        const logo = inspection.logo
-        const label = `${choice === brand.id ? "✓ " : ""}${brand.name}`
-        const content = <VStack alignment="leading" spacing={3}>
-            {logo ? <VStack frame={{ width: 40, height: 40 }}><BrandLogo logo={logo} /></VStack> : null}
-            <Text>{label}</Text>
-            <Text font="caption" foregroundStyle="secondaryLabel">{brandLogoStatusText(inspection.status)}</Text>
-          </VStack>
-        return onSelect
-          ? <Button key={brand.id} disabled={busy} action={() => onSelect(brand.id)}>{content}</Button>
-          : <VStack key={brand.id} alignment="leading">{content}</VStack>
-      })}
+      {visible.filter(brand => brand.group === group).map(brand => <BrandCatalogRow key={brand.id}
+        brand={brand} selected={choice === brand.id} busy={busy} onSelect={onSelect} />)}
     </Section>)}
     {matches.length > pageSize ? <Section footer={<Text>每页最多加载 32 个图标，搜索和分类会回到第一页。</Text>}>
       <Text>{`第 ${page + 1} / ${Math.ceil(matches.length / pageSize)} 页 · ${matches.length} 个匹配品牌`}</Text>
@@ -133,4 +123,22 @@ export function BrandCatalogView({ title = "品牌与素材", choice, busy = fal
     </Section> : null}
     {matches.length === 0 ? <Section><Text>没有匹配品牌</Text></Section> : null}
   </List>
+}
+
+function BrandCatalogRow({ brand, selected, busy, onSelect }: {
+  brand: (typeof BRAND_CATALOG)[number]; selected: boolean; busy: boolean
+  onSelect?: (brandID: string | null) => void
+}) {
+  const image = useBrandLogo(brandAsset(brand.id), Script.directory)
+  const { logo, status } = image.inspection
+  const content = <VStack alignment="leading" spacing={3}>
+    <VStack frame={{ width: 40, height: 40 }}>
+      {logo ? <BrandLogo logo={logo} /> : <Image systemName="photo" foregroundStyle="secondaryLabel" />}
+    </VStack>
+    <Text>{`${selected ? "✓ " : ""}${brand.name}`}</Text>
+    <Text font="caption" foregroundStyle="secondaryLabel">{brandLogoStatusText(status)}</Text>
+  </VStack>
+  return <VStack alignment="leading" onAppear={image.onAppear} onDisappear={image.onDisappear}>
+    {onSelect ? <Button disabled={busy} action={() => onSelect(brand.id)}>{content}</Button> : content}
+  </VStack>
 }

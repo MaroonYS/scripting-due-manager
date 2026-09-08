@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs"
 const source = (path: string) => readFileSync(new URL(`../到期管家/${path}`, import.meta.url), "utf8")
 
 test("all saved item operations use history-aware completion and warning-only maintenance", () => {
-  const app = source("index.tsx")
+  const app = source("src/app.tsx")
   assert.match(app, /completeManualItem\(nextItem, expectedUpdatedAt, skipToFuture, Date\.now\(\), brandEdit\)/)
   assert.match(app, /upsertItem\(nextItem, expectedUpdatedAt, brandEdit\)/)
   assert.equal((app.match(/const warning = await refreshAfterDataChange\(\)/g) ?? []).length, 4)
@@ -23,7 +23,7 @@ test("all saved item operations use history-aware completion and warning-only ma
 })
 
 test("history backup and notification settings are reachable from main UI", () => {
-  const app = source("index.tsx")
+  const app = source("src/app.tsx")
   for (const view of ["RecoveryView", "NotificationView", "UpdateView", "WidgetActionStatusView"]) {
     assert.ok(app.includes(`destination={<${view}`), `${view} needs a visible navigation entry`)
   }
@@ -43,7 +43,7 @@ test("history backup and notification settings are reachable from main UI", () =
 })
 
 test("production notification reconciliation reads fresh data and widget maintenance stays bounded", () => {
-  for (const path of ["index.tsx", "app_intents.tsx", "widget.tsx", "src/maintenance.ts", "src/notification_view.tsx"]) {
+  for (const path of ["src/app.tsx", "app_intents.tsx", "widget.tsx", "src/maintenance.ts", "src/notification_view.tsx"]) {
     assert.match(source(path), /reconcileNotifications\(\[\], \{ loadItems: \(\) => loadState\(\).items/)
   }
   const widget = source("widget.tsx")
@@ -76,7 +76,7 @@ test("manual update validates version and takes a snapshot before opening pinned
 })
 
 test("widget error links reach a real inspection page without repeating completion", () => {
-  const app = source("index.tsx")
+  const app = source("src/app.tsx")
   assert.match(app, /if \(action === "widget-status"\)/)
   assert.match(app, /<WidgetActionStatusView standalone/)
   const status = source("src/widget_action_view.tsx")

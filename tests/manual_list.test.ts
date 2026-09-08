@@ -11,17 +11,17 @@ import { resolveDueIcon } from "../到期管家/src/icons.ts"
 import { recurrenceLabel } from "../到期管家/src/presentation.ts"
 import { resolveItemBrand, withItemBrandChoice } from "../到期管家/src/brand_preferences.ts"
 import { BRAND_CATALOG } from "../到期管家/src/brand_catalog.ts"
-import { brandAsset, loadBrandLogo } from "../到期管家/src/brand_assets.ts"
+import { brandAsset, inspectBrandLogo } from "../到期管家/src/brand_assets.ts"
 import type { ManualDueItem } from "../到期管家/src/types.ts"
 
 type Node = { type: string; props: Record<string, any>; children: any[] }
-const source = readFileSync(new URL("../到期管家/index.tsx", import.meta.url), "utf8")
+const source = readFileSync(new URL("../到期管家/src/app.tsx", import.meta.url), "utf8")
 const h = (type: string | ((props: any) => Node), props: any, ...children: any[]): Node =>
   typeof type === "function" ? type({ ...props, children }) : {
     type, props: props ?? {}, children: children.flat(Infinity).filter(child => child != null && child !== false),
   }
 const nodes = (node: Node): Node[] => [node, ...node.children.filter(child => typeof child === "object").flatMap(nodes)]
-const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve() }
+const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve() }
 const cmb = BRAND_CATALOG.find(brand => brand.name === "招商银行／掌上生活")!
 
 function harness(options: {
@@ -29,6 +29,7 @@ function harness(options: {
   maintenance?: () => Promise<string | null>; failDisplay?: boolean
 } = {}) {
   const previousStorage = (globalThis as any).Storage, previousImage = (globalThis as any).UIImage
+  const previousFiles = (globalThis as any).FileManager
   const item: ManualDueItem = { id: "manual-cmb", title: "招商银行", kind: "other", iconName: "calendar.badge.clock",
     dueDate: "2026-09-09", includesTime: false, hour: 0, minute: 0, remindBeforeDays: 0,
     recurrence: dates.createRecurrenceRule("month", 1, "2026-09-09"), enabled: true,
@@ -49,11 +50,16 @@ function harness(options: {
     contains: (key: string) => values.has(key), remove: (key: string) => values.delete(key),
   }
   ;(globalThis as any).UIImage = {
-    fromFile: (path: string) => options.noImages ? null : { path },
+    fromData: (data: any) => options.noImages ? null : data,
     fromBase64String: (data: string) => options.noImages ? null : { data },
   }
+  const reads: string[] = []
+  ;(globalThis as any).FileManager = {
+    readAsData: async (path: string) => { reads.push(path); return { path } },
+    readAsString: async () => { throw Error("missing fallback") },
+  }
   const bindings = {
-    h, ...dates, resolveDueIcon, recurrenceLabel, resolveItemBrand, brandAsset, loadBrandLogo,
+    h, ...dates, resolveDueIcon, recurrenceLabel, resolveItemBrand, brandAsset,
     ...Object.fromEntries(["Button", "Image", "HStack", "VStack", "NavigationLink", "Section", "Text", "Spacer", "ItemEditor", "BrandCompletionLabel", "BrandLogo"].map(name => [name, name])),
     Script: { directory: "/bundle" },
     manualOccurrenceKey: storage.manualOccurrenceKey, loadState: storage.loadState,
@@ -67,26 +73,46 @@ function harness(options: {
       if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial
       return [slots[index], (next: any) => { slots[index] = typeof next === "function" ? next(slots[index]) : next }]
     },
+    useEffect: (effect: () => (() => void), deps: unknown[]) => {
+      const index = cursor++
+      if (!slots[index] || deps.some((value, i) => value !== slots[index].deps[i])) {
+        slots[index]?.cleanup?.()
+        slots[index] = { deps, cleanup: effect() }
+      }
+    },
   }
+  const hookCode = readFileSync(new URL("../到期管家/src/brand_loading.ts", import.meta.url), "utf8")
+    .replace(/^import .* from .*\n/gm, "").replace(/^export /gm, "")
+  const hookJS = new Bun.Transpiler({ loader: "ts" }).transformSync(hookCode)
+  const useBrandLogo = new Function("useState", "useEffect", "inspectBrandLogo", `${hookJS}\nreturn useBrandLogo`)(bindings.useState, bindings.useEffect, inspectBrandLogo)
+  const rowBindings = { ...bindings, useBrandLogo }
   const code = source.slice(source.indexOf("function ManualItemsSection("), source.indexOf("function IconSettingRow("))
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(code)
-  const renderRow = new Function(...Object.keys(bindings), `${compiled}\nreturn ManualItemRow`)(...Object.values(bindings))
+  const renderRow = new Function(...Object.keys(rowBindings), `${compiled}\nreturn ManualItemRow`)(...Object.values(rowBindings))
   const onChanged = (next: any) => { events.push(["changed", next]); if (options.failDisplay) throw Error("display failed") }
   return {
-    item, values, events, original: structuredClone(state),
+    item, values, events, reads, original: structuredClone(state),
     render: (patch: Partial<ManualDueItem> = {}, inactive = false) => {
       cursor = 0
       return renderRow({ item: { ...item, ...patch }, inactive, settings: storage.loadState().settings, onChanged }) as Node
     },
-    cleanup: () => { (globalThis as any).Storage = previousStorage; (globalThis as any).UIImage = previousImage },
+    cleanup: () => {
+      for (const slot of slots) slot?.cleanup?.()
+      ;(globalThis as any).Storage = previousStorage; (globalThis as any).UIImage = previousImage
+      ;(globalThis as any).FileManager = previousFiles
+    },
   }
 }
 
-test("the main list displays the saved CMB brand even when small-widget system mode is selected", () => {
+test("the main list first displays a usable system icon, then the saved CMB brand in either widget mode", async () => {
   for (const style of ["brand", "system"] as const) {
     const env = harness({ style })
     try {
-      const row = env.render()
+      let row = env.render()
+      assert.equal(nodes(row).some(node => node.type === "BrandCompletionLabel"), false)
+      assert.deepEqual(env.reads, [], "first render must not access artwork")
+      assert.equal(row.children[0].type, "Button")
+      row.props.onAppear(); await flush(); row = env.render()
       const label = nodes(row).find(node => node.type === "BrandCompletionLabel")!
       assert.ok(label)
       assert.ok(label.props.logo.image.light.path.endsWith(brandAsset(cmb.id)!.light))
@@ -104,7 +130,8 @@ test("the main list displays the saved CMB brand even when small-widget system m
 test("main-list completion and editing are sibling controls, and completing preserves the chosen brand", async () => {
   const env = harness()
   try {
-    const row = env.render()
+    let row = env.render()
+    row.props.onAppear(); await flush(); row = env.render()
     const [button, link] = row.children
     assert.equal(button.type, "Button")
     assert.equal(button.props.buttonStyle, "borderless")

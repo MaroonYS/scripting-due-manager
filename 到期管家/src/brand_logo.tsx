@@ -6,7 +6,7 @@ import { Image, Label, VStack, ZStack } from "scripting"
 import type { LoadedBrandLogo } from "./brand_assets"
 
 /** Crop only the added packaging margin before the circular display mask. */
-export function BrandLogo({ logo }: { logo: LoadedBrandLogo }) {
+export function BrandLogo({ logo, widget = false }: { logo: LoadedBrandLogo; widget?: boolean }) {
   const imageSize = logo.size * (logo.contentScale ?? 1)
   return <VStack
     spacing={0}
@@ -18,20 +18,20 @@ export function BrandLogo({ logo }: { logo: LoadedBrandLogo }) {
       resizable
       scaleToFit
       renderingMode="original"
-      widgetAccentedRenderingMode="fullColor"
+      widgetAccentedRenderingMode={widget ? "fullColor" : undefined}
       frame={{ width: imageSize, height: imageSize }}
     />
   </VStack>
 }
 
 /** The visible image belongs to the button label, never to its background. */
-export function BrandCompletionLabel({ logo, title, hitSize }: {
-  logo: LoadedBrandLogo; title: string; hitSize: number
+export function BrandCompletionLabel({ logo, title, hitSize, widget = false }: {
+  logo: LoadedBrandLogo; title: string; hitSize: number; widget?: boolean
 }) {
   return <ZStack frame={{ width: hitSize, height: hitSize }} contentShape="rect">
     {/* Retain a native icon-only action label for VoiceOver without coloring
         the Button itself clear. The UIImage is the visible label content. */}
     <Label title={title} systemImage="checkmark.circle" labelStyle="iconOnly" foregroundStyle="clear" />
-    <BrandLogo logo={logo} />
+    <BrandLogo logo={logo} widget={widget} />
   </ZStack>
 }

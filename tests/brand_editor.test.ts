@@ -17,7 +17,7 @@ const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve() 
 const spotify = BRAND_CATALOG.find(brand => brand.name === "Spotify")!.id
 
 function editorHarness(options: { brand?: string; fail?: boolean; confirm?: boolean } = {}) {
-  const source = readFileSync(new URL("../到期管家/index.tsx", import.meta.url), "utf8")
+  const source = readFileSync(new URL("../到期管家/src/app.tsx", import.meta.url), "utf8")
   const code = source.slice(source.indexOf("function ItemEditor("), source.indexOf("function ManualItemsSection("))
     + source.slice(source.indexOf("function IconPicker("), source.indexOf("function IconChoiceRow("))
   const item: ManualDueItem = { id: "editor-test", title: "Monthly", kind: "subscription", iconName: null,

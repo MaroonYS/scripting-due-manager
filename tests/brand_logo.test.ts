@@ -22,12 +22,14 @@ const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions
 const { BrandLogo, BrandCompletionLabel } = new Function("h", ...Object.keys(primitives), `${compiled}\nreturn {BrandLogo,BrandCompletionLabel}`)(h, ...Object.values(primitives))
 const nodes = (node: Node): Node[] => [node, ...node.children.filter(child => typeof child === "object").flatMap(nodes)]
 
-test("all brand images receive a circular mask and only generated packaging margins are cropped", () => {
+test("all brand images receive a circular mask and only generated packaging margins are cropped", async () => {
   const previous = (globalThis as any).UIImage
-  ;(globalThis as any).UIImage = { fromFile: (path: string) => ({ path }) }
+  const previousFiles = (globalThis as any).FileManager
+  ;(globalThis as any).UIImage = { fromData: (data: unknown) => data }
+  ;(globalThis as any).FileManager = { readAsData: async (path: string) => ({ path }) }
   try {
     for (const asset of BRAND_ASSETS) {
-      const logo = loadBrandLogo(asset, "/bundle")!
+      const logo = (await loadBrandLogo(asset, "/bundle"))!
       const view = BrandLogo({ logo })
       assert.equal(view.props.clipShape, "circle")
       assert.deepEqual(view.props.frame, { width: logo.size, height: logo.size })
@@ -38,10 +40,11 @@ test("all brand images receive a circular mask and only generated packaging marg
       assert.equal(logo.contentScale, generated ? 1.2 : 1)
       assert.deepEqual(image.props.frame, { width: logo.size * (generated ? 1.2 : 1), height: logo.size * (generated ? 1.2 : 1) })
       assert.equal(image.props.renderingMode, "original")
-      assert.equal(image.props.widgetAccentedRenderingMode, "fullColor")
+      assert.equal(image.props.widgetAccentedRenderingMode, undefined, "widget-only modifiers must not leak into app views")
+      assert.equal(BrandLogo({ logo, widget: true }).children[0].props.widgetAccentedRenderingMode, "fullColor")
       assert.equal(image.props.foregroundStyle, undefined)
     }
-  } finally { (globalThis as any).UIImage = previous }
+  } finally { (globalThis as any).UIImage = previous; (globalThis as any).FileManager = previousFiles }
 })
 
 test("the visible circular image is inside a rectangular semantic button label", () => {
@@ -62,7 +65,7 @@ test("the visible circular image is inside a rectangular semantic button label",
 })
 
 test("main app, editor, catalog and widget share the same circular rendering path", () => {
-  const app = read("index.tsx"), widget = read("src/widget_view.tsx")
+  const app = read("src/app.tsx"), widget = read("src/widget_view.tsx")
   const row = app.slice(app.indexOf("function ManualItemRow("), app.indexOf("function ManualItemDetails("))
   const editor = app.slice(app.indexOf("function IconSettingRow("), app.indexOf("function IconPicker("))
   const control = widget.slice(widget.indexOf("function ListCompletionIcon("), widget.indexOf("function ListCompletionSymbol("))

@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.7.1",
+  "version": "2.7.2",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.7.1 adds independent main-list icon completion, places widget logos inside the completion button label, and displays saved brand choices such as China Merchants Bank in the main list. All brand logos use a circular mask with added packaging margins cropped. Existing items and brand choices are preserved.",
-    "zh": "2.7.1 修复主界面已选招商银行等品牌不显示，左图标独立完成事项，文字继续打开详情。小组件品牌图案放入完成按钮内部，保留原事项与周期校验。全部品牌统一圆形显示并裁去打包外圈留白，保留已有事项和图标设置。",
-    "zh-Hans": "2.7.1 修复主界面已选招商银行等品牌不显示，左图标独立完成事项，文字继续打开详情。小组件品牌图案放入完成按钮内部，保留原事项与周期校验。全部品牌统一圆形显示并裁去打包外圈留白，保留已有事项和图标设置。",
-    "zh-Hant": "2.7.1 修復主介面已選招商銀行等品牌不顯示，左圖示獨立完成事項，文字繼續開啟詳情。小元件品牌圖案放入完成按鈕內部，保留原事項與週期校驗。全部品牌統一圓形顯示並裁去打包外圈留白，保留既有事項和圖示設定。"
+    "en": "2.7.2 improves startup compatibility: a lightweight startup screen, no executable whole-library image data, and asynchronous visible-logo reads with a 1.5-second fallback. Widget-only color modifiers are no longer used in the app. All 332 brands, existing items and saved choices are preserved.",
+    "zh": "2.7.2 启动兼容修正：拆出轻量启动页，移除整库图片代码导入；首屏先用系统图标，仅异步读取可见品牌，1.5 秒超时回退。主界面不再使用小组件专用着色属性。保留全部 332 个品牌、已有事项和设置，无需删除旧脚本。",
+    "zh-Hans": "2.7.2 启动兼容修正：拆出轻量启动页，移除整库图片代码导入；首屏先用系统图标，仅异步读取可见品牌，1.5 秒超时回退。主界面不再使用小组件专用着色属性。保留全部 332 个品牌、已有事项和设置，无需删除旧脚本。",
+    "zh-Hant": "2.7.2 啟動相容修正：拆出輕量啟動頁，移除整庫圖片程式碼匯入；首畫面先用系統圖示，僅非同步讀取可見品牌，1.5 秒逾時回退。主介面不再使用小元件專用著色屬性。保留全部 332 個品牌、既有事項和設定，無需刪除舊腳本。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

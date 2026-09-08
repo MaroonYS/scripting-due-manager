@@ -94,6 +94,7 @@ declare const console: {
 }
 
 declare function setTimeout(callback: () => void, delay?: number): unknown
+declare function clearTimeout(timer: unknown): void
 
 declare function fetch(url: string, init?: {
   headers?: Record<string, string>
@@ -107,8 +108,12 @@ declare const DocumentPicker: {
   pickFiles(options?: { types?: string[]; allowsMultipleSelection?: boolean }): Promise<string[]>
   stopAcessingSecurityScopedResources(): void
 }
-declare const FileManager: { readAsString(path: string): Promise<string> }
+declare const FileManager: {
+  readAsString(path: string): Promise<string>
+  readAsData(path: string): Promise<unknown>
+}
 declare class UIImage {
+  static fromData(data: unknown): UIImage | null
   static fromFile(path: string): UIImage | null
   static fromBase64String(value: string): UIImage | null
 }
