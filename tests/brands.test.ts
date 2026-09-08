@@ -7,12 +7,14 @@ import { readFileSync } from "node:fs"
 import { createHash } from "node:crypto"
 import test from "node:test"
 import { BRAND_CATALOG } from "../到期管家/src/brand_catalog.ts"
-import { BRAND_ASSETS, brandAsset, loadBrandLogo } from "../到期管家/src/brand_assets.ts"
+import { BRAND_ASSETS, brandAsset, loadBrandLogo, inspectBrandLogo, brandLogoStatusText } from "../到期管家/src/brand_assets.ts"
+import { BRAND_ASSET_DATA } from "../到期管家/src/brand_asset_data.ts"
 import { inferItemBrand, itemBrandChoice, normalizeBrandPreferences, resolveItemBrand, withItemBrandChoice } from "../到期管家/src/brand_preferences.ts"
-import { defaultState, loadState, STATE_KEY, updateItemBrandChoice, updateSettings, listLocalSnapshots } from "../到期管家/src/storage.ts"
+import { defaultState, loadState, STATE_KEY, updateItemBrandChoice, updateSettings, listLocalSnapshots, upsertItem, completeManualItem, LOCAL_SNAPSHOTS_KEY } from "../到期管家/src/storage.ts"
+import { createRecurrenceRule } from "../到期管家/src/date.ts"
 import { createBackupJSON, parseBackupJSON } from "../到期管家/src/recovery.ts"
 import { widgetCompletionLabel } from "../到期管家/src/widget_localization.ts"
-import type { DisplayDueItem } from "../到期管家/src/types.ts"
+import type { DisplayDueItem, ManualDueItem } from "../到期管家/src/types.ts"
 
 const item: DisplayDueItem = { source: "manual", id: "same/id", title: "SafePal 月费", kind: "subscription",
   iconName: "creditcard.fill", iconColor: "systemOrange", dueDate: "2026-09-30", dueTimestamp: 1790755200000,
@@ -29,7 +31,7 @@ test("catalog contains 332 unique stable choices across all requested sectors, s
     assert.match(brand.id, /^brand-[a-f0-9]{16}$/)
   }
   for (const name of ["中国移动", "中国联通", "中国电信", "Spotify", "Netflix", "Bitwarden", "SafePal / Fiat24"]) assert.ok(byName(name))
-  assert.ok(BRAND_ASSETS.length > 0 && BRAND_ASSETS.length < BRAND_CATALOG.length)
+  assert.equal(BRAND_ASSETS.length, BRAND_CATALOG.length, "every selectable brand has a real bundled image")
   assert.equal(new Set(BRAND_ASSETS.map(asset => asset.brandID)).size, BRAND_ASSETS.length)
   for (const asset of BRAND_ASSETS) {
     assert.ok(BRAND_CATALOG.some(brand => brand.id === asset.brandID))
@@ -40,6 +42,37 @@ test("catalog contains 332 unique stable choices across all requested sectors, s
       assert.equal(data.subarray(0, 8).toString("hex"), "89504e470d0a1a0a")
     }
   }
+})
+
+test("all 332 source records, PNGs and embedded fallbacks agree byte-for-byte", () => {
+  const manifest = JSON.parse(readFileSync(new URL("../到期管家/assets/brands/manifest.json", import.meta.url), "utf8"))
+  assert.equal(manifest.brandCount, 332)
+  assert.equal(manifest.assets.length, 332)
+  const paths = new Set<string>()
+  for (const asset of BRAND_ASSETS) {
+    const record = manifest.assets.find((record: any) => record.brandID === asset.brandID)
+    assert.ok(record)
+    assert.equal(record.name, BRAND_CATALOG.find(brand => brand.id === asset.brandID)!.name)
+    assert.equal(record.outputs.length, new Set([asset.light, asset.dark]).size)
+    if (record.source.type !== "reviewed-original") {
+      assert.match(record.source.url, /^https:\/\//)
+      assert.match(record.source.inputSHA256, /^[a-f0-9]{64}$/)
+      assert.ok(record.source.basis)
+    }
+    for (const path of new Set([asset.light, asset.dark])) {
+      paths.add(path)
+      const bytes = readFileSync(new URL(`../到期管家/${path}`, import.meta.url))
+      assert.deepEqual(Buffer.from(BRAND_ASSET_DATA[path], "base64"), bytes, path)
+      const source = record.outputs.find((output: any) => output.path === path)
+      assert.equal(createHash("sha256").update(bytes).digest("hex"), source.sha256, path)
+      const width = bytes.readUInt32BE(16), height = bytes.readUInt32BE(20)
+      assert.ok(width >= 144 && height >= 144 && width <= 800 && height <= 800)
+    }
+  }
+  assert.equal(paths.size, 333)
+  assert.deepEqual(Object.keys(BRAND_ASSET_DATA).sort(), [...paths].sort())
+  const runtime = readFileSync(new URL("../到期管家/src/brand_assets.ts", import.meta.url), "utf8")
+  assert.doesNotMatch(runtime, /fetch\(|Storage\.|XMLHttpRequest|https?:\/\//)
 })
 
 test("bundled official image bytes match the reviewed source artifacts", () => {
@@ -54,6 +87,29 @@ test("bundled official image bytes match the reviewed source artifacts", () => {
     assert.equal(actual, expected)
     assert.ok(sources.includes(expected))
   }
+})
+
+test("third-party sources retain upstream notices and do not claim artwork ownership", () => {
+  const read = (path: string) => readFileSync(new URL(`../到期管家/${path}`, import.meta.url), "utf8")
+  const manifest = JSON.parse(read("assets/brands/manifest.json"))
+  const counts: Record<string, number> = {}
+  for (const { source } of manifest.assets) {
+    counts[source.type] = (counts[source.type] ?? 0) + 1
+    if (source.type === "simple-icons") {
+      assert.match(source.url, /777807a262bb7384ff406fd4b35fdcd02e9514c3/)
+      assert.match(source.color, /^[a-fA-F0-9]{6}$/)
+    }
+    if (source.type === "app-store") {
+      assert.ok(source.appID && source.appName && source.seller)
+    }
+  }
+  assert.deepEqual(counts, { "brand-site": 164, "app-store": 115, "simple-icons": 50, "reviewed-original": 2, "lobe-icons": 1 })
+  assert.ok(read("assets/brands/simple-icons-license.txt").includes("No trademark or patent rights"))
+  assert.ok(read("assets/brands/simple-icons-disclaimer.txt").includes("all icons within the project are also CC0"))
+  assert.ok(read("assets/brands/lobe-icons-license.txt").includes("Copyright (c) 2023 LobeHub"))
+  assert.ok(read("assets/brands/lobe-icons-license.txt").includes("Permission is hereby granted, free of charge"))
+  assert.ok(read("NOTICE.md").includes("src/brand_asset_data.ts"))
+  assert.ok(read("src/brand_asset_data.ts").split("\n").slice(0, 6).join("\n").includes("not third-party artwork"))
 })
 
 test("automatic matching is conservative, whole-name based and refuses conflicting brands", () => {
@@ -137,7 +193,7 @@ test("preferences survive saves, automatic snapshots and backup export/import wi
 
 test("missing, corrupt or unavailable UIImage decoding never hides the fallback symbol", () => {
   const previous = (globalThis as any).UIImage
-  const asset = BRAND_ASSETS[0]
+  const asset = brandAsset(byName("SafePal / Fiat24").id)!
   const calls: string[] = []
   try {
     delete (globalThis as any).UIImage
@@ -154,6 +210,100 @@ test("missing, corrupt or unavailable UIImage decoding never hides the fallback 
     assert.equal(loadBrandLogo(asset, "/bundle"), null)
     assert.equal(brandAsset("brand-future"), null)
   } finally { (globalThis as any).UIImage = previous }
+})
+
+test("embedded images rescue missing bundle files and diagnostics distinguish the failure", () => {
+  const previous = (globalThis as any).UIImage
+  const asset = brandAsset(byName("SafePal / Fiat24").id)!
+  const decoded: string[] = []
+  try {
+    ;(globalThis as any).UIImage = { fromFile: () => null, fromBase64String: (value: string) => { decoded.push(value); return {value} } }
+    assert.equal(inspectBrandLogo(asset, "/moved/bundle").status, "ready")
+    assert.deepEqual(decoded, [BRAND_ASSET_DATA[asset.light], BRAND_ASSET_DATA[asset.dark]])
+    ;(globalThis as any).UIImage = { fromFile: () => { throw Error("file corrupt") }, fromBase64String: () => ({}) }
+    assert.ok(loadBrandLogo(asset, "/bundle"))
+    ;(globalThis as any).UIImage = { fromBase64String: () => ({}) }
+    assert.ok(loadBrandLogo(asset, "/bundle"), "base64-only host works")
+    ;(globalThis as any).UIImage = { fromFile: () => null, fromBase64String: () => null }
+    assert.equal(inspectBrandLogo(asset, "/bundle").status, "decode-failed")
+    ;(globalThis as any).UIImage = {}
+    assert.equal(inspectBrandLogo(asset, "/bundle").status, "decoder-unavailable")
+    assert.equal(inspectBrandLogo(null, "/bundle").status, "not-bundled")
+    for (const status of ["ready", "not-bundled", "decoder-unavailable", "decode-failed"] as const) assert.ok(brandLogoStatusText(status))
+    assert.equal(new Set(["not-bundled", "decoder-unavailable", "decode-failed"].map(status => brandLogoStatusText(status as any))).size, 3)
+  } finally { (globalThis as any).UIImage = previous }
+})
+
+function brandStorageHarness() {
+  const previous = (globalThis as any).Storage
+  const draft: ManualDueItem = { id: "brand-editor-item", title: "Monthly", kind: "subscription", iconName: null,
+    dueDate: "2026-09-30", includesTime: false, hour: 0, minute: 0, remindBeforeDays: 0,
+    recurrence: createRecurrenceRule("month", 1, "2026-09-30"), amount: "12", note: "keep", enabled: true, createdAt: 1, updatedAt: 2 }
+  const values = new Map<string, unknown>([[STATE_KEY, { ...defaultState(2), items: [draft] }]])
+  const failures = new Set<string>(), writes: string[] = []
+  ;(globalThis as any).Storage = {
+    get: (key: string) => structuredClone(values.get(key) ?? null),
+    set: (key: string, value: unknown) => { if (failures.has(key)) return false; writes.push(key); values.set(key, structuredClone(value)); return true },
+    contains: (key: string) => values.has(key), remove: (key: string) => values.delete(key),
+  }
+  return { draft, values, failures, writes, cleanup: () => { (globalThis as any).Storage = previous } }
+}
+
+test("saving an edited item commits its brand preference and mode in the same state write", () => {
+  const env = brandStorageHarness()
+  try {
+    updateItemBrandChoice({ source: "reminder", id: env.draft.id }, byName("Telegram").id)
+    env.writes.length = 0
+    const next = upsertItem({ ...env.draft, title: "Edited" }, env.draft.updatedAt, { brandID: byName("Spotify").id, enableBrandMode: true })
+    assert.equal(env.writes.filter(key => key === STATE_KEY).length, 1)
+    assert.equal(next.items[0].title, "Edited")
+    assert.equal(next.settings.smallWidgetIconStyle, "brand")
+    assert.equal(itemBrandChoice(next.settings, { source: "manual", id: env.draft.id }), byName("Spotify").id)
+    assert.equal(itemBrandChoice(next.settings, { source: "reminder", id: env.draft.id }), byName("Telegram").id)
+    assert.equal(itemBrandChoice(listLocalSnapshots()[0].state.settings, { source: "manual", id: env.draft.id }), null)
+    assert.equal(next.items[0].dueDate, env.draft.dueDate)
+    assert.equal(next.items[0].note, env.draft.note)
+    assert.equal(next.completionHistory?.length ?? 0, 0)
+    const unchanged = upsertItem({ ...loadState().items[0], note: "new note" }, next.items[0].updatedAt)
+    assert.equal(itemBrandChoice(unchanged.settings, { source: "manual", id: env.draft.id }), byName("Spotify").id, "an untouched editor choice preserves the latest stored preference")
+  } finally { env.cleanup() }
+})
+
+test("save failures and stale editor revisions cannot partially commit a brand selection", () => {
+  for (const failKey of [STATE_KEY, LOCAL_SNAPSHOTS_KEY]) {
+    const env = brandStorageHarness()
+    try {
+      const original = structuredClone(env.values.get(STATE_KEY))
+      env.failures.add(failKey)
+      assert.throws(() => upsertItem({ ...env.draft, title: "Edited" }, 2, { brandID: byName("Spotify").id, enableBrandMode: true }))
+      assert.deepEqual(env.values.get(STATE_KEY), original)
+      assert.throws(() => completeManualItem(env.draft, 2, false, new Date(2026, 8, 30).getTime(), { brandID: byName("Spotify").id, enableBrandMode: true }))
+      assert.deepEqual(env.values.get(STATE_KEY), original)
+      env.failures.clear()
+      assert.throws(() => upsertItem(env.draft, 1, { brandID: byName("Spotify").id, enableBrandMode: true }))
+      assert.throws(() => completeManualItem(env.draft, 1, false, Date.now(), { brandID: byName("Spotify").id, enableBrandMode: true }))
+      assert.deepEqual(env.values.get(STATE_KEY), original)
+      assert.throws(() => upsertItem(env.draft, 2, { brandID: "../bad", enableBrandMode: true }))
+      assert.deepEqual(env.values.get(STATE_KEY), original)
+    } finally { env.cleanup() }
+  }
+})
+
+test("complete-and-save keeps one occurrence record together with the staged brand choice", () => {
+  const env = brandStorageHarness()
+  try {
+    const next = completeManualItem({ ...env.draft, note: "edited note" }, 2, false, new Date(2026, 8, 30).getTime(), { brandID: byName("Spotify").id, enableBrandMode: true })
+    assert.equal(env.writes.filter(key => key === STATE_KEY).length, 1)
+    assert.equal(next.items[0].dueDate, "2026-10-30")
+    assert.equal(next.items[0].note, "edited note")
+    assert.equal(next.completionHistory?.length, 1)
+    assert.equal(next.completionHistory?.[0].source, "manual")
+    assert.equal(itemBrandChoice(next.settings, { source: "manual", id: env.draft.id }), byName("Spotify").id)
+    assert.equal(next.settings.smallWidgetIconStyle, "brand")
+    const cleared = upsertItem(loadState().items[0], next.items[0].updatedAt, { brandID: null })
+    assert.equal(itemBrandChoice(cleared.settings, { source: "manual", id: env.draft.id }), null)
+    assert.equal(cleared.settings.smallWidgetIconStyle, "brand", "clearing one choice must not change every other item's mode")
+  } finally { env.cleanup() }
 })
 
 test("actual logo button JSX preserves the native completion label, target and exact occurrence intent", () => {
@@ -204,7 +354,7 @@ function brandUIHarness(refreshFailure = false, saveFailure = false) {
   const bindings = {
     h: (type: any, props: any, ...children: any[]) => ({ type: typeof type === "function" ? type.name : type, props: props ?? {}, children: children.flat(Infinity).filter(value => value != null) }),
     ...Object.fromEntries(["Button", "Image", "Label", "List", "NavigationLink", "Picker", "Section", "Text", "TextField", "VStack"].map(name => [name, name])),
-    Script: { directory: "/bundle" }, BRAND_CATALOG, BRAND_ASSETS, brandAsset, loadBrandLogo,
+    Script: { directory: "/bundle" }, BRAND_CATALOG, BRAND_ASSETS, brandAsset, inspectBrandLogo, brandLogoStatusText,
     inferItemBrand, itemBrandChoice,
     useState: (initial: any) => {
       const index = cursor++
@@ -267,16 +417,39 @@ test("actual per-item UI saves the exact source and ID without completing or edi
   assert.equal(itemBrandChoice(failed.state().settings, item), null)
 })
 
-test("catalog search exposes all operator choices and never claims missing logos are packaged", () => {
+test("catalog search and pagination expose all 36 operators without decoding more than 32 at a time", () => {
+  const previous = (globalThis as any).UIImage
+  let decodes = 0
+  ;(globalThis as any).UIImage = { fromFile: () => { decodes++; return {} } }
+  try {
   const env = brandUIHarness()
   let root = env.render("BrandCatalogView")
-  assert.ok(uiText(root).includes("暂无可用素材 · 系统图标回退"))
+  assert.equal(decodes, 32)
+  assert.ok(uiText(root).includes("已内置 Logo · 可离线显示"))
   const field = allNodes(root).find(node => node.type === "TextField")
   field.props.onChanged("运营商")
+  decodes = 0
   root = env.render("BrandCatalogView")
   const names = allNodes(root).filter(node => node.type === "Text" && BRAND_CATALOG.some(brand => brand.name === uiText(node)))
-  assert.equal(names.length, 36)
-  assert.ok(uiText(root).includes("中国移动"))
+  assert.equal(names.length, 32)
+  assert.equal(decodes, 32)
+  assert.ok(uiText(root).includes("中国广电"))
   assert.ok(!uiText(root).includes("Netflix"))
-  assert.ok(!allNodes(root).some(node => node.type === "Button"), "browse-only rows are not disabled buttons that dim artwork")
+  assert.deepEqual(allNodes(root).filter(node => node.type === "Button").map(node => node.props.title), ["下一页"], "browse-only logo rows are static, not dimmed disabled buttons")
+  allNodes(root).find(node => node.type === "Button" && node.props.title === "下一页").props.action()
+  decodes = 0
+  root = env.render("BrandCatalogView")
+  const lastNames = allNodes(root).filter(node => node.type === "Text" && BRAND_CATALOG.some(brand => brand.name === uiText(node)))
+  assert.equal(lastNames.length, 4)
+  assert.equal(decodes, 4)
+  assert.equal(new Set([...names, ...lastNames].map(uiText)).size, 36)
+  allNodes(root).find(node => node.type === "TextField").props.onChanged("Netflix")
+  root = env.render("BrandCatalogView")
+  assert.ok(uiText(root).includes("Netflix"), "search resets the page")
+  allNodes(root).find(node => node.type === "TextField").props.onChanged("")
+  allNodes(root).find(node => node.type === "Picker").props.onChanged("美国银行与信用卡")
+  root = env.render("BrandCatalogView")
+  assert.ok(uiText(root).includes("Chime"))
+  assert.ok(!uiText(root).includes("Netflix"))
+  } finally { (globalThis as any).UIImage = previous }
 })

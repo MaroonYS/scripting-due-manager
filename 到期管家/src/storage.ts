@@ -135,9 +135,21 @@ export function updateItemBrandChoice(item: Pick<DisplayDueItem, "source" | "id"
   return updateSettings({ itemBrandChoices: withItemBrandChoice(current.settings, item, brandID) })
 }
 
+export interface ManualBrandEdit { brandID: string | null; enableBrandMode?: boolean }
+
+function settingsAfterManualBrandEdit(settings: AppSettings, itemID: string, edit?: ManualBrandEdit): AppSettings {
+  if (!edit) return settings
+  return {
+    ...settings,
+    itemBrandChoices: withItemBrandChoice(settings, { source: "manual", id: itemID }, edit.brandID),
+    ...(edit.enableBrandMode ? { smallWidgetIconStyle: "brand" as const } : {}),
+  }
+}
+
 export function upsertItem(
   item: ManualDueItem,
   expectedUpdatedAt?: number,
+  brandEdit?: ManualBrandEdit,
 ): AppState {
   assertItemMetadata(item)
   const current = loadState()
@@ -150,7 +162,7 @@ export function upsertItem(
   }
   if (index >= 0) items[index] = revised
   else items.push(revised)
-  const next = { ...current, items, updatedAt: Date.now() }
+  const next = { ...current, items, settings: settingsAfterManualBrandEdit(current.settings, item.id, brandEdit), updatedAt: Date.now() }
   return persistOrThrow(next)
 }
 
@@ -287,6 +299,7 @@ export function completeManualItem(
   expectedUpdatedAt?: number,
   skipToFuture = false,
   nowMs = Date.now(),
+  brandEdit?: ManualBrandEdit,
 ): AppState {
   assertItemMetadata(item)
   const current = loadState()
@@ -303,6 +316,7 @@ export function completeManualItem(
   return persistOrThrow({
     ...current,
     items,
+    settings: settingsAfterManualBrandEdit(current.settings, item.id, brandEdit),
     updatedAt: after.updatedAt,
     completionHistory: appendCompletionRecord(current, manualCompletionRecord(item, after, nowMs, skipToFuture)),
   })

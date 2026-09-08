@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.6.0 adds system / brand-priority icons for the small widget, per-item selection across 332 brand names and 2 bundled official logos (SafePal and Telegram). Missing artwork falls back to system symbols. Tapping the main icon still completes the exact item; existing settings default to system icons.",
-    "zh": "2.6.0 新增小号组件「系统图标／品牌 Logo 优先」及逐项选择。332 个品牌名称选项，首批内置 SafePal、Telegram 两套官方素材；其余或缺图时回退系统图标。点击主图标仍完成事项，旧数据默认保留系统样式。",
-    "zh-Hans": "2.6.0 新增小号组件「系统图标／品牌 Logo 优先」及逐项选择。332 个品牌名称选项，首批内置 SafePal、Telegram 两套官方素材；其余或缺图时回退系统图标。点击主图标仍完成事项，旧数据默认保留系统样式。",
-    "zh-Hant": "2.6.0 新增小號元件「系統圖示／品牌 Logo 優先」及逐項選擇。332 個品牌名稱選項，首批內置 SafePal、Telegram 兩套官方素材；其餘或缺圖時回退系統圖示。點按主圖示仍完成事項，舊資料預設保留系統樣式。"
+    "en": "2.7.0 bundles artwork for all 332 brands, adds brands to the existing icon picker, and includes offline image fallbacks with distinct loading diagnostics. Brand choices commit with item saves; cancelling leaves settings unchanged. The small widget's main icon still completes the same item.",
+    "zh": "2.7.0 补齐全部 332 个品牌图标，原「选择图标」可直接切换系统图标／品牌 Logo，支持搜索、分类和分页。图片内置并带离线备份，区分缺图与加载失败。品牌选择随事项保存，取消不改设置；小号组件主图标仍用于完成事项。",
+    "zh-Hans": "2.7.0 补齐全部 332 个品牌图标，原「选择图标」可直接切换系统图标／品牌 Logo，支持搜索、分类和分页。图片内置并带离线备份，区分缺图与加载失败。品牌选择随事项保存，取消不改设置；小号组件主图标仍用于完成事项。",
+    "zh-Hant": "2.7.0 補齊全部 332 個品牌圖示，原「選擇圖示」可直接切換系統圖示／品牌 Logo，支援搜尋、分類和分頁。圖片內置並帶離線備份，區分缺圖與載入失敗。品牌選擇隨事項儲存，取消不改設定；小號元件主圖示仍用於完成事項。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

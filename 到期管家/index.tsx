@@ -86,7 +86,10 @@ import { OwnershipView } from "./src/ownership_view"
 import { SettingsRowIcon, SettingsRowLabel } from "./src/settings_icons"
 import { readRecoveryStatus } from "./src/recovery"
 import { WidgetActionStatusView } from "./src/widget_action_view"
-import { BrandSettingsView } from "./src/brand_view"
+import { BrandCatalogView, BrandSettingsView } from "./src/brand_view"
+import { BRAND_CATALOG } from "./src/brand_catalog"
+import { itemBrandChoice } from "./src/brand_preferences"
+import { brandAsset, loadBrandLogo } from "./src/brand_assets"
 
 configureWidgetLocale(Device)
 
@@ -498,6 +501,8 @@ function ItemEditor({
   const [title, setTitle] = useState(item.title)
   const [kind, setKind] = useState<ItemKind>(item.kind)
   const [iconName, setIconName] = useState<string | null>(item.iconName)
+  const [brandChoice, setBrandChoice] = useState<string | null>(() => itemBrandChoice(loadState().settings, { source: "manual", id: item.id }))
+  const [brandChoiceEdited, setBrandChoiceEdited] = useState(false)
   const [dueTimestamp, setDueTimestamp] = useState(initialDate.getTime())
   const [includesTime, setIncludesTime] = useState(item.includesTime)
   const [recurrenceUnit, setRecurrenceUnit] = useState<RecurrenceUnit | "none">(
@@ -533,6 +538,9 @@ function ItemEditor({
   const intervalUnitLabel = recurrenceUnit === "none"
     ? ""
     : recurrenceIntervalUnitLabel(recurrenceUnit)
+  const brandEdit = brandChoiceEdited
+    ? { brandID: brandChoice, enableBrandMode: brandChoice != null && brandChoice !== "system" }
+    : undefined
 
   const validationError = (): { title: string; message: string } | null => {
     if (!title.trim()) {
@@ -611,7 +619,7 @@ function ItemEditor({
     const nextItem = buildItem()
     if (!nextItem) return
     try {
-      const nextState = upsertItem(nextItem, expectedUpdatedAt)
+      const nextState = upsertItem(nextItem, expectedUpdatedAt, brandEdit)
       onChanged(nextState)
       const warning = await refreshAfterDataChange()
       if (warning) await Dialog.alert({ title: "事项已保存", message: warning })
@@ -650,7 +658,7 @@ function ItemEditor({
     if (!confirmed) return
 
     try {
-      const nextState = completeManualItem(nextItem, expectedUpdatedAt, skipToFuture)
+      const nextState = completeManualItem(nextItem, expectedUpdatedAt, skipToFuture, Date.now(), brandEdit)
       onChanged(nextState)
       const warning = await refreshAfterDataChange()
       if (warning) await Dialog.alert({ title: "本期已完成", message: warning })
@@ -720,10 +728,12 @@ function ItemEditor({
             kind={kind}
             value={iconName}
             onChanged={setIconName}
+            brandChoice={brandChoice}
+            onBrandChanged={(value: string | null) => { setBrandChoice(value); setBrandChoiceEdited(true) }}
           />
         }
       >
-        <IconSettingRow title={title} kind={kind} value={iconName} />
+        <IconSettingRow title={title} kind={kind} value={iconName} brandChoice={brandChoice} />
       </NavigationLink>
       <Toggle
         title="包含具体时间"
@@ -929,18 +939,23 @@ function IconSettingRow({
   title,
   kind,
   value,
+  brandChoice,
 }: {
   title: string
   kind: ItemKind
   value: string | null
+  brandChoice?: string | null
 }) {
   const icon = resolveDueIcon(title, kind, value)
+  const brand = BRAND_CATALOG.find(entry => entry.id === brandChoice)
+  const logo = loadBrandLogo(brand ? brandAsset(brand.id) : null, Script.directory)
   return <HStack spacing={10}>
-    <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 24 }} />
+    {logo ? <VStack frame={{ width: 40, height: 40 }}><Image image={logo.image} resizable scaleToFit renderingMode="original" frame={{ width: logo.size, height: logo.size }} /></VStack>
+      : <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 24 }} />}
     <Text>图标</Text>
     <Spacer />
     <Text font="subheadline" foregroundStyle="secondaryLabel" lineLimit={1}>
-      {value == null ? `自动 · ${icon.label}` : icon.label}
+      {brand ? brand.name : value == null ? `自动 · ${icon.label}` : icon.label}
     </Text>
   </HStack>
 }
@@ -950,25 +965,44 @@ function IconPicker({
   kind,
   value,
   onChanged,
+  brandChoice,
+  onBrandChanged,
 }: {
   title: string
   kind: ItemKind
   value: string | null
   onChanged: (value: string | null) => void
+  brandChoice?: string | null
+  onBrandChanged?: (value: string | null) => void
 }) {
   const dismiss = Navigation.useDismiss()
   const automatic = resolveDueIcon(title, kind)
+  const [mode, setMode] = useState<"system" | "brand">(brandChoice && brandChoice !== "system" ? "brand" : "system")
 
   const choose = (next: string | null) => {
     onChanged(next)
+    onBrandChanged?.(next == null ? null : "system")
     dismiss()
   }
+  const modePicker = <Picker title="图标类别" value={mode} pickerStyle="menu"
+    onChanged={(value: unknown) => { if (value === "system" || value === "brand") setMode(value) }}>
+    <Text tag="system">系统图标</Text>
+    <Text tag="brand">品牌 Logo</Text>
+  </Picker>
+  if (mode === "brand") return <BrandCatalogView title="选择图标" choice={brandChoice} topContent={modePicker}
+    selectionHint="选择先保留在编辑页面，保存事项时才生效；保存指定品牌会开启小号组件的品牌优先模式。主图标点击仍是完成事项。"
+    onSelect={(brandID: string | null) => {
+      onBrandChanged?.(brandID)
+      if (brandID == null) onChanged(null)
+      dismiss()
+    }} />
 
   return <List
     listStyle="insetGroup"
     navigationTitle="选择图标"
     navigationBarTitleDisplayMode="inline"
   >
+    <Section>{modePicker}</Section>
     <Section footer={<Text>自动匹配只在本机根据名称和类型判断，不会上传事项名称。</Text>}>
       <Button buttonStyle="plain" action={() => choose(null)}>
         <IconChoiceRow

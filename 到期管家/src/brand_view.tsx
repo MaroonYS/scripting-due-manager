@@ -4,7 +4,7 @@
 
 import { Button, Image, Label, List, NavigationLink, Picker, Script, Section, Text, TextField, VStack, useEffect, useState } from "scripting"
 import { BRAND_CATALOG } from "./brand_catalog"
-import { BRAND_ASSETS, brandAsset, loadBrandLogo } from "./brand_assets"
+import { BRAND_ASSETS, brandAsset, inspectBrandLogo, brandLogoStatusText } from "./brand_assets"
 import { inferItemBrand, itemBrandChoice, type SmallWidgetIconStyle } from "./brand_preferences"
 import { loadState, manualItemsForDisplay, updateItemBrandChoice, updateSettings } from "./storage"
 import { loadWidgetData } from "./widget_data"
@@ -66,8 +66,8 @@ export function BrandSettingsView({ onChanged }: { onChanged: (state: AppState) 
       })}
     </Section>
     <Section header={<Text>素材与品牌</Text>} footer={<Text>品牌及商标属于各自权利人，仅用于识别你的事项，不表示合作、背书或支付安全保证。不会读取 SIM、联系人或上传事项。</Text>}>
-      <Text>{`${BRAND_CATALOG.length} 个品牌选项 · ${BRAND_ASSETS.length} 个已内置官方 Logo`}</Text>
-      <Text font="caption" foregroundStyle="secondaryLabel">品牌清单不等于 Logo 素材库。尚未内置的选择会保留，但目前显示系统图标。</Text>
+      <Text>{`${BRAND_CATALOG.length} 个品牌 · ${BRAND_ASSETS.length} 个已内置 Logo`}</Text>
+      <Text font="caption" foregroundStyle="secondaryLabel">图片随安装包内置，离线可用。来源包括品牌网站、对应官方 App 图标和署名图标库；不代表品牌授权或背书。编辑事项的“选择图标”也可直接选择品牌。</Text>
       <NavigationLink destination={<BrandCatalogView />}><Label title="浏览品牌与素材状态" systemImage="square.grid.2x2" /></NavigationLink>
     </Section>
   </List>
@@ -87,33 +87,49 @@ function BrandChoiceView({ item, onChanged }: { item: DisplayDueItem; onChanged:
   return <BrandCatalogView title={item.title || "事项品牌"} choice={choice} busy={busy} onSelect={brandID => { void save(brandID) }} />
 }
 
-function BrandCatalogView({ title = "品牌与素材", choice, busy = false, onSelect }: {
+export function BrandCatalogView({ title = "品牌与素材", choice, busy = false, onSelect, topContent, selectionHint }: {
   title?: string; choice?: string | null; busy?: boolean; onSelect?: (brandID: string | null) => void
+  topContent?: JSX.Element; selectionHint?: string
 }) {
   const [search, setSearch] = useState("")
+  const [group, setGroup] = useState("")
+  const [page, setPage] = useState(0)
+  const pageSize = 32
   const query = search.trim().toLocaleLowerCase()
-  const matches = BRAND_CATALOG.filter(brand => `${brand.name} ${brand.group}`.toLocaleLowerCase().includes(query))
-  const groups = [...new Set(matches.map(brand => brand.group))]
+  const matches = BRAND_CATALOG.filter(brand => (!group || brand.group === group) && `${brand.name} ${brand.group}`.toLocaleLowerCase().includes(query))
+  const visible = matches.slice(page * pageSize, (page + 1) * pageSize)
+  const groups = [...new Set(BRAND_CATALOG.map(brand => brand.group))]
   return <List listStyle="insetGroup" navigationTitle={title} navigationBarTitleDisplayMode="inline">
-    <Section footer={<Text>选中只保存图标偏好，不会完成事项。需要在上一页开启“品牌 Logo 优先”才生效。</Text>}>
-      <TextField title="搜索" prompt="品牌、银行、运营商、汽车、订阅" value={search} onChanged={setSearch} />
+    {topContent ? <Section>{topContent}</Section> : null}
+    <Section footer={<Text>{selectionHint ?? "选中只保存图标偏好，不会完成事项。需要在上一页开启‘品牌 Logo 优先’才生效。"}</Text>}>
+      <TextField title="搜索" prompt="品牌、银行、运营商、汽车、订阅" value={search} onChanged={(value: string) => { setSearch(value); setPage(0) }} />
+      <Picker title="品牌分类" value={group} pickerStyle="menu" onChanged={(value: string) => { setGroup(value); setPage(0) }}>
+        <Text tag="">全部品牌</Text>
+        {groups.map(group => <Text key={group} tag={group}>{group}</Text>)}
+      </Picker>
       {onSelect ? <Button title={`${choice == null ? "✓ " : ""}自动识别／系统回退`} disabled={busy} action={() => onSelect(null)} /> : null}
       {onSelect ? <Button title={`${choice === "system" ? "✓ " : ""}固定使用系统图标`} disabled={busy} action={() => onSelect("system")} /> : null}
     </Section>
-    {groups.map(group => <Section key={group} header={<Text>{group}</Text>}>
-      {matches.filter(brand => brand.group === group).map(brand => {
-        const logo = loadBrandLogo(brandAsset(brand.id), Script.directory)
+    {[...new Set(visible.map(brand => brand.group))].map(group => <Section key={group} header={<Text>{group}</Text>}>
+      {visible.filter(brand => brand.group === group).map(brand => {
+        const inspection = inspectBrandLogo(brandAsset(brand.id), Script.directory)
+        const logo = inspection.logo
         const label = `${choice === brand.id ? "✓ " : ""}${brand.name}`
         const content = <VStack alignment="leading" spacing={3}>
             {logo ? <VStack frame={{ width: 40, height: 40 }}><Image image={logo.image} resizable scaleToFit renderingMode="original" frame={{ width: logo.size, height: logo.size }} /></VStack> : null}
             <Text>{label}</Text>
-            <Text font="caption" foregroundStyle="secondaryLabel">{logo ? "已内置官方 Logo" : "暂无可用素材 · 系统图标回退"}</Text>
+            <Text font="caption" foregroundStyle="secondaryLabel">{brandLogoStatusText(inspection.status)}</Text>
           </VStack>
         return onSelect
           ? <Button key={brand.id} disabled={busy} action={() => onSelect(brand.id)}>{content}</Button>
           : <VStack key={brand.id} alignment="leading">{content}</VStack>
       })}
     </Section>)}
+    {matches.length > pageSize ? <Section footer={<Text>每页最多加载 32 个图标，搜索和分类会回到第一页。</Text>}>
+      <Text>{`第 ${page + 1} / ${Math.ceil(matches.length / pageSize)} 页 · ${matches.length} 个匹配品牌`}</Text>
+      {page > 0 ? <Button title="上一页" action={() => setPage(page - 1)} /> : null}
+      {(page + 1) * pageSize < matches.length ? <Button title="下一页" action={() => setPage(page + 1)} /> : null}
+    </Section> : null}
     {matches.length === 0 ? <Section><Text>没有匹配品牌</Text></Section> : null}
   </List>
 }

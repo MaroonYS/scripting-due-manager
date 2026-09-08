@@ -10,7 +10,8 @@ const source = (path: string) => readFileSync(new URL(`../到期管家/${path}`,
 
 test("all saved item operations use history-aware completion and warning-only maintenance", () => {
   const app = source("index.tsx")
-  assert.match(app, /completeManualItem\(nextItem, expectedUpdatedAt, skipToFuture\)/)
+  assert.match(app, /completeManualItem\(nextItem, expectedUpdatedAt, skipToFuture, Date\.now\(\), brandEdit\)/)
+  assert.match(app, /upsertItem\(nextItem, expectedUpdatedAt, brandEdit\)/)
   assert.equal((app.match(/const warning = await refreshAfterDataChange\(\)/g) ?? []).length, 3)
   assert.match(app, /title: "事项已保存"/)
   assert.match(app, /title: "本期已完成"/)
