@@ -42,11 +42,12 @@ for page in 0..<((rows.count + perPage - 1) / perPage) {
             NSColor(calibratedWhite: dark ? 0.11 : 0.98, alpha: 1).setFill()
             NSBezierPath(roundedRect: NSRect(x: left, y: bottom, width: 40, height: 40), xRadius: 6, yRadius: 6).fill()
             let path = files[dark && files.count == 2 ? 1 : 0]["path"] as! String
+            let imageSize = size * (circular && path.contains("/brand-") ? 1.2 : 1.0)
+            let clipSize = min(imageSize, size + 4)
             NSGraphicsContext.saveGraphicsState()
             if circular {
-                NSBezierPath(ovalIn: NSRect(x: left + (40-size)/2, y: bottom + (40-size)/2, width: size, height: size)).addClip()
+                NSBezierPath(ovalIn: NSRect(x: left + (40-clipSize)/2, y: bottom + (40-clipSize)/2, width: clipSize, height: clipSize)).addClip()
             }
-            let imageSize = size * (circular && path.contains("/brand-") ? 1.2 : 1.0)
             images[path]!.draw(in: NSRect(x: left + (40-imageSize)/2, y: bottom + (40-imageSize)/2, width: imageSize, height: imageSize))
             NSGraphicsContext.restoreGraphicsState()
         }

@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.7.2",
+  "version": "2.7.3",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.7.2 improves startup compatibility: a lightweight startup screen, no executable whole-library image data, and asynchronous visible-logo reads with a 1.5-second fallback. Widget-only color modifiers are no longer used in the app. All 332 brands, existing items and saved choices are preserved.",
-    "zh": "2.7.2 启动兼容修正：拆出轻量启动页，移除整库图片代码导入；首屏先用系统图标，仅异步读取可见品牌，1.5 秒超时回退。主界面不再使用小组件专用着色属性。保留全部 332 个品牌、已有事项和设置，无需删除旧脚本。",
-    "zh-Hans": "2.7.2 启动兼容修正：拆出轻量启动页，移除整库图片代码导入；首屏先用系统图标，仅异步读取可见品牌，1.5 秒超时回退。主界面不再使用小组件专用着色属性。保留全部 332 个品牌、已有事项和设置，无需删除旧脚本。",
-    "zh-Hant": "2.7.2 啟動相容修正：拆出輕量啟動頁，移除整庫圖片程式碼匯入；首畫面先用系統圖示，僅非同步讀取可見品牌，1.5 秒逾時回退。主介面不再使用小元件專用著色屬性。保留全部 332 個品牌、既有事項和設定，無需刪除舊腳本。"
+    "en": "2.7.3 expands circular masks for enlarged brand artwork from 24 to 28 pt, giving logos such as ChatGPT more edge room without further image zoom. The app, picker and small widget share the adjustment. Original SafePal and Telegram sizes, 40 pt tap targets, brand choices and startup behavior are unchanged.",
+    "zh": "2.7.3 将放大品牌图案的圆形裁剪直径从 24 pt 放宽到 28 pt，让 ChatGPT 等图案外缘保留更多余量，图片本身不再放大。主界面、选择页和小号组件同步调整。SafePal、Telegram 原尺寸、40 pt 点击区、品牌选择与启动方式不变。",
+    "zh-Hans": "2.7.3 将放大品牌图案的圆形裁剪直径从 24 pt 放宽到 28 pt，让 ChatGPT 等图案外缘保留更多余量，图片本身不再放大。主界面、选择页和小号组件同步调整。SafePal、Telegram 原尺寸、40 pt 点击区、品牌选择与启动方式不变。",
+    "zh-Hant": "2.7.3 將放大品牌圖案的圓形裁剪直徑從 24 pt 放寬到 28 pt，讓 ChatGPT 等圖案外緣保留更多餘量，圖片本身不再放大。主介面、選擇頁和小號元件同步調整。SafePal、Telegram 原尺寸、40 pt 點擊區、品牌選擇與啟動方式不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

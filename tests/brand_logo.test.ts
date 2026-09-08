@@ -22,7 +22,7 @@ const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions
 const { BrandLogo, BrandCompletionLabel } = new Function("h", ...Object.keys(primitives), `${compiled}\nreturn {BrandLogo,BrandCompletionLabel}`)(h, ...Object.values(primitives))
 const nodes = (node: Node): Node[] => [node, ...node.children.filter(child => typeof child === "object").flatMap(nodes)]
 
-test("all brand images receive a circular mask and only generated packaging margins are cropped", async () => {
+test("all brand masks give enlarged artwork more room without changing image scale or original logo sizes", async () => {
   const previous = (globalThis as any).UIImage
   const previousFiles = (globalThis as any).FileManager
   ;(globalThis as any).UIImage = { fromData: (data: unknown) => data }
@@ -32,19 +32,37 @@ test("all brand images receive a circular mask and only generated packaging marg
       const logo = (await loadBrandLogo(asset, "/bundle"))!
       const view = BrandLogo({ logo })
       assert.equal(view.props.clipShape, "circle")
-      assert.deepEqual(view.props.frame, { width: logo.size, height: logo.size })
+      const generated = asset.light.includes("/brand-")
+      const clipSize = generated ? 28 : logo.size
+      assert.deepEqual(view.props.frame, { width: clipSize, height: clipSize })
       assert.equal(view.props.background, undefined)
       const image = view.children[0]
       assert.equal(image.type, "Image")
-      const generated = asset.light.includes("/brand-")
       assert.equal(logo.contentScale, generated ? 1.2 : 1)
       assert.deepEqual(image.props.frame, { width: logo.size * (generated ? 1.2 : 1), height: logo.size * (generated ? 1.2 : 1) })
       assert.equal(image.props.renderingMode, "original")
       assert.equal(image.props.widgetAccentedRenderingMode, undefined, "widget-only modifiers must not leak into app views")
       assert.equal(BrandLogo({ logo, widget: true }).children[0].props.widgetAccentedRenderingMode, "fullColor")
       assert.equal(image.props.foregroundStyle, undefined)
+      assert.ok(clipSize <= image.props.frame.width, "a larger-than-image mask could expose flat square edges")
+      assert.ok(clipSize < 40, "the expanded mask must fit inside the existing completion target")
     }
   } finally { (globalThis as any).UIImage = previous; (globalThis as any).FileManager = previousFiles }
+})
+
+test("ChatGPT's crop expands by 2 pt per edge while its image and 40 pt action target remain unchanged", async () => {
+  const brand = BRAND_CATALOG.find(brand => brand.name === "ChatGPT")!
+  const asset = brandAsset(brand.id)!
+  assert.equal(asset.size, 24)
+  const logo = { image: { light: {}, dark: {} }, size: asset.size, contentScale: 1.2 }
+  const view = BrandCompletionLabel({ logo, title: "完成事项：ChatGPT Pro", hitSize: 40 })
+  const mask = nodes(view).find(node => node.props.clipShape === "circle")!
+  const image = nodes(mask).find(node => node.type === "Image")!
+  assert.deepEqual(mask.props.frame, { width: 28, height: 28 })
+  assert.equal((mask.props.frame.width - logo.size) / 2, 2)
+  assert.deepEqual(image.props.frame, { width: 24 * 1.2, height: 24 * 1.2 })
+  assert.deepEqual(view.props.frame, { width: 40, height: 40 })
+  assert.equal(view.props.contentShape, "rect")
 })
 
 test("the visible circular image is inside a rectangular semantic button label", () => {
@@ -53,7 +71,7 @@ test("the visible circular image is inside a rectangular semantic button label",
   assert.equal(view.type, "ZStack")
   assert.equal(view.props.contentShape, "rect")
   assert.deepEqual(view.props.frame, { width: 40, height: 40 })
-  assert.equal(view.props.clipShape, undefined, "the 40 pt tap region must not be clipped to the 24 pt logo")
+  assert.equal(view.props.clipShape, undefined, "the 40 pt tap region must not be clipped to the logo")
   assert.equal(view.props.foregroundStyle, undefined, "the control label itself must remain visible")
   const semantic = nodes(view).filter(node => node.type === "Label")
   assert.equal(semantic.length, 1)

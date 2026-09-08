@@ -69,7 +69,7 @@ export function BrandSettingsView({ onChanged }: { onChanged: (state: AppState) 
     </Section>
     <Section header={<Text>素材与品牌</Text>} footer={<Text>品牌及商标属于各自权利人，仅用于识别你的事项，不表示合作、背书或支付安全保证。不会读取 SIM、联系人或上传事项。</Text>}>
       <Text>{`${BRAND_CATALOG.length} 个品牌 · ${BRAND_ASSETS.length} 个已内置 Logo`}</Text>
-      <Text font="caption" foregroundStyle="secondaryLabel">图片随安装包内置，离线可用，统一圆形显示并裁去打包外圈留白。来源包括品牌网站、对应官方 App 图标和署名图标库；不代表品牌授权或背书。编辑事项的“选择图标”也可直接选择品牌。</Text>
+      <Text font="caption" foregroundStyle="secondaryLabel">图片随安装包内置，离线可用，统一圆形显示并保留适量边缘留白。来源包括品牌网站、对应官方 App 图标和署名图标库；不代表品牌授权或背书。编辑事项的“选择图标”也可直接选择品牌。</Text>
       <NavigationLink destination={<BrandCatalogView />}><Label title="浏览品牌与素材状态" systemImage="square.grid.2x2" /></NavigationLink>
     </Section>
   </List>
