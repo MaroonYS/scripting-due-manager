@@ -16,7 +16,7 @@ export const PREVIEW_ICON_LAYOUTS = {
 export function SettingsRowIcon({ kind }: { kind: SettingsIconKind }) {
   if (kind === "amount" || kind === "reminders" || kind === "reminderLists") {
     const symbol = {
-      amount: "banknote.fill",
+      amount: "banknote",
       reminders: "list.bullet.clipboard",
       reminderLists: "line.3.horizontal.decrease.circle",
     }[kind]

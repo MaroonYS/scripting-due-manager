@@ -22,13 +22,14 @@ const nodes = (node: Node): Node[] => [node, ...node.children.filter(child => ty
 const text = (node: Node): string => [node.props.title ?? "", ...node.children.map(child =>
   typeof child === "object" ? text(child) : String(child))].join("")
 
-test("amount, Apple Reminders and list filtering use distinct native icons in the same slot", () => {
+test("amount, Apple Reminders and list filtering use outlined native icons in the same slot", () => {
   for (const [kind, symbol] of Object.entries({
-    amount: "banknote.fill", reminders: "list.bullet.clipboard", reminderLists: "line.3.horizontal.decrease.circle",
+    amount: "banknote", reminders: "list.bullet.clipboard", reminderLists: "line.3.horizontal.decrease.circle",
   })) {
     const node = icons.SettingsRowIcon({ kind })
     assert.equal(node.type, "Image")
     assert.equal(node.props.systemName, symbol)
+    assert.ok(!node.props.systemName.endsWith(".fill"), "settings symbols must stay outlined")
     assert.equal(node.props.foregroundStyle, "systemBlue")
     assert.equal(node.props.symbolRenderingMode, "monochrome")
     assert.deepEqual(node.props.frame, { width: 24, height: 24 })
