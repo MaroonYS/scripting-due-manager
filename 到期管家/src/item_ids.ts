@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 /** Keep legacy duplicate suffixes while bringing every manual ID back under the storage/import limit. */
 export function normalizeManualItemID(value: string): string {
   if (value.length <= 160) return value

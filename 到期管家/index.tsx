@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 import {
   Button,
   DatePicker,
@@ -78,6 +82,7 @@ import { reconcileNotifications } from "./src/notifications"
 import { NotificationView } from "./src/notification_view"
 import { RecoveryView } from "./src/recovery_view"
 import { UpdateView } from "./src/update_view"
+import { OwnershipView } from "./src/ownership_view"
 import { readRecoveryStatus } from "./src/recovery"
 import { WidgetActionStatusView } from "./src/widget_action_view"
 
@@ -462,6 +467,9 @@ function DueManagerApp() {
         </HStack>
         <NavigationLink destination={<UpdateView />}>
           <Label title="检查并更新版本" systemImage="arrow.down.circle" />
+        </NavigationLink>
+        <NavigationLink destination={<OwnershipView />}>
+          <Label title="版权与官方来源" systemImage="checkmark.shield" />
         </NavigationLink>
       </Section>
     </List>

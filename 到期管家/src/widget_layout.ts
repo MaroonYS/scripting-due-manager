@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 export type HomeWidgetFamily = "systemSmall" | "systemMedium" | "systemLarge"
 
 const LIST_VERTICAL_PADDING = 22

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 import { reconcileNotifications } from "./notifications"
 import { loadState } from "./storage"
 import { reloadWidgetsAfterStorageWrite } from "./widget_refresh"

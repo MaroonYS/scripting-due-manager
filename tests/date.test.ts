@@ -1,6 +1,11 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
+import { LATEST_PACKAGE_URL } from "../到期管家/src/updates.ts"
 import {
   advanceManualItem,
   addCalendarDays,
@@ -3270,7 +3275,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.5.8")
+  assert.equal(manifest.version, "2.5.9")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 
@@ -3280,7 +3285,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
   )
   const updates = readFileSync(new URL("../到期管家/src/updates.ts", import.meta.url), "utf8")
   const updateView = readFileSync(new URL("../到期管家/src/update_view.tsx", import.meta.url), "utf8")
-  assert.match(updates, /const LATEST_PACKAGE_URL = "https:\/\/github\.com\/MaroonYS\/scripting-due-manager\/releases\/latest\/download\/due-manager\.scripting"/)
+  assert.equal(LATEST_PACKAGE_URL, latestPackageURL)
   assert.match(updates, /from=\$\{encodeURIComponent\(currentVersion\)\}&t=/)
   assert.match(updateView, /await checkLatestRelease\(\)/)
   assert.ok(updateView.indexOf("createLocalSnapshot(`更新至") < updateView.indexOf("await Safari.openURL"))

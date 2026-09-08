@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 import { Button, List, Navigation, Section, Text, useState } from "scripting"
 import { acknowledgeWidgetAction, inspectWidgetAction } from "./widget_action_status"
 import { reloadWidgetsAfterStorageWrite } from "./widget_refresh"

@@ -1,6 +1,12 @@
-export const LATEST_PACKAGE_URL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
+import { OFFICIAL_RELEASES_URL } from "./ownership"
+
+export const LATEST_PACKAGE_URL = `${OFFICIAL_RELEASES_URL}/latest/download/due-manager.scripting`
 const RELEASE_API_URL = "https://api.github.com/repos/MaroonYS/scripting-due-manager/releases/latest"
-const RELEASE_BASE_URL = "https://github.com/MaroonYS/scripting-due-manager/releases"
+const RELEASE_BASE_URL = OFFICIAL_RELEASES_URL
 
 export interface ReleaseInfo {
   version: string

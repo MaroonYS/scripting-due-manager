@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 import { Device, Script, Text, VStack, Widget } from "scripting"
 import { nextWidgetRefresh } from "./src/reminders"
 import { loadWidgetData } from "./src/widget_data"

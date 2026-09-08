@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 const UUID_PATTERN = "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
 const BARE_REMINDER_UUID = new RegExp(`^${UUID_PATTERN}$`, "i")
 const LEGACY_REMINDER_URL = new RegExp(`^x-apple-reminder://${UUID_PATTERN}$`, "i")

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 import { Button, LabeledContent, Link, List, Script, Section, Text, useEffect, useState } from "scripting"
 import { createLocalSnapshot } from "./recovery"
 import { checkLatestRelease, compareVersions, freshPackageURL, type ReleaseInfo } from "./updates"

@@ -1,0 +1,89 @@
+到期管家 / Due Manager — 限制性个人使用许可 1.0
+SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+Copyright (c) 2026 MaroonYS. All rights reserved.
+
+自 v2.5.9（2026-09-08）起随附本许可。官方项目：
+https://github.com/MaroonYS/scripting-due-manager
+
+一、范围与权利保留
+本许可适用于本项目随附的源码、脚本、文档、项目自有设计表达及安装包
+（合称“作品”），仅限 MaroonYS 有权授权且依法可受保护的部分。
+本项目公开可读不等于开源，不采用 MIT、Apache、GPL 等开放源代码许可。
+除下列明确许可、法律规定及平台已有授权外，其他权利均予保留。
+不主张对思想、通用功能、算法原理、依法不受保护的内容或第三方材料享有独占权。
+
+二、有限个人使用
+允许自然人从官方来源获取未修改版本，在本人拥有或控制的设备上，
+通过 Scripting 安装、运行、更新，并为个人非商业使用制作必要备份。
+宿主执行所需的技术转换不视为禁止的修改。允许分享官方页面和安装链接，
+不因此授予重新上传作品的权利。作品权利人的自身使用不受本许可限制。
+
+三、未经事先书面许可禁止的使用
+在法律允许限制的范围内，除第二条、第五条明确允许的情形外，禁止：
+1. 复制、摘取、拼接、翻译、改编作品的全部或部分，或纳入其他项目、模板、
+   服务、教学资料、素材包、模型训练数据集或其他衍生交付物；
+2. 转载、镜像、重新打包、上传到脚本市场、群文件、网盘或其他分发渠道，
+   无论是否收费、署名或提供原链接；
+3. 出售、出租、收费代装、付费订阅、广告变现，或以作品开展商业服务；
+4. 删除、遮挡或替换版权、许可、作者、官方来源及发布校验声明；
+5. 换名、换标、冒充原创或官方发行者，把作品全部或部分声称为自己所有，
+   或暗示未经授予的合作、认可、背书关系。
+仅注明出处、改写变量、调整布局、使用混淆工具或由 AI 改写，不自动获得授权。
+超出有限个人使用的修改、再利用或分发须另行取得书面许可。
+
+四、声明保留与用户数据
+所有获准保留的作品副本须同时保留本 LICENSE、NOTICE.md 及源文件中的声明。
+本许可不转移用户对其自行录入的事项、金额、备注、备份或其他数据的权利，
+不限制其合法导出、迁移和使用自己的数据。声明只约束作品，不将用户数据据为己有。
+
+五、法定权利、第三方与平台例外
+本许可不限制适用法律中不得排除的权利及例外，也不撤销已经有效授予的权利。
+GitHub 服务条款允许的站内查看、fork 及其他必要平台权利继续适用；
+平台许可不等于一般的再分发、商业化或冒充作者许可。
+Apple、Scripting、SF Symbols、被提及的品牌及第三方软件受各自权利与许可约束；
+本许可不代其授权，也不声称与其存在合作或背书。
+本声明不追溯改写旧提交、旧发行包或另行有效签发的许可。历史版本及第三方
+权利须分别核实；本许可不保证所有内容在所有司法辖区均具有版权保护。
+
+六、违约与责任边界
+违反本许可时，本许可授予的额外使用权终止；依法不能终止的权利不受影响。
+应停止未经授权的使用和分发。软件不会据此远程停用、追踪设备或删除用户数据。
+在法律允许范围内，作品按现状提供，不作特定用途、无错误或不侵权保证；
+责任限制不排除依法不得限制的责任。本许可不承诺绝对防复制或自动维权成功。
+商业合作、修改及再分发授权须由官方账号 MaroonYS 明确书面确认。
+
+English summary (the Chinese terms above govern; mandatory law prevails)
+
+This is a restrictive personal-use license, not an open-source license. It covers
+only protectable material that MaroonYS is entitled to license. All other rights
+are reserved, subject to applicable law, third-party rights, platform rights and
+previously valid grants.
+
+Individuals may obtain an unmodified official release, install, run and update it
+on devices they own or control using Scripting, and make necessary backups for
+personal, non-commercial use. Technical transformations required by the host to
+execute the software are permitted. Sharing official links is permitted; it does
+not authorize re-uploading the work.
+
+Except for those permissions and applicable exceptions, prior written permission
+is required to copy or extract portions, modify, translate, create derivatives,
+incorporate the work into other projects or training datasets, mirror, repackage,
+redistribute, sell, rent, monetize or provide commercial services using the work.
+Attribution alone does not grant permission. Removing notices, passing off the
+work as one's own, impersonating the official publisher, or implying endorsement
+without authorization is prohibited. Retain LICENSE, NOTICE.md and source notices
+with permitted copies.
+
+Users retain their rights to their own data and may lawfully export or migrate it.
+GitHub's applicable rights to view and fork within the service remain unaffected.
+Third-party names, software and symbols retain their own rights and terms. This
+license makes no exclusive claim to ideas, general functionality, algorithms,
+unprotectable material or third-party assets. It does not retroactively change
+older releases or revoke valid prior grants.
+
+Additional rights granted here terminate upon breach, subject to mandatory law.
+There is no remote disablement, device tracking or deletion of user data for
+enforcement. The work is provided as-is to the extent permitted by law, without
+excluding liabilities that cannot lawfully be limited. Neither this notice nor
+technical verification guarantees prevention of copying or successful enforcement.
+Contact the official account MaroonYS for explicit written permission.

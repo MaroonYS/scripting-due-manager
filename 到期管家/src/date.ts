@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 import type { ManualDueItem, RecurrenceRule } from "./types"
 
 const DAY_MS = 24 * 60 * 60 * 1000

@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 MaroonYS
+# SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 name: Publish latest Scripting package
 
 on:
@@ -8,6 +10,8 @@ on:
       - "到期管家.scripting"
       - "到期管家/**"
       - "tests/**"
+      - "LICENSE"
+      - "NOTICE.md"
       - "tsconfig.validation.json"
       - "RELEASE_NOTES.md"
       - ".github/workflows/publish-release.yml"
@@ -15,6 +19,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 concurrency:
   group: publish-due-manager
@@ -22,13 +28,16 @@ concurrency:
 
 jobs:
   release:
+    if: github.repository == 'MaroonYS/scripting-due-manager' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: "1.3.11"
 
@@ -50,12 +59,34 @@ jobs:
           package_check_dir="$(mktemp -d)"
           unzip -q '到期管家.scripting' -d "$package_check_dir"
           diff -qr --exclude=README.md --exclude=.DS_Store '到期管家' "$package_check_dir"
+          cmp LICENSE "$package_check_dir/LICENSE"
+          cmp NOTICE.md "$package_check_dir/NOTICE.md"
 
           cp '到期管家.scripting' due-manager.scripting
+          sha256sum due-manager.scripting > SHA256SUMS
+          sha256sum --check SHA256SUMS
           echo "tag=v${version}" >> "$GITHUB_OUTPUT"
           echo "title=到期管家 v${version}" >> "$GITHUB_OUTPUT"
 
-      - name: Create or update latest release
+      - name: Attest verified official package
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: due-manager.scripting
+          create-storage-record: false
+
+      - name: Verify publishing provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh attestation verify due-manager.scripting \
+            --repo MaroonYS/scripting-due-manager \
+            --signer-workflow MaroonYS/scripting-due-manager/.github/workflows/publish-release.yml \
+            --source-ref refs/heads/main --source-digest "$GITHUB_SHA" \
+            --deny-self-hosted-runners
+
+      - name: Create or verify latest release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.package.outputs.tag }}
@@ -66,14 +97,15 @@ jobs:
 
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             existing_package_dir="$(mktemp -d)"
-            gh release download "$RELEASE_TAG" --pattern due-manager.scripting --dir "$existing_package_dir"
+            gh release download "$RELEASE_TAG" --pattern due-manager.scripting --pattern SHA256SUMS --dir "$existing_package_dir"
             if ! cmp due-manager.scripting "$existing_package_dir/due-manager.scripting"; then
               echo "Refusing to overwrite an existing version with different bytes. Bump the version."
               exit 1
             fi
+            cmp SHA256SUMS "$existing_package_dir/SHA256SUMS"
             gh release edit "$RELEASE_TAG" --latest
           else
-            gh release create "$RELEASE_TAG" due-manager.scripting \
+            gh release create "$RELEASE_TAG" due-manager.scripting SHA256SUMS \
               --target "$GITHUB_SHA" \
               --title "$RELEASE_TITLE" \
               --notes-file RELEASE_NOTES.md \

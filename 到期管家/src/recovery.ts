@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 import { parseDateKey, MAX_RECURRENCE_INTERVAL, MAX_REMIND_BEFORE_DAYS } from "./date"
 import { isItemKind } from "./item_kinds"
 import { normalizeIconOverride } from "./icons"

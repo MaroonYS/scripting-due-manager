@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 import { dateKeyToLocalDate, localDateKey, pad2, parseDateKey } from "./date"
 import type { DisplayDueItem, ItemKind } from "./types"
 

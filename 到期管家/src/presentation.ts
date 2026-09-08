@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 MaroonYS
+// SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
+// See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
+
 import { dueStatus, humanDate, localDateKey } from "./date"
 import { itemKindDefinition } from "./item_kinds"
 import type { DisplayDueItem, ItemKind, RecurrenceRule } from "./types"
