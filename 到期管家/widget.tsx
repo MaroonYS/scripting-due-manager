@@ -16,6 +16,7 @@ import { configureWidgetLocale, currentWidgetLocale, widgetText } from "./src/wi
 import { DueManagerWidget } from "./src/widget_view"
 import { reconcileNotifications } from "./src/notifications"
 import { loadArtworkPage } from "./src/artwork_assets"
+import type { LoadedArtwork } from "./src/artwork_assets"
 import { withReadDeadline } from "./src/async_deadline"
 import { widgetItemCapacity } from "./src/widget_layout"
 
@@ -32,14 +33,23 @@ async function main() {
   const family = Widget.family
   const iconLimit = family === "systemSmall" ? 2
     : family === "systemMedium" || family === "systemLarge" ? widgetItemCapacity(family, Widget.displaySize?.height) : 0
+  let displayItems = items
   if (iconLimit > 0) {
-    try { await withReadDeadline(() => loadArtworkPage(items.slice(0, iconLimit).map(item => item.artworkID), Script.directory), 1600) }
+    let active = true
+    const images: Record<string, LoadedArtwork> = {}
+    try {
+      await withReadDeadline(() => loadArtworkPage(items.slice(0, iconLimit).map(item => item.artworkID), Script.directory, {
+        shouldContinue: () => active, onImage: (id, image) => { if (active) images[id] = image },
+      }), 1600)
+    }
     catch { /* Present usable SF Symbol actions on the same timeline. */ }
+    finally { active = false }
+    displayItems = items.map(item => ({ ...item, artworkImage: item.artworkID ? images[item.artworkID] : undefined }))
   }
 
   Widget.present(
     <DueManagerWidget
-      items={items}
+      items={displayItems}
       completionGeneration={completionTransition.generation}
       reminderFetchedAt={reminderResult.fetchedAt}
       remindersLive={reminderResult.live}

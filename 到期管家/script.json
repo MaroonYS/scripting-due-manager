@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.0.0",
-  "description": "Track due dates and Apple Reminders with compact widgets, 829 offline Icons8 color icons, per-item SF Symbols, safe completion, backups and checked updates.",
+  "version": "3.1.0",
+  "description": "Track due dates and Apple Reminders with Fluent Emoji Flat and Icons8 online icon search, title-based suggestions, adaptive artwork, per-item SF Symbols, backups and checked updates. Icons8 requires your API key.",
   "localizedDescriptions": {
-    "en": "3.0 introduces 829 offline Icons8 Windows 11 Color icons across 23 categories, with search and paged browsing. Choose color artwork or SF Symbols independently for manual items and Apple Reminders. The main list and small, medium and large widgets share each choice; lock-screen accessories retain system symbols. Original image colors and proportions are preserved, with local fallbacks and dark-mode contrast plates where needed. Existing items, recurrence, notifications and backups remain compatible. The old mixed-source brand library is retired; its choices remain only as inactive backup metadata.",
-    "zh": "3.0 内置 829 枚 Icons8 Windows 11 Color 图标，覆盖 23 个分类，支持中英文搜索和分页预览。手动事项与 Apple 提醒事项均可独立选择彩色图标或 SF Symbols，主界面及小中大组件同步显示，锁屏附件保留系统符号。原图不裁剪、不重绘，按需离线加载，缺图安全回退，深色标志带暗色模式对比底板。事项、周期、通知、记录与备份继续兼容；旧混合品牌库已退役，旧选择仅作备份兼容保留。",
-    "zh-Hans": "3.0 内置 829 枚 Icons8 Windows 11 Color 图标，覆盖 23 个分类，支持中英文搜索和分页预览。手动事项与 Apple 提醒事项均可独立选择彩色图标或 SF Symbols，主界面及小中大组件同步显示，锁屏附件保留系统符号。原图不裁剪、不重绘，按需离线加载，缺图安全回退，深色标志带暗色模式对比底板。事项、周期、通知、记录与备份继续兼容；旧混合品牌库已退役，旧选择仅作备份兼容保留。",
-    "zh-Hant": "3.0 內建 829 枚 Icons8 Windows 11 Color 圖示，涵蓋 23 個分類，支援中英文搜尋和分頁預覽。手動事項與 Apple 提醒事項均可獨立選擇彩色圖示或 SF Symbols，主介面及小中大元件同步顯示，鎖定畫面附件保留系統符號。原圖不裁切、不重繪，按需離線載入，缺圖安全退回系統符號，深色標誌帶深色模式對比底板。事項、週期、通知、記錄與備份繼續相容；舊混合品牌庫已退役，舊選擇僅作備份相容保留。"
+    "en": "3.1 adds online search for Fluent Emoji Flat and Icons8, item-title suggestions, and adaptive sizing, proportions, padding and light/dark backgrounds. Fluent works without a key; Icons8 requires your own API key, stored only in the script's local Keychain and excluded from backups. Suggestions send recognized public brand/category keywords, not full item titles or notes, and never replace choices automatically. Main views and home-screen widgets share per-item choices with safe system-symbol fallbacks. Existing bundled artwork, items, recurrence, notifications and backups remain compatible.",
+    "zh": "3.1 接入 Fluent Emoji Flat 与 Icons8 双在线搜索、按事项名称推荐，以及尺寸、比例、留白和深浅色背景自适配。Fluent 可直接使用；Icons8 需自行配置 API Key，仅存本机钥匙串，不进入备份。自动推荐只发送识别出的公开品牌／类别词，不上传完整事项名称或备注，不自动覆盖已有选择。主界面与桌面组件同步显示，失败安全回退系统符号。原有内置图案、事项、周期、通知及备份继续兼容。",
+    "zh-Hans": "3.1 接入 Fluent Emoji Flat 与 Icons8 双在线搜索、按事项名称推荐，以及尺寸、比例、留白和深浅色背景自适配。Fluent 可直接使用；Icons8 需自行配置 API Key，仅存本机钥匙串，不进入备份。自动推荐只发送识别出的公开品牌／类别词，不上传完整事项名称或备注，不自动覆盖已有选择。主界面与桌面组件同步显示，失败安全回退系统符号。原有内置图案、事项、周期、通知及备份继续兼容。",
+    "zh-Hant": "3.1 接入 Fluent Emoji Flat 與 Icons8 雙線上搜尋、依事項名稱推薦，以及尺寸、比例、留白和深淺色背景自適配。Fluent 可直接使用；Icons8 需自行設定 API Key，僅存本機鑰匙圈，不進入備份。自動推薦只傳送辨識出的公開品牌／類別詞，不上傳完整事項名稱或備註，不自動覆蓋既有選擇。主介面與桌面元件同步顯示，失敗安全退回系統符號。原有內建圖案、事項、週期、通知及備份繼續相容。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

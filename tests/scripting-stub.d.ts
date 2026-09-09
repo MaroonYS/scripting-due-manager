@@ -31,7 +31,9 @@ declare module "scripting" {
   export const RoundedRectangle: any
   export const Script: any
   export const Section: any
+  export const SecureField: any
   export const Spacer: any
+  export const SVG: any
   export const Text: any
   export const TextField: any
   export const Toggle: any
@@ -100,7 +102,14 @@ declare function clearTimeout(timer: unknown): void
 declare function fetch(url: string, init?: {
   headers?: Record<string, string>
   timeout?: number
-}): Promise<{ ok: boolean; status: number; json(): Promise<any> }>
+  handleRedirect?: () => Promise<null>
+}): Promise<{ ok: boolean; status: number; json(): Promise<any>; text(): Promise<string>; data(): Promise<unknown>; expectedContentLength?: number }>
+
+declare const Keychain: {
+  get(key: string, options?: { synchronizable: boolean; accessibility: "first_unlock_this_device" }): string | null
+  set(key: string, value: string, options?: { synchronizable: boolean; accessibility: "first_unlock_this_device" }): boolean
+  remove(key: string, options?: { synchronizable: boolean; accessibility: "first_unlock_this_device" }): boolean
+}
 
 declare const Safari: { openURL(url: string): Promise<boolean> }
 declare const Data: { fromString(value: string): unknown | null }
@@ -114,6 +123,8 @@ declare const FileManager: {
   readAsData(path: string): Promise<unknown>
 }
 declare class UIImage {
+  readonly width: number
+  readonly height: number
   static fromData(data: unknown): UIImage | null
   static fromFile(path: string): UIImage | null
   static fromBase64String(value: string): UIImage | null

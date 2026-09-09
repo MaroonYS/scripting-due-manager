@@ -92,6 +92,7 @@ import { WidgetActionStatusView } from "./widget_action_view"
 import { ArtworkBrowser } from "./artwork_browser"
 import { ArtworkCompletionLabel, ArtworkImage, useVisibleArtwork } from "./artwork_image"
 import { artworkByID, symbolChoice } from "./artwork_catalog"
+import { onlineArtworkLabel } from "./online_artwork_ids"
 import { itemIconID } from "./icon_preferences"
 import type { ItemIconEdit } from "./icon_preferences"
 import { IconLibraryView } from "./icon_library_view"
@@ -386,7 +387,7 @@ function DueManagerApp() {
         </Section>
         : null}
 
-      <Section header={<Text>图标与外观 · 3.0</Text>} footer={<Text>每个事项可独立选择彩色图标或 SF Symbols，主界面与桌面组件同步显示。</Text>}>
+      <Section header={<Text>图标与外观 · 在线图库</Text>} footer={<Text>Fluent Emoji Flat / Icons8 在线搜索、按名称推荐与自适配；每个事项独立选择，主界面与桌面组件同步显示。</Text>}>
         <NavigationLink destination={<IconLibraryView state={state} onChanged={refreshState}
           manualDestination={item => <ItemEditor item={item} onChanged={refreshState} />} />}>
           <Label title="图标图库与逐项设置" systemImage="square.grid.2x2.fill" />
@@ -1012,7 +1013,7 @@ function IconSettingRow({
     <Text>图标</Text>
     <Spacer />
     <Text font="subheadline" foregroundStyle="secondaryLabel" lineLimit={1}>
-      {definition ? definition.label : artworkID ? "未收录 · 保留选择" : value == null ? `自动 · ${icon.label}` : icon.label}
+      {definition ? definition.label : onlineArtworkLabel(artworkID) ?? (artworkID ? "未收录 · 保留选择" : value == null ? `自动 · ${icon.label}` : icon.label)}
     </Text>
   </HStack>
 }
@@ -1046,7 +1047,7 @@ function IconPicker({
     navigationBarTitleDisplayMode="inline"
   >
     {onArtworkChanged ? <Section header={<Text>彩色图标</Text>} footer={<Text>应用图标与系统符号可以逐项混合使用，不会切换全局模式。</Text>}>
-      <NavigationLink destination={<ArtworkBrowser selectedID={artworkID} onSelected={onArtworkChanged} />}>
+      <NavigationLink destination={<ArtworkBrowser selectedID={artworkID} onSelected={onArtworkChanged} itemTitle={title} itemKind={kind} />}>
         <IconSettingRow title={title} kind={kind} value={value} artworkID={artworkID} />
       </NavigationLink>
     </Section> : null}

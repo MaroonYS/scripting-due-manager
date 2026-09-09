@@ -4,7 +4,8 @@
 
 import { Button, HStack, Image, Label, List, Navigation, NavigationLink, Section, Spacer, Text, TextField, VStack, useEffect, useState } from "scripting"
 import { ArtworkBrowser } from "./artwork_browser"
-import { ARTWORK_CATALOG, artworkByID, symbolChoice } from "./artwork_catalog"
+import { artworkByID, symbolChoice } from "./artwork_catalog"
+import { onlineArtworkLabel } from "./online_artwork_ids"
 import { ArtworkImage, useVisibleArtwork } from "./artwork_image"
 import { itemIconID } from "./icon_preferences"
 import { DUE_ICON_GROUPS, DUE_ICON_OPTIONS, resolveDueIcon } from "./icons"
@@ -39,9 +40,9 @@ export function IconLibraryView({ state, onChanged, manualDestination }: {
   const pages = Math.max(1, Math.ceil(rows.length / 40)), currentPage = Math.min(page, pages - 1)
   const visible = rows.slice(currentPage * 40, (currentPage + 1) * 40)
   return <List listStyle="insetGroup" navigationTitle="图标图库与逐项设置" navigationBarTitleDisplayMode="inline">
-    <Section footer={<Text>3.0 彩色图库统一采用 Icons8 Windows 11 Color，不沿用旧混合品牌图库。图标只在本机选择和保存，事项名称不会上传给图标服务。</Text>}>
-      <NavigationLink destination={<ArtworkBrowser />}><Label title={`预览彩色图库 · ${ARTWORK_CATALOG.length} 枚`} systemImage="square.grid.2x2.fill" /></NavigationLink>
-      <Text font="caption" foregroundStyle="secondaryLabel">已设置的 SF Symbols 保持不变。旧品牌图标选择仅作为兼容数据保留，不会自动替换成新版图片。</Text>
+    <Section footer={<Text>Fluent Emoji Flat 与 Icons8 均在线搜索。事项图标页会按名称推荐，仅发送本机识别出的品牌／类别关键词，不发送完整事项名称、备注、金额或日期。Icons8 需在图库内配置 API Key。</Text>}>
+      <NavigationLink destination={<ArtworkBrowser />}><Label title="在线图库 · Fluent Emoji Flat / Icons8" systemImage="square.grid.2x2.fill" /></NavigationLink>
+      <Text font="caption" foregroundStyle="secondaryLabel">原有 SF Symbols 和内置图标选择保持不变；新在线图标自动适配尺寸、比例、留白与深浅色背景。</Text>
     </Section>
     <Section header={<Text>选择要设置的事项</Text>} footer={<Text>手动事项进入编辑页，保存后生效；Apple 提醒事项的图标选择只保存在到期管家，不修改系统事项或备注。</Text>}>
       <TextField title="查找事项" value={query} prompt="输入事项名称" onChanged={(value: string) => { setQuery(value); setPage(0) }} />
@@ -70,7 +71,7 @@ function ItemIconLibraryRow({ title, source, iconID, fallback }: { title: string
     {image ? <ArtworkImage image={image} /> : <Image systemName={symbol?.name ?? fallback} foregroundStyle="systemBlue" frame={{ width: 24 }} />}
     <VStack alignment="leading" spacing={3}>
       <Text lineLimit={1}>{title}</Text>
-      <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={1}>{source === "manual" ? "手动事项" : "Apple 提醒事项"} · {artwork?.label ?? symbol?.label ?? (iconID ? "未收录 · 保留选择" : "SF Symbols")}</Text>
+      <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={1}>{source === "manual" ? "手动事项" : "Apple 提醒事项"} · {artwork?.label ?? onlineArtworkLabel(iconID) ?? symbol?.label ?? (iconID ? "未收录 · 保留选择" : "SF Symbols")}</Text>
     </VStack>
   </HStack>
 }
@@ -101,7 +102,7 @@ export function ReminderIconEditor({ item, onChanged }: { item: DisplayDueItem; 
     toolbar={{ confirmationAction: <Button title={busy ? "正在保存…" : "保存"} disabled={busy} action={() => { void save() }} /> }}>
     <Section footer={<Text>仅影响到期管家的显示；返回不保存即可取消。不会修改 Apple 提醒事项的名称、备注或到期日。</Text>}>
       <Text font="headline">{item.title}</Text>
-      <NavigationLink destination={<ArtworkBrowser selectedID={selectedID} onSelected={setSelectedID} />}>
+      <NavigationLink destination={<ArtworkBrowser selectedID={selectedID} onSelected={setSelectedID} itemTitle={item.title} itemKind="reminder" />}>
         <ItemIconLibraryRow title="选择彩色图标" source="reminder" iconID={selectedID} fallback={item.iconName} />
       </NavigationLink>
       <Button title={selectedID == null ? "✓ 自动匹配系统图标" : "自动匹配系统图标"} action={() => setSelectedID(null)} />

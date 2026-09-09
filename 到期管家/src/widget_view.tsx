@@ -236,8 +236,8 @@ function LargeSummaryHeader({
             foregroundStyle={issue.color}
           />
           : null}
-        {item && peekArtwork(item.artworkID, Script.directory) ? <VStack frame={{ width: 40, height: 40 }}>
-          <ArtworkImage image={peekArtwork(item.artworkID, Script.directory)!} size={30} widget />
+        {item && (item.artworkImage ?? peekArtwork(item.artworkID, Script.directory)) ? <VStack frame={{ width: 40, height: 40 }}>
+          <ArtworkImage image={(item.artworkImage ?? peekArtwork(item.artworkID, Script.directory))!} size={30} widget />
         </VStack> : <Image
           systemName={item?.iconName ?? "calendar.badge.clock"}
           font={26}
@@ -486,7 +486,7 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
         padding={{ top: -5, leading: 5, trailing: 5, bottom: 9 }}
         frame={{ maxWidth: "infinity" }}
       >
-        {peekArtwork(item.artworkID, Script.directory) ? <ArtworkImage image={peekArtwork(item.artworkID, Script.directory)!} size={12} widget /> : <Image
+        {(item.artworkImage ?? peekArtwork(item.artworkID, Script.directory)) ? <ArtworkImage image={(item.artworkImage ?? peekArtwork(item.artworkID, Script.directory))!} size={12} widget /> : <Image
           systemName={item.iconName}
           font={11}
           foregroundStyle={item.iconColor}
@@ -927,7 +927,7 @@ function ListCompletionIcon({
       enabled={false}
     />
   }
-  const artwork = peekArtwork(item.artworkID, Script.directory)
+  const artwork = item.artworkImage ?? peekArtwork(item.artworkID, Script.directory)
   if (artwork) return <Button buttonStyle="plain" contentShape="rect" frame={{ width: hitSize, height: hitSize }}
     intent={CompleteDueItemIntent({ source: item.source, id: item.id, occurrenceKey: item.completionKey })}>
     <ArtworkCompletionLabel image={artwork} title={widgetCompletionLabel(item, widgetRuntimeLocale())} hitSize={hitSize} widget />
@@ -963,7 +963,7 @@ function ListCompletionSymbol({
   symbolSize: number
   enabled: boolean
 }) {
-  const artwork = peekArtwork(item.artworkID, Script.directory)
+  const artwork = item.artworkImage ?? peekArtwork(item.artworkID, Script.directory)
   if (artwork) return <VStack frame={{ width: hitSize, height: hitSize }} opacity={enabled ? 1 : 0.6}>
     <ArtworkImage image={artwork} widget />
   </VStack>

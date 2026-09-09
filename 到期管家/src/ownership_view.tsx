@@ -22,9 +22,10 @@ export function OwnershipView() {
       {licenseURL ? <Link url={licenseURL}><Text>查看此版本完整许可</Text></Link> : null}
       {noticeURL ? <Link url={noticeURL}><Text>查看此版本来源与第三方声明</Text></Link> : null}
     </Section>
-    <Section header={<Text>Icons8 彩色图标</Text>}>
-      <Text>3.0 图库采用 Icons8 Windows 11 Color 原图。第三方图案与各品牌商标仍归其权利人，不属于到期管家的独占版权，也不代表品牌背书。</Text>
-      <Text font="footnote" foregroundStyle="secondaryLabel">图片仅供随到期管家使用，本项目不授予独立素材提取、再许可或素材库再分发权。来源与逐图哈希随安装包附带。</Text>
+    <Section header={<Text>第三方在线图库</Text>}>
+      <Text>Fluent Emoji Flat 由 Microsoft 提供，经 Iconify 在线加载，适用 MIT 许可；完整第三方许可随包附带。本项目的限制性许可不改变这些图案的 MIT 权利。</Text>
+      <Text>Icons8 提供在线应用与生活图标，需要配置自己的 API Key；原有 Windows 11 Color 内置图案继续兼容已选事项。</Text>
+      <Text font="footnote" foregroundStyle="secondaryLabel">Icons8 图案遵循其适用授权及 API 条款，本项目不授予独立素材提取、再许可或素材库再分发权。图案与商标归各权利人，不代表品牌背书。内置文件的来源与逐图哈希随包附带。</Text>
     </Section>
     <Section header={<Text>核对官方发行</Text>}
       footer={<Text>链接仅在点按时打开。本页不联网验证本机代码，不收集事项或设备信息，不设置授权锁。</Text>}>

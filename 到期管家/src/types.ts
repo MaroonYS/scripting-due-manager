@@ -128,8 +128,10 @@ export interface DisplayDueItem {
   iconColor: string
   /** A user-selected SF Symbol is independent of automatic category matching. */
   iconIsExplicit?: boolean
-  /** Known bundled color artwork; missing images fall back to iconName. */
+  /** Valid provider-qualified or compatible bundled artwork; failures use iconName. */
   artworkID?: string
+  /** Transient widget render data only: never serialized into app state or backups. */
+  artworkImage?: import("./artwork_assets").LoadedArtwork
   dueDate: string
   includesTime: boolean
   hour: number

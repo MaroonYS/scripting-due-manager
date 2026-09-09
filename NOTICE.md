@@ -39,12 +39,29 @@ v3.0 使用 Icons8 Windows 11 Color 第三方图案，当前包附带 829 张原
 sources.json（每项来源地址、尺寸、SHA-256 与显示底板标记）。
 Icons8：https://icons8.com/ · 风格：https://icons8.com/icons/fluency
 
+v3.1 的图库入口改为 Fluent Emoji Flat 与 Icons8 在线搜索。以上 829 张内置
+Icons8 原图继续兼容旧选择，不作为新在线搜索结果的本地替代。
+Fluent Emoji Flat 来自 Microsoft fluentui-emoji，由 Iconify API 提供，适用 MIT
+许可，完整原许可见 assets/fluent-emoji-flat/LICENSE。项目的限制性许可不改变
+这些第三方图案的 MIT 权利；Microsoft 及各品牌商标权利仍分别保留。
+来源：https://github.com/microsoft/fluentui-emoji · https://iconify.design/
+
+在线 Icons8 使用服务方的 Search / Renderer API，需要使用者自己的 API Key
+及适用访问权限。密钥仅写入当前脚本的本机系统钥匙串，不随安装包或备份分发。
+API 图案实时请求，不缓存响应到本地文件或成功结果缓存；第三方 API 权限与
+原有网站下载素材的离线打包授权不同，具体受 Icons8 API 条款和账户权限约束。
+服务：https://developers.icons8.com/docs/searchIcons
+条款说明：https://intercom.help/icons8-7fb7577e8170/en/articles/8204671-rendering-icons-with-icons8-api
+
+在线搜索会向所选服务发送搜索词。自动推荐只发送本机识别出的公开品牌／类别词，
+不自动上传完整事项名称、备注、金额或日期；推荐不自动替换已经保存的选择。
+
 旧混合品牌／App Logo 图库已从当前包移除，不以旧素材补充新风格的缺项。
 历史发行中的第三方图片仍分别适用原发行随附的来源记录、第三方许可及商标限制；
 移除图库不改变这些权利，也不对相关图片主张独占版权。
 
 事项、金额、备注和个人备份仍属于用户数据，本声明不取得这些数据的权利。
-没有授权服务器、设备绑定、后台取证上传、遥测水印、远程停用或清空数据逻辑。
+没有本项目的许可授权服务器、设备绑定、后台取证上传、遥测水印、远程停用或清空数据逻辑。
 公开可下载的脚本仍可被复制；许可和来源验证用于声明限制、辨别来源及保留证据。
 
 Personal use only under the bundled LICENSE. No unauthorized reuse, redistribution,

@@ -9,17 +9,21 @@ import * as catalog from "../到期管家/src/artwork_catalog.ts"
 import * as icons from "../到期管家/src/icons.ts"
 import { itemIconID } from "../到期管家/src/icon_preferences.ts"
 import { defaultState } from "../到期管家/src/storage.ts"
+import { artworkFrame } from "../到期管家/src/artwork_adaptation.ts"
+import { recommendIconQueries } from "../到期管家/src/icon_recommendations.ts"
+import { onlineArtworkLabel } from "../到期管家/src/online_artwork_ids.ts"
+import { ICONS8_STYLES } from "../到期管家/src/online_artwork.ts"
 
 const chat = "icons8-ka3InxFU3QZa", claude = "icons8-zQjzFjPpT2Ek"
 const read = (file: string) => readFileSync(new URL(`../到期管家/src/${file}`, import.meta.url), "utf8")
 const h = (type: any, props: any, ...children: any[]) => ({ type: typeof type === "function" ? type.name : type, props: props ?? {}, children: children.flat(Infinity).filter(c => c != null && c !== false) })
 const nodes = (node: any): any[] => [node, ...node.children.filter((c: any) => typeof c === "object").flatMap(nodes)]
 const flush = async () => { for (let n = 0; n < 20; n++) await Promise.resolve() }
-const primitives = Object.fromEntries(["Button", "Image", "Label", "HStack", "VStack", "ZStack", "Text", "Spacer", "RoundedRectangle", "NavigationLink", "Section", "List", "TextField", "Picker", "Link", "LazyVGrid", "ArtworkImage", "ArtworkCompletionLabel", "ArtworkBrowser", "ItemIconLibraryRow"].map(name => [name, name]))
+const primitives = Object.fromEntries(["Button", "Image", "SVG", "SecureField", "Label", "HStack", "VStack", "ZStack", "Text", "Spacer", "RoundedRectangle", "NavigationLink", "Section", "List", "TextField", "Picker", "Link", "LazyVGrid", "ArtworkImage", "ArtworkCompletionLabel", "ArtworkBrowser", "ItemIconLibraryRow"].map(name => [name, name]))
 function compile(source: string, names: string[], bindings: Record<string, any>) {
   const code = source.replace(/^import .*$/gm, "").replace(/^export /gm, "")
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(code)
-  const env = { h, ...primitives, ...bindings }
+  const env = { h, ...primitives, artworkFrame, recommendIconQueries, onlineArtworkLabel, ICONS8_STYLES, ...bindings }
   return new Function(...Object.keys(env), `${compiled}\nreturn {${names.join(",")}}`)(...Object.values(env))
 }
 function hooks() {
@@ -102,26 +106,53 @@ test("native list rows defer image reads until appearance and discard results af
   state.cleanup()
 })
 
-function browserHarness(select = false) {
+function browserHarness(select = false, itemTitle = "") {
   const state = hooks(), events: any[] = [], requests: { ids: string[]; finish: (value: any) => void }[] = []
+  const searches: { provider: string; query: string; page: number; style: string; finish: (value: any) => void; fail: (error: Error) => void }[] = []
+  let key: string | null = null
   const { ArtworkBrowser } = compile(read("artwork_browser.tsx"), ["ArtworkBrowser"], {
     ...state, ...catalog, Script: { directory: "/bundle" }, Navigation: { useDismiss: () => () => events.push("dismiss") },
     loadArtworkPage: (ids: string[]) => new Promise(resolve => requests.push({ ids, finish: resolve })),
+    searchOnlineArtwork: (provider: string, query: string, page: number, style: string) => new Promise((finish, fail) => searches.push({ provider, query, page, style, finish, fail })),
+    readIcons8Key: () => key, iconKeychainAvailable: () => true,
+    saveIcons8Key: (value: string) => { events.push("saveKey"); key = value }, removeIcons8Key: () => { events.push("removeKey"); key = null },
   })
-  return { state, events, requests, render: () => { state.reset(); return ArtworkBrowser(select ? { onSelected: (id: string) => events.push(id) } : {}) } }
+  const render = () => { state.reset(); return ArtworkBrowser({ itemTitle, itemKind: "subscription", ...(select ? { onSelected: (id: string) => events.push(id) } : {}) }) }
+  return { state, events, requests, searches, render,
+    show: () => { render().props.onAppear(); return render() },
+    submit: (query: string) => {
+      nodes(render()).find(n => n.type === "TextField").props.onChanged(query)
+      nodes(render()).find(n => n.type === "Button" && n.props.title === "在线搜索").props.action()
+      return render()
+    },
+  }
 }
 
-test("color browser decodes only 24 visible icons, changes pages and resets pages on search", () => {
+const onlineIDs = (offset = 0) => Array.from({ length: 24 }, (_, i) => `fluent-emoji-flat:icon-${i + offset}`)
+function finishSearch(env: ReturnType<typeof browserHarness>, index: number, offset = 0) {
+  const ids = onlineIDs(offset)
+  env.searches[index].finish({ icons: ids.map(id => ({ id, label: id, detail: "Fluent" })), hasMore: true, page: env.searches[index].page })
+}
+
+test("online browser sends no request until visible and searching, decodes one page and resets on new terms", async () => {
   const env = browserHarness()
+  env.show()
+  assert.equal(env.searches.length, 0); assert.equal(env.requests.length, 0)
+  env.submit("clock")
+  assert.equal(env.searches[0].provider, "fluent"); assert.equal(env.searches[0].query, "clock")
+  finishSearch(env, 0); await flush()
   let root = env.render()
   assert.equal(env.requests[0].ids.length, 24)
-  assert.equal(nodes(root).filter(n => n.type === "Button" && n.props.key?.startsWith("icons8-")).length, 24)
+  assert.equal(nodes(root).filter(n => n.type === "Button" && n.props.key?.startsWith("fluent-")).length, 24)
   nodes(root).find(n => n.type === "Button" && n.props.title === "下一页").props.action()
   root = env.render()
-  assert.deepEqual(env.requests[1].ids, catalog.ARTWORK_CATALOG.slice(24, 48).map(i => i.id))
-  nodes(root).find(n => n.type === "TextField").props.onChanged("微信")
+  assert.equal(env.searches[1].page, 1)
+  finishSearch(env, 1, 24); await flush(); env.render()
+  assert.deepEqual(env.requests[1].ids, onlineIDs(24))
+  nodes(root).find(n => n.type === "TextField").props.onChanged("book")
   root = env.render()
-  assert.deepEqual(env.requests[2].ids, catalog.searchArtwork("微信").map(i => i.id))
+  assert.equal(env.searches.length, 2) // Typing alone does not send requests.
+  env.submit("book"); assert.equal(env.searches[2].page, 0)
   assert.ok(!nodes(root).some(n => n.type === "Button" && n.props.title === "上一页"))
   assert.deepEqual(env.events, [])
   env.state.cleanup()
@@ -129,9 +160,11 @@ test("color browser decodes only 24 visible icons, changes pages and resets page
 
 test("obsolete browser page loads do not replace the current page or flash stale thumbnails", async () => {
   const env = browserHarness()
+  env.show(); env.submit("clock"); finishSearch(env, 0); await flush()
   let root = env.render()
   nodes(root).find(n => n.type === "Button" && n.props.title === "下一页").props.action()
   root = env.render()
+  finishSearch(env, 1, 24); await flush(); root = env.render()
   const old = Object.fromEntries(env.requests[0].ids.map(id => [id, { image: id }]))
   env.requests[0].finish(old); await flush()
   assert.equal(nodes(env.render()).filter(n => n.type === "ArtworkImage").length, 0)
@@ -141,14 +174,77 @@ test("obsolete browser page loads do not replace the current page or flash stale
   env.state.cleanup()
 })
 
-test("preview-only browser never dismisses or saves; selection invokes exactly one callback and dismissal", () => {
+test("preview-only browser never saves; item selection requires a loaded preview and then dismisses once", async () => {
   for (const select of [false, true]) {
-    const env = browserHarness(select), root = env.render()
-    const button = nodes(root).find(n => n.type === "Button" && n.props.key?.startsWith("icons8-"))
+    const env = browserHarness(select)
+    env.show(); env.submit("clock"); finishSearch(env, 0); await flush()
+    let root = env.render()
+    let button = nodes(root).find(n => n.type === "Button" && n.props.key?.startsWith("fluent-"))
+    if (select) { assert.equal(button.props.disabled, true); button.props.action(); assert.deepEqual(env.events, []) }
+    env.requests[0].finish(Object.fromEntries(env.requests[0].ids.map(id => [id, { svg: "svg" }]))); await flush()
+    root = env.render()
+    button = nodes(root).find(n => n.type === "Button" && n.props.key?.startsWith("fluent-"))
     button.props.action()
+    if (select) button.props.action() // Native double-taps must not dismiss two levels.
     assert.deepEqual(env.events, select ? [button.props.key, "dismiss"] : [])
     env.state.cleanup()
   }
+})
+
+test("obsolete searches cannot replace results after terms, provider changes or dismissal", async () => {
+  const env = browserHarness()
+  env.show(); env.submit("clock"); env.submit("book")
+  finishSearch(env, 1, 40); await flush(); env.render()
+  finishSearch(env, 0); await flush()
+  assert.deepEqual(env.requests[0].ids, onlineIDs(40))
+  let root = env.render()
+  nodes(root).find(n => n.type === "Picker" && n.props.title === "在线图库").props.onChanged("icons8")
+  env.render(); assert.equal(env.searches[2].provider, "icons8")
+  root = env.render(); root.props.onDisappear(); env.render()
+  finishSearch(env, 2, 70); await flush()
+  assert.equal(nodes(env.render()).filter(n => n.type === "ArtworkImage").length, 0)
+  env.state.cleanup()
+})
+
+test("automatic recommendations start only on appearance and never auto-save or transmit the full title", () => {
+  const env = browserHarness(true, "ChatGPT Plus 给张三 2026-10-01")
+  env.render(); assert.equal(env.searches.length, 0)
+  let root = env.show()
+  assert.equal(env.searches[0].query, "robot"); assert.deepEqual(env.events, [])
+  nodes(root).find(n => n.type === "Picker" && n.props.title === "在线图库").props.onChanged("icons8")
+  env.render()
+  assert.equal(env.searches[1].query, "ChatGPT")
+  assert.equal(env.searches[1].style, "全部风格")
+  assert.ok(!JSON.stringify(env.searches).includes("张三"))
+  env.state.cleanup()
+})
+
+test("credential configuration uses obscured input, clears it after save and does not persist search state", () => {
+  const env = browserHarness()
+  let root = env.show()
+  nodes(root).find(n => n.type === "Picker" && n.props.title === "在线图库").props.onChanged("icons8")
+  root = env.render()
+  nodes(root).find(n => n.type === "SecureField").props.onChanged("test-only-key")
+  root = env.render()
+  nodes(root).find(n => n.type === "Button" && n.props.title === "安全保存 API Key").props.action()
+  root = env.render()
+  assert.equal(nodes(root).find(n => n.type === "SecureField").props.value, "")
+  assert.deepEqual(env.events, ["saveKey"])
+  assert.ok(!JSON.stringify(root).includes("test-only-key"))
+  nodes(root).find(n => n.type === "Button" && n.props.title === "清除本机 API Key").props.action()
+  root = env.render(); assert.deepEqual(env.events, ["saveKey", "removeKey"])
+  assert.equal(env.searches.length, 0)
+  env.state.cleanup()
+})
+
+test("adaptive native SVG renders original colors, proportional padding and dynamic background", () => {
+  const { ArtworkImage } = compile(read("artwork_image.tsx"), ["ArtworkImage"], {})
+  const root = ArtworkImage({ image: { svg: "<svg/>", width: 64, height: 32, adaptive: true }, size: 32, widget: true })
+  const [plate, vector] = root.children
+  assert.equal(plate.type, "RoundedRectangle"); assert.notEqual(plate.props.fill.light, plate.props.fill.dark)
+  assert.equal(vector.type, "SVG"); assert.equal(vector.props.code, "<svg/>"); assert.equal(vector.props.renderingMode, "original")
+  assert.equal(vector.props.frame.width / vector.props.frame.height, 2); assert.ok(vector.props.frame.width < 32)
+  assert.equal(vector.props.widgetAccentedRenderingMode, "fullColor")
 })
 
 test("color widget actions preserve exact source and occurrence; stale and read-only rows remain noninteractive", () => {
