@@ -45,8 +45,6 @@ import {
 } from "./date"
 
 import {
-  DUE_ICON_GROUPS,
-  DUE_ICON_OPTIONS,
   resolveDueIcon,
 } from "./icons"
 import { ITEM_KIND_DEFINITIONS, isItemKind } from "./item_kinds"
@@ -89,13 +87,11 @@ import { OwnershipView } from "./ownership_view"
 import { SettingsRowIcon, SettingsRowLabel } from "./settings_icons"
 import { readRecoveryStatus } from "./recovery"
 import { WidgetActionStatusView } from "./widget_action_view"
-import { ArtworkBrowser } from "./artwork_browser"
-import { ArtworkCompletionLabel, ArtworkImage, useVisibleArtwork } from "./artwork_image"
-import { artworkByID, symbolChoice } from "./artwork_catalog"
-import { onlineArtworkLabel } from "./online_artwork_ids"
-import { itemIconID } from "./icon_preferences"
+import { itemIconID, symbolChoice } from "./icon_preferences"
 import type { ItemIconEdit } from "./icon_preferences"
 import { IconLibraryView } from "./icon_library_view"
+import { SystemIconThemes } from "./system_icon_themes"
+import { cleanupRetiredIcons } from "./icon_cleanup"
 
 configureWidgetLocale(Device)
 
@@ -387,10 +383,10 @@ function DueManagerApp() {
         </Section>
         : null}
 
-      <Section header={<Text>图标与外观 · 在线图库</Text>} footer={<Text>Fluent Emoji Flat / Icons8 在线搜索、按名称推荐与自适配；每个事项独立选择，主界面与桌面组件同步显示。</Text>}>
+      <Section header={<Text>系统图标</Text>} footer={<Text>只使用本机 SF Symbols。提醒事项按标题和备注自动匹配，也可单独指定图标。</Text>}>
         <NavigationLink destination={<IconLibraryView state={state} onChanged={refreshState}
           manualDestination={item => <ItemEditor item={item} onChanged={refreshState} />} />}>
-          <Label title="图标图库与逐项设置" systemImage="square.grid.2x2.fill" />
+          <Label title="逐项设置系统图标" systemImage="square.grid.2x2.fill" />
         </NavigationLink>
       </Section>
 
@@ -512,9 +508,8 @@ function ItemEditor({
   const [kind, setKind] = useState<ItemKind>(item.kind)
   const [initialIconID] = useState(() => itemIconID(loadState().settings, "manual", item.id))
   const [iconName, setIconName] = useState<string | null>(() => symbolChoice(initialIconID)?.name ?? item.iconName)
-  const [artworkID, setArtworkID] = useState<string | null>(() => symbolChoice(initialIconID) ? null : initialIconID)
   const [iconTouched, setIconTouched] = useState(false)
-  const stagedIconEdit = (): ItemIconEdit | undefined => iconTouched ? { iconID: artworkID, expectedIconID: initialIconID } : undefined
+  const stagedIconEdit = (): ItemIconEdit | undefined => iconTouched ? { iconID: null, expectedIconID: initialIconID } : undefined
   const [dueTimestamp, setDueTimestamp] = useState(initialDate.getTime())
   const [includesTime, setIncludesTime] = useState(item.includesTime)
   const [recurrenceUnit, setRecurrenceUnit] = useState<RecurrenceUnit | "none">(
@@ -736,13 +731,11 @@ function ItemEditor({
             title={title}
             kind={kind}
             value={iconName}
-            artworkID={artworkID}
-            onChanged={(value: string | null) => { setIconName(value); setArtworkID(null); setIconTouched(true) }}
-            onArtworkChanged={(id: string) => { setArtworkID(id); setIconTouched(true) }}
+            onChanged={(value: string | null) => { setIconName(value); setIconTouched(true) }}
           />
         }
       >
-        <IconSettingRow title={title} kind={kind} value={iconName} artworkID={artworkID} />
+        <IconSettingRow title={title} kind={kind} value={iconName} />
       </NavigationLink>
       <Toggle
         title="包含具体时间"
@@ -918,7 +911,6 @@ function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} 
   const [gate] = useState(() => ({ busy: false }))
   const choiceID = itemIconID(settings, "manual", item.id)
   const icon = symbolChoice(choiceID) ?? resolveDueIcon(item.title, item.kind, item.iconName)
-  const artworkState = useVisibleArtwork(choiceID), artwork = artworkState.image
   const completionKey = manualOccurrenceKey(item)
   const completionTitle = `完成事项：${item.title}`
   const complete = async () => {
@@ -946,14 +938,12 @@ function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} 
       if (warnings.length) await Dialog.alert({ title: "事项已完成", message: `${warnings.join("\n")}\n无需再次点击完成。` })
     } finally { gate.busy = false; setBusy(false) }
   }
-  if (inactive || !item.enabled) return <HStack spacing={10} onAppear={artworkState.onAppear} onDisappear={artworkState.onDisappear}>
-    {artwork ? <ArtworkImage image={artwork} /> : <Image systemName={icon.name} foregroundStyle="tertiaryLabel" frame={{ width: 24 }} />}
+  if (inactive || !item.enabled) return <HStack spacing={10}>
+    <Image systemName={icon.name} foregroundStyle="tertiaryLabel" frame={{ width: 24 }} />
     <ManualItemDetails item={item} inactive />
   </HStack>
-  return <HStack spacing={2} onAppear={artworkState.onAppear} onDisappear={artworkState.onDisappear}>
-    {artwork ? <Button buttonStyle="borderless" contentShape="rect" frame={{ width: 40, height: 40 }} disabled={busy} action={() => { void complete() }}>
-      <ArtworkCompletionLabel image={artwork} title={completionTitle} />
-    </Button> : <Button
+  return <HStack spacing={2}>
+    <Button
       title={completionTitle}
       systemImage={icon.name}
       labelStyle="iconOnly"
@@ -963,7 +953,7 @@ function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} 
       contentShape="rect"
       disabled={busy}
       action={() => { void complete() }}
-    />}
+    />
     <NavigationLink destination={<ItemEditor item={item} onChanged={onChanged} />}>
       <ManualItemDetails item={item} />
     </NavigationLink>
@@ -998,22 +988,18 @@ function IconSettingRow({
   title,
   kind,
   value,
-  artworkID,
 }: {
   title: string
   kind: ItemKind
   value: string | null
-  artworkID?: string | null
 }) {
   const icon = resolveDueIcon(title, kind, value)
-  const artworkState = useVisibleArtwork(artworkID), artwork = artworkState.image
-  const definition = artworkByID(artworkID)
-  return <HStack spacing={10} onAppear={artworkState.onAppear} onDisappear={artworkState.onDisappear}>
-    {artwork ? <ArtworkImage image={artwork} /> : <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 24 }} />}
+  return <HStack spacing={10}>
+    <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 24 }} />
     <Text>图标</Text>
     <Spacer />
     <Text font="subheadline" foregroundStyle="secondaryLabel" lineLimit={1}>
-      {definition ? definition.label : onlineArtworkLabel(artworkID) ?? (artworkID ? "未收录 · 保留选择" : value == null ? `自动 · ${icon.label}` : icon.label)}
+      {value == null ? `自动 · ${icon.label}` : icon.label}
     </Text>
   </HStack>
 }
@@ -1023,15 +1009,11 @@ function IconPicker({
   kind,
   value,
   onChanged,
-  artworkID,
-  onArtworkChanged,
 }: {
   title: string
   kind: ItemKind
   value: string | null
   onChanged: (value: string | null) => void
-  artworkID?: string | null
-  onArtworkChanged?: (id: string) => void
 }) {
   const dismiss = Navigation.useDismiss()
   const automatic = resolveDueIcon(title, kind)
@@ -1046,14 +1028,6 @@ function IconPicker({
     navigationTitle="选择图标"
     navigationBarTitleDisplayMode="inline"
   >
-    {onArtworkChanged ? <Section header={<Text>彩色图标</Text>} footer={<Text>应用图标与系统符号可以逐项混合使用，不会切换全局模式。</Text>}>
-      <NavigationLink destination={<ArtworkBrowser selectedID={artworkID} onSelected={onArtworkChanged} itemTitle={title} itemKind={kind} />}>
-        <IconSettingRow title={title} kind={kind} value={value} artworkID={artworkID} />
-      </NavigationLink>
-      <NavigationLink destination={<ArtworkBrowser startProvider="icons8mcp" selectedID={artworkID} onSelected={onArtworkChanged} itemTitle={title} itemKind={kind} />}>
-        <Text>Icons8 · Windows 11 彩色图库</Text>
-      </NavigationLink>
-    </Section> : null}
     <Section footer={<Text>在本机按名称和类型匹配系统图标，不会上传事项名称。也可为本事项单独选择符号，保存事项后生效。</Text>}>
       <Button buttonStyle="plain" action={() => choose(null)}>
         <IconChoiceRow
@@ -1061,30 +1035,11 @@ function IconPicker({
           color={automatic.color}
           title="自动匹配系统图标"
           detail={`当前：${automatic.label}`}
-          selected={value == null && !artworkID}
+          selected={value == null}
         />
       </Button>
     </Section>
-    {DUE_ICON_GROUPS.map(group => (
-      <Section key={group} header={<Text>{group}</Text>}>
-        {DUE_ICON_OPTIONS
-          .filter(option => option.group === group)
-          .map(option => (
-            <Button
-              key={option.name}
-              buttonStyle="plain"
-              action={() => choose(option.name)}
-            >
-              <IconChoiceRow
-                name={option.name}
-                color={option.color}
-                title={option.label}
-                selected={value === option.name && !artworkID}
-              />
-            </Button>
-          ))}
-      </Section>
-    ))}
+    <SystemIconThemes value={value} onChanged={choose} />
   </List>
 }
 
@@ -1355,6 +1310,8 @@ export function createApplication(onRestart: () => void): { element: JSX.Element
 
 /** Optional maintenance starts only after a readable application is mounted. */
 export function startApplicationMaintenance() {
+  const iconCleanupWarning = cleanupRetiredIcons()
+  if (iconCleanupWarning) void Dialog.alert({ title: "旧图库清理未完成", message: iconCleanupWarning })
   void reconcileNotifications([], { loadItems: () => loadState().items })
     .catch(error => console.error("Startup notification maintenance deferred", error))
 }

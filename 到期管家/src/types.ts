@@ -6,7 +6,6 @@ import type { ItemKind } from "./item_kinds"
 import type { NotificationSettings } from "./notifications"
 import type { LegacyItemBrandChoice, LegacySmallWidgetIconStyle } from "./legacy_icon_preferences"
 import type { ItemIconChoice } from "./icon_preferences"
-import type { IconSubscription } from "./icon_subscriptions"
 
 export type { ItemKind } from "./item_kinds"
 
@@ -52,10 +51,8 @@ export interface AppSettings {
   /** Inactive legacy fields retained solely for lossless backup compatibility. */
   smallWidgetIconStyle?: LegacySmallWidgetIconStyle
   itemBrandChoices?: LegacyItemBrandChoice[]
-  /** Independent 3.0 item-local choices; never a global rendering-mode switch. */
+  /** Independent item-local SF Symbol choices. */
   itemIconChoices?: ItemIconChoice[]
-  /** Public GitHub manifests only; selections remain independent of subscriptions. */
-  iconSubscriptions?: IconSubscription[]
 }
 
 export interface AppState {
@@ -131,10 +128,6 @@ export interface DisplayDueItem {
   iconColor: string
   /** A user-selected SF Symbol is independent of automatic category matching. */
   iconIsExplicit?: boolean
-  /** Valid provider-qualified or compatible bundled artwork; failures use iconName. */
-  artworkID?: string
-  /** Transient widget render data only: never serialized into app state or backups. */
-  artworkImage?: import("./artwork_assets").LoadedArtwork
   dueDate: string
   includesTime: boolean
   hour: number

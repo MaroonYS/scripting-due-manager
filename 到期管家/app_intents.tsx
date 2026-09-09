@@ -76,7 +76,8 @@ async function performCompleteDueItem(params: CompleteDueItemParams): Promise<vo
     const applied = result === "applied" || result === "appliedCacheStale"
     let completionWarning = result === "appliedCacheStale"
       ? "提醒已完成，但本地缓存或完成记录未能保存"
-      : null
+      : result === "stale" ? "事项已变化，本次未完成其他期次，请刷新后重试"
+      : result === "missing" ? "事项已完成或不存在，请刷新组件查看最新列表" : null
     if (applied && feedbackItem) {
       // Advance only a lightweight animation generation. Never retain or
       // reinsert the completed occurrence while WidgetKit refreshes its queue.
@@ -125,7 +126,7 @@ function isCompletionParams(value: unknown): value is CompleteDueItemParams {
   return (params.source === "manual" || params.source === "reminder")
     && typeof params.id === "string"
     && params.id.length > 0
-    && params.id.length <= 200
+    && params.id.length <= 512
     && typeof params.occurrenceKey === "string"
     && params.occurrenceKey.length > 0
     && params.occurrenceKey.length <= 240

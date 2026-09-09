@@ -8,7 +8,7 @@ import * as dates from "../到期管家/src/date.ts"
 import * as icons from "../到期管家/src/icons.ts"
 import * as kinds from "../到期管家/src/item_kinds.ts"
 import { itemIconID } from "../到期管家/src/icon_preferences.ts"
-import { symbolChoice } from "../到期管家/src/artwork_catalog.ts"
+import { symbolChoice, normalizeItemIconChoices } from "../到期管家/src/icon_preferences.ts"
 import { defaultState } from "../到期管家/src/storage.ts"
 import type { ManualDueItem } from "../到期管家/src/types.ts"
 
@@ -24,12 +24,12 @@ function editorHarness(options: { brand?: string; icon?: string; fail?: boolean;
     recurrence: dates.createRecurrenceRule("month", 1, "2026-09-30"), enabled: true, amount: "10", note: "Keep", createdAt: 1, updatedAt: 2 }
   const state = { ...defaultState(2), items: [item] }
   if (options.brand) state.settings.itemBrandChoices = [{ source: "manual", itemID: item.id, brandID: options.brand }]
-  if (options.icon) state.settings.itemIconChoices = [{ source: "manual", itemID: item.id, iconID: options.icon }]
+  if (options.icon) state.settings.itemIconChoices = normalizeItemIconChoices([{ source: "manual", itemID: item.id, iconID: options.icon }])
   const events: any[][] = []
   const slots: Record<string, any[]> = {}
   let active: any[] = [], cursor = 0
   const bindings = {
-    ...dates, ...icons, ...kinds, itemIconID, symbolChoice, ArtworkBrowser: "ArtworkBrowser",
+    ...dates, ...icons, ...kinds, itemIconID, symbolChoice, SystemIconThemes: "SystemIconThemes",
     h: (type: any, props: any, ...children: any[]) => ({ type: typeof type === "function" ? type.name : type, props: props ?? {}, children: children.flat(Infinity).filter(child => child != null) }),
     ...Object.fromEntries(["Button", "DatePicker", "HStack", "LabeledContent", "List", "NavigationLink", "Picker", "Section", "Text", "TextField", "Toggle", "VStack", "IconSettingRow", "IconChoiceRow"].map(name => [name,name])),
     Navigation: { useDismiss: () => () => events.push(["dismiss"]) },
@@ -56,14 +56,14 @@ function editorHarness(options: { brand?: string; icon?: string; fail?: boolean;
   return { render, events, pickerProps, item }
 }
 
-test("the icon picker retains every SF Symbol alongside the new color browser and stages choices", async () => {
+test("the icon picker uses shared system themes and stages choices", async () => {
   const env = editorHarness({brand:"brand-retired"})
   let root = env.render("ItemEditor")
   const picker = env.render("IconPicker", env.pickerProps(root))
   assert.equal(picker.type, "List")
   assert.ok(!nodes(picker).some(node => node.type === "Picker" || node.type === "BrandCatalogView"))
-  assert.equal(nodes(picker).filter(node => node.type === "IconChoiceRow").length, icons.DUE_ICON_OPTIONS.length + 1)
-  nodes(picker).find(node => node.type === "Button" && node.children.some((child:any) => child.type === "IconChoiceRow" && child.props.name === "creditcard.fill")).props.action()
+  assert.equal(nodes(picker).filter(node => node.type === "IconChoiceRow").length, 1)
+  nodes(picker).find(node => node.type === "SystemIconThemes").props.onChanged("creditcard.fill")
   assert.deepEqual(env.events, [["dismiss"]])
   root = env.render("ItemEditor")
   assert.equal(env.pickerProps(root).value, "creditcard.fill")
@@ -88,18 +88,6 @@ test("cancelling a staged SF Symbol change does not save or refresh widgets", ()
   assert.deepEqual(env.events, [["dismiss"]])
 })
 
-test("direct Icons8 MCP picker stages an ID and saves it only with the same manual item", async () => {
-  const env = editorHarness(), id = "icons8-mcp:9GC5rqCM5uDh"
-  const picker = env.render("IconPicker", env.pickerProps(env.render("ItemEditor")))
-  const direct = nodes(picker).find(node => node.type === "NavigationLink" && node.props.destination?.props.startProvider === "icons8mcp")
-  assert.equal(direct.props.destination.props.itemTitle, env.item.title)
-  direct.props.destination.props.onSelected(id)
-  assert.deepEqual(env.events, [])
-  const editor = env.render("ItemEditor")
-  assert.equal(env.pickerProps(editor).artworkID, id)
-  editor.props.toolbar.confirmationAction.props.action(); await flush()
-  assert.deepEqual(env.events.find(event => event[0] === "save")[3], { iconID: id, expectedIconID: null })
-})
 
 test("failed Save does not dismiss or refresh even with legacy brand data", async () => {
   const env = editorHarness({brand:"brand-retired",fail:true})
@@ -140,7 +128,7 @@ test("system automatic selection clears only this editor's symbol without writin
   env.pickerProps(root).onChanged("creditcard.fill")
   root = env.render("ItemEditor")
   const picker = env.render("IconPicker", env.pickerProps(root))
-  assert.equal(nodes(picker).find(node => node.type === "IconChoiceRow" && node.props.selected).props.name, "creditcard.fill")
+  assert.equal(nodes(picker).find(node => node.type === "SystemIconThemes").props.value, "creditcard.fill")
   nodes(picker).find(node => node.type === "Button" && node.children.some((child:any) => child.type === "IconChoiceRow" && child.props.title === "自动匹配系统图标")).props.action()
   root = env.render("ItemEditor")
   assert.equal(env.pickerProps(root).value, null)
@@ -155,63 +143,4 @@ test("opening a system picker with a retired brand neither switches nor saves an
   assert.equal(selected.length, 1)
   assert.equal(selected[0].props.title, "自动匹配系统图标")
   assert.deepEqual(env.events, [])
-})
-
-test("color choices remain staged until Save and carry the initial compare-and-set key", async () => {
-  const env = editorHarness({ icon: "icons8-ka3InxFU3QZa" })
-  let root = env.render("ItemEditor")
-  const picker = env.render("IconPicker", env.pickerProps(root))
-  nodes(picker).find(n => n.type === "NavigationLink").props.destination.props.onSelected("icons8-zQjzFjPpT2Ek")
-  assert.deepEqual(env.events, []) // The browser owns its single navigation dismissal.
-  root = env.render("ItemEditor")
-  assert.equal(env.pickerProps(root).artworkID, "icons8-zQjzFjPpT2Ek")
-  root.props.toolbar.confirmationAction.props.action()
-  await flush()
-  assert.deepEqual(env.events.find(e => e[0] === "save")![3], { iconID: "icons8-zQjzFjPpT2Ek", expectedIconID: "icons8-ka3InxFU3QZa" })
-  assert.equal(env.events.filter(e => e[0] === "dismiss").length, 1)
-})
-
-test("cancelling or failing a staged color change never refreshes or silently saves", async () => {
-  for (const fail of [false, true]) {
-    const env = editorHarness({ fail, icon: "icons8-ka3InxFU3QZa" })
-    let root = env.render("ItemEditor")
-    env.pickerProps(root).onArtworkChanged("icons8-zQjzFjPpT2Ek")
-    root = env.render("ItemEditor")
-    if (fail) root.props.toolbar.confirmationAction.props.action()
-    else root.props.toolbar.cancellationAction.props.action()
-    await flush()
-    assert.ok(!env.events.some(e => e[0] === "refresh" || e[0] === "complete"))
-    if (fail) assert.ok(!env.events.some(e => e[0] === "dismiss"))
-    else assert.deepEqual(env.events, [["dismiss"]])
-  }
-})
-
-test("restored SF choices show the actual symbol while unknown color IDs survive untouched Save", async () => {
-  const restored = editorHarness({ icon: "sf:car.fill" })
-  const props = restored.pickerProps(restored.render("ItemEditor"))
-  assert.equal(props.value, "car.fill"); assert.equal(props.artworkID, null)
-  const future = editorHarness({ icon: "icons8-FutureABC" })
-  const root = future.render("ItemEditor")
-  assert.equal(future.pickerProps(root).artworkID, "icons8-FutureABC")
-  root.props.toolbar.confirmationAction.props.action()
-  await flush()
-  assert.equal(future.events.find(e => e[0] === "save")![3], undefined)
-})
-
-test("complete-and-save stages color artwork until confirmation without changing occurrence identity", async () => {
-  for (const confirm of [false, true]) {
-    const env = editorHarness({ confirm, icon: "icons8-ka3InxFU3QZa" })
-    let root = env.render("ItemEditor")
-    env.pickerProps(root).onArtworkChanged("icons8-zQjzFjPpT2Ek")
-    root = env.render("ItemEditor")
-    nodes(root).find(n => n.type === "Button" && n.props.title === "完成本期").props.action()
-    await flush()
-    const saved = env.events.find(e => e[0] === "complete")
-    assert.equal(Boolean(saved), confirm)
-    if (saved) {
-      assert.equal(saved[1].id, env.item.id)
-      assert.equal(saved[2], env.item.updatedAt)
-      assert.deepEqual(saved[5], { iconID: "icons8-zQjzFjPpT2Ek", expectedIconID: "icons8-ka3InxFU3QZa" })
-    }
-  }
 })

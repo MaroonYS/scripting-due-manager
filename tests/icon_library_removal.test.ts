@@ -123,7 +123,8 @@ test("actual system widget buttons preserve 40 pt semantic targets, exact intent
   const code = source.slice(source.indexOf("function ListCompletionIcon("), source.indexOf("function listItemSupportingText("))
   const bindings = {
     h: (type: unknown, props: any, ...children: any[]) => ({ type, props: props ?? {}, children }),
-    Button: "Button", Image: "Image", ListCompletionSymbol: "ListCompletionSymbol",
+    Button: "Button", Image: "Image", Label: "Label", ListCompletionSymbol: "ListCompletionSymbol",
+    widgetItemIdentity: (item: any) => JSON.stringify([item.source, item.id, item.completionKey]),
     peekArtwork: () => null, Script: { directory: "/bundle" }, ArtworkCompletionLabel: "ArtworkCompletionLabel",
     widgetCompletionLabel: (item: any) => `完成事项：${item.title}`, widgetRuntimeLocale: () => "zh-Hans",
     CompleteDueItemIntent: (value: any) => value,
@@ -135,9 +136,10 @@ test("actual system widget buttons preserve 40 pt semantic targets, exact intent
     const button = render({ item, hitSize: 40, symbolSize: 17 })
     assert.equal(button.type, "Button")
     assert.deepEqual(button.props.frame, { width: 40, height: 40 })
-    assert.equal(button.props.contentShape, "rect")
-    assert.equal(button.props.title, "完成事项：Keep")
-    assert.equal(button.props.systemImage, item.iconName)
+    assert.equal(button.children[0].props.contentShape, "rect")
+    assert.deepEqual(button.children[0].props.frame, { width: 40, height: 40 })
+    assert.equal(button.children[0].props.title, "完成事项：Keep")
+    assert.equal(button.children[0].props.systemImage, item.iconName)
     assert.deepEqual(button.props.intent, {source, id:item.id, occurrenceKey:item.completionKey})
     for (const patch of [{stale:true}, {canComplete:false}]) assert.notEqual(render({item:{...item,...patch},hitSize:40,symbolSize:17}).type, "Button")
   }

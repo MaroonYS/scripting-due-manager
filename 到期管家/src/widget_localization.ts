@@ -41,6 +41,8 @@ const WIDGET_TEXT = {
     completionAnimationSaveFailed: "Item completed, but the animation state couldn’t be saved",
     reminderCompletionFailed: "Couldn’t complete the reminder; check access in the main script",
     itemCompletionFailed: "Couldn’t complete the item; check storage in the main script",
+    occurrenceChanged: "Item changed; no other occurrence was completed. Refresh and retry",
+    occurrenceMissing: "Item already completed or missing; refresh to see the latest list",
     actionNeedsReview: "The last action needs attention; open Due Manager to check",
     reviewAction: "Review action",
     retrySync: "Tap to retry",
@@ -69,6 +71,8 @@ const WIDGET_TEXT = {
     completionAnimationSaveFailed: "事项已完成，但完成动画状态未能保存",
     reminderCompletionFailed: "提醒完成失败，请打开主脚本检查权限",
     itemCompletionFailed: "事项完成失败，请打开主脚本检查存储",
+    occurrenceChanged: "事项已变化，未完成其他期次；请刷新后重试",
+    occurrenceMissing: "事项已完成或不存在，请刷新查看最新列表",
     actionNeedsReview: "上次操作需要检查，请打开到期管家查看",
     reviewAction: "检查操作",
     retrySync: "点按重试",
@@ -97,6 +101,8 @@ const WIDGET_TEXT = {
     completionAnimationSaveFailed: "事項已完成，但完成動畫狀態未能儲存",
     reminderCompletionFailed: "提醒完成失敗，請開啟主腳本檢查權限",
     itemCompletionFailed: "事項完成失敗，請開啟主腳本檢查儲存空間",
+    occurrenceChanged: "事項已變化，未完成其他期次；請重新整理後重試",
+    occurrenceMissing: "事項已完成或不存在，請重新整理查看最新列表",
     actionNeedsReview: "上次操作需要檢查，請開啟到期管家查看",
     reviewAction: "檢查操作",
     retrySync: "點按重試",
@@ -160,6 +166,8 @@ const ACTION_ERROR_TEXT_KEYS: Record<string, WidgetTextKey> = {
   "事项已完成，但完成动画状态未能保存": "completionAnimationSaveFailed",
   "提醒完成失败，请打开主脚本检查权限": "reminderCompletionFailed",
   "事项完成失败，请打开主脚本检查存储": "itemCompletionFailed",
+  "事项已变化，本次未完成其他期次，请刷新后重试": "occurrenceChanged",
+  "事项已完成或不存在，请刷新组件查看最新列表": "occurrenceMissing",
 }
 
 /**

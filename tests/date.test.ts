@@ -697,7 +697,7 @@ test("unmatched titles use stable ItemKind fallbacks instead of catalog order", 
   assert.doesNotMatch(source, /DUE_ICON_OPTIONS\.at\(\s*-1\s*\)/)
 })
 
-test("reminder icons resolve title, list and notes in strict priority order", () => {
+test("reminder icons prioritize specific titles then notes before List fallbacks", () => {
   const cases = [
     {
       title: "家庭电费",
@@ -709,7 +709,7 @@ test("reminder icons resolve title, list and notes in strict priority order", ()
       title: "月底处理",
       calendarTitle: "音乐订阅",
       notes: "Amazon Prime Video",
-      expected: "music.note",
+      expected: "play.rectangle.fill",
     },
     {
       title: "月底处理",
@@ -769,7 +769,7 @@ test("specific reminder notes supplement generic Lists without overriding strong
     )
   }
   assert.equal(inferReminderNoteIconCandidate("Gift Card Setup"), null)
-  assert.equal(inferReminderNoteIconCandidate("SIM Card Setup"), null)
+  assert.deepEqual(inferReminderNoteIconCandidate("SIM Card Setup"), { iconName: "simcard.fill", confidence: "strong" })
   assert.deepEqual(
     inferReminderNoteIconCandidate("pick up package"),
     { iconName: "shippingbox.fill", confidence: "ordinary" },
@@ -795,18 +795,18 @@ test("specific reminder notes supplement generic Lists without overriding strong
   )
   assert.equal(
     resolveReminderIcon("月底处理", "Delivery", "Netflix annual plan").name,
-    "shippingbox.fill",
-    "a specific List must stay authoritative",
+    "play.rectangle.fill",
+    "specific notes refine a generic title before the List",
   )
   assert.equal(
     resolveReminderIcon("月底处理", "Adobe Creative Cloud", "NordVPN renewal").name,
-    "paintpalette.fill",
-    "product text in a List must stay authoritative",
+    "lock.shield.fill",
+    "notes precede product text in a List",
   )
   assert.equal(
     resolveReminderIcon("月底处理", "Tasks", "pick up package").name,
-    "checkmark.circle.fill",
-    "an ordinary action in notes must not displace a recognized generic List",
+    "shippingbox.fill",
+    "a concrete action in notes precedes a generic List",
   )
   assert.equal(
     resolveReminderIcon("月底处理", "Unsorted 847291", "pick up package").name,
@@ -815,8 +815,8 @@ test("specific reminder notes supplement generic Lists without overriding strong
   )
   assert.equal(
     resolveReminderIcon("月底处理", "Tasks", null, "key.fill", null).name,
-    "checkmark.circle.fill",
-    "a legacy cached hint without confidence must not jump over a generic List",
+    "key.fill",
+    "legacy cached hints use the same note-before-List priority",
   )
   assert.equal(
     resolveReminderIcon("月底处理", "Tasks", null, "key.fill", "strong").name,
@@ -915,8 +915,8 @@ test("Wallet Plan remains a neutral container while numbered finance modules cho
   )
   assert.equal(
     resolveReminderIcon("847291", "Wallet Plan", "pick up package").name,
-    "checklist",
-    "an ordinary action note must not misclassify a finance container",
+    "shippingbox.fill",
+    "a neutral container does not override the actual note content",
   )
   assert.equal(resolveReminderIcon("847291", "Wallet Plan", "").name, "checklist")
 })
@@ -1010,7 +1010,7 @@ test("reminder icon matching keeps false-positive protection in every source", (
   for (const [title, calendarTitle, expected] of [
     ["Cardinal Setup", "Personal", "checklist"],
     ["Gift Card Setup", "Personal", "checklist"],
-    ["SIM Card Setup", "Personal", "checklist"],
+    ["SIM Card Setup", "Personal", "simcard.fill"],
     ["Venture Capital Review", "Tasks", "checkmark.circle.fill"],
     ["847291", "Wallet Planning Workshop", "checklist"],
     ["Bank holiday 06", "Wallet Plan", "checklist"],
@@ -1035,11 +1035,11 @@ test("reminder icon matching keeps false-positive protection in every source", (
   )
   assert.equal(
     resolveReminderIcon("月底处理", "银行家杂志订阅", "家庭电费").name,
-    "newspaper.fill",
+    "bolt.fill",
   )
   assert.equal(
     resolveReminderIcon("月底处理", "移动硬盘备份", "Amazon Prime Video").name,
-    "externaldrive.fill",
+    "play.rectangle.fill",
   )
   assert.equal(
     resolveReminderIcon("月底处理", "健康码", "加油打气").name,
@@ -1901,10 +1901,10 @@ test("cached reminder hints follow title and List priority and accept legacy row
     assert.equal(result.live, false)
     assert.equal(result.fromCache, true)
     assert.equal(icons.get("title-before-hint"), "bolt.fill")
-    assert.equal(icons.get("list-before-hint"), "music.note")
+    assert.equal(icons.get("list-before-hint"), "key.fill")
     assert.equal(icons.get("valid-hint"), "key.fill")
     assert.equal(icons.get("strong-note-over-generic-list"), "key.fill")
-    assert.equal(icons.get("ordinary-note-under-generic-list"), "checkmark.circle.fill")
+    assert.equal(icons.get("ordinary-note-under-generic-list"), "shippingbox.fill")
     assert.equal(icons.get("invalid-hint"), "checklist")
     assert.equal(icons.get("legacy-without-hint"), "cart.fill")
     assert.equal(icons.get("delivery-list-with-numeric-title"), "shippingbox.fill")
@@ -2635,8 +2635,9 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.match(source, /contentTransition="opacity"/)
   assert.match(source, /contentTransition="symbolEffectReplace"/)
   assert.doesNotMatch(source, /zIndex=|allowsHitTesting=|<Toggle|toggleStyle=|buttonStyle="bordered"|buttonBorderShape=|clipShape=/)
-  assert.match(source, /return <Button\s+buttonStyle="plain"\s+contentShape="rect"[\s\S]*?CompleteDueItemIntent/)
-  assert.match(source, /key=\{`queue-slot-\$\{index\}`\}/)
+  assert.match(source, /return <Button\s+key=\{widgetItemIdentity\(item\)\}\s+buttonStyle="plain"[\s\S]*?CompleteDueItemIntent/)
+  assert.match(source, /key=\{widgetItemIdentity\(item\)\}/)
+  assert.doesNotMatch(source, /key=\{`queue-slot-/)
   assert.match(source, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
   assert.match(source, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
   assert.match(
@@ -2732,7 +2733,7 @@ test("medium and large rows use compact item icons as completion controls withou
   )
   assert.match(
     listRow,
-    /<Link url=\{itemURL\(item\)\}>\s*<HStack\s+alignment="center"\s+spacing=\{8\}\s+frame=\{\{ maxWidth: "infinity" \}\}/,
+    /<Link url=\{itemURL\(item\)\}>\s*<HStack\s+alignment="center"\s+spacing=\{8\}\s+frame=\{\{ maxWidth: "infinity", height \}\}\s+contentShape="rect"/,
     "the subject and metadata columns should share one vertically centered content block",
   )
   assert.match(
@@ -3275,7 +3276,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "3.3.0")
+  assert.equal(manifest.version, "3.4.0")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.3.0",
-  "description": "Due dates and Apple Reminders with Icons8 Windows 11 Color account login, six public GitHub icon libraries, financial-brand search, per-item artwork and safe backups.",
+  "version": "3.4.0",
+  "description": "Due dates and Apple Reminders with 182 offline SF Symbols, collapsible icon themes, local title-and-note matching and guarded widget actions.",
   "localizedDescriptions": {
-    "en": "3.3 connects the Icons8 official MCP with a free account and fixes the Windows 11 Color style used by Earth Smiley. Pick artwork inside an item and save it; close the authorization browser with the top-left X. Requires a compatible Scripting Pro local callback. Credentials stay in device-only Keychain; selected public PNGs render without logging in. Bank Logos, monochrome Simple Icons and Dashboard Icons join App, Emby and selfh.st as six GitHub presets. Existing users can restore missing presets in subscription management. Financial-brand aliases support UK, US, mainland China, Hong Kong and named crypto-card brands; coverage is not exhaustive. Existing artwork, items, recurrence and notifications remain unchanged.",
-    "zh": "3.3 接入 Icons8 官方 MCP 免费账号，固定使用 Earth Smiley 所属的 Windows 11 Color 图库，可直接为事项选择并保存图标；授权后点网页左上角 × 返回。凭据仅存本机钥匙串，显示已选 PNG 不需再次登录。新增 Bank Logos、Simple Icons 单色品牌及 Dashboard Icons，连同 App、Emby、selfh.st 共六个 GitHub 预设。升级用户可在订阅管理补回新预设；英国、美国、大陆、香港及 U 卡按已收录具体品牌本机搜索，不保证全覆盖。图片按需加载，旧图案、SF Symbols、事项、周期、通知和更新地址不变。",
-    "zh-Hans": "3.3 接入 Icons8 官方 MCP 免费账号，固定使用 Earth Smiley 所属的 Windows 11 Color 图库，可直接为事项选择并保存图标；授权后点网页左上角 × 返回。凭据仅存本机钥匙串，显示已选 PNG 不需再次登录。新增 Bank Logos、Simple Icons 单色品牌及 Dashboard Icons，连同 App、Emby、selfh.st 共六个 GitHub 预设。升级用户可在订阅管理补回新预设；英国、美国、大陆、香港及 U 卡按已收录具体品牌本机搜索，不保证全覆盖。图片按需加载，旧图案、SF Symbols、事项、周期、通知和更新地址不变。",
-    "zh-Hant": "3.3 接入 Icons8 官方 MCP 免費帳號，固定使用 Earth Smiley 所屬的 Windows 11 Color 圖庫，可直接為事項選擇並保存圖示；授權後點網頁左上角 × 返回。憑據僅存本機鑰匙圈，顯示已選 PNG 不需再次登入。新增 Bank Logos、Simple Icons 單色品牌及 Dashboard Icons，連同 App、Emby、selfh.st 共六個 GitHub 預設。升級用戶可在訂閱管理補回新預設；英國、美國、大陸、香港及 U 卡按已收錄具體品牌本機搜尋，不保證全覆蓋。圖片按需載入，舊圖案、SF Symbols、事項、週期、通知和更新網址不變。"
+    "en": "3.4 removes external icon libraries, artwork resources, online search and account login. Choose among 182 offline SF Symbols in 11 collapsible, searchable themes. Local title-and-note inference, widget completion hit areas and occurrence identity are improved. Reminder detail links enter Scripting and validate the exact item before navigation; unsupported IDs report an error. Run the updated original script once to remove retired icon preferences and device-only credentials. Existing items, recurrence, notifications and explicit system symbols are preserved. Native navigation and WidgetKit interactions still require device verification.",
+    "zh": "3.4 仅保留系统图标，删除新增的外部图库、登录和搜索。182 个 SF Symbols 按 11 个主题折叠，支持中英文搜索和逐项保存。优化标题／备注本机匹配、桌面组件完成按钮热区与期次身份；提醒事项详情经 Scripting 转交并查验准确 ID，无法定位时明确提示。更新原脚本后运行一次，清理旧图库设置及本机凭据；事项、周期、通知和原系统图标保留。实际跳转及 WidgetKit 交互仍需真机验证。",
+    "zh-Hans": "3.4 仅保留系统图标，删除新增的外部图库、登录和搜索。182 个 SF Symbols 按 11 个主题折叠，支持中英文搜索和逐项保存。优化标题／备注本机匹配、桌面组件完成按钮热区与期次身份；提醒事项详情经 Scripting 转交并查验准确 ID，无法定位时明确提示。更新原脚本后运行一次，清理旧图库设置及本机凭据；事项、周期、通知和原系统图标保留。实际跳转及 WidgetKit 交互仍需真机验证。",
+    "zh-Hant": "3.4 僅保留系統圖示，刪除新增的外部圖庫、登入和搜尋。182 個 SF Symbols 按 11 個主題摺疊，支援中英文搜尋與逐項保存。優化標題／備註本機匹配、桌面元件完成按鈕範圍與期次識別；提醒事項詳情經 Scripting 轉交並核對準確 ID，無法定位時明確提示。更新原腳本後執行一次，清理舊圖庫設定及本機憑據；事項、週期、通知和原系統圖示保留。實際跳轉及 WidgetKit 互動仍需真機驗證。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

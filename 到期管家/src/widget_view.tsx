@@ -7,6 +7,7 @@ import {
   Divider,
   HStack,
   Image,
+  Label,
   Link,
   Script,
   Spacer,
@@ -17,10 +18,7 @@ import {
 import { CompleteDueItemIntent } from "../app_intents"
 import { dueStatus } from "./date"
 import { dueIconLabel } from "./icons"
-import { APPLE_REMINDERS_URL, appleReminderDeepLink } from "./reminder_links"
 import type { DisplayDueItem } from "./types"
-import { peekArtwork } from "./artwork_assets"
-import { ArtworkImage, ArtworkCompletionLabel } from "./artwork_image"
 import {
   currentWidgetLocale,
   formatWidgetDate,
@@ -236,9 +234,7 @@ function LargeSummaryHeader({
             foregroundStyle={issue.color}
           />
           : null}
-        {item && (item.artworkImage ?? peekArtwork(item.artworkID, Script.directory)) ? <VStack frame={{ width: 40, height: 40 }}>
-          <ArtworkImage image={(item.artworkImage ?? peekArtwork(item.artworkID, Script.directory))!} size={30} widget />
-        </VStack> : <Image
+        <Image
           systemName={item?.iconName ?? "calendar.badge.clock"}
           font={26}
           foregroundStyle={item?.iconColor ?? "systemOrange"}
@@ -246,7 +242,7 @@ function LargeSummaryHeader({
           frame={{ width: 40, height: 40 }}
           contentTransition="symbolEffectReplace"
           widgetAccentable
-        />}
+        />
       </HStack>
       <Spacer minLength={0} />
       <Divider padding={{ leading: 5, trailing: 5 }} />
@@ -486,14 +482,14 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
         padding={{ top: -5, leading: 5, trailing: 5, bottom: 9 }}
         frame={{ maxWidth: "infinity" }}
       >
-        {(item.artworkImage ?? peekArtwork(item.artworkID, Script.directory)) ? <ArtworkImage image={(item.artworkImage ?? peekArtwork(item.artworkID, Script.directory))!} size={12} widget /> : <Image
+        <Image
           systemName={item.iconName}
           font={11}
           foregroundStyle={item.iconColor}
           symbolRenderingMode="hierarchical"
           frame={{ width: 12, height: 12 }}
           widgetAccentable
-        />}
+        />
         <Text
           font="caption2"
           fontWeight="medium"
@@ -633,9 +629,9 @@ function ListWidgetBody({
         padding={{ top: 3 }}
         frame={{ maxWidth: "infinity" }}
       >
-        {visible.map((item, index) => (
+        {visible.map(item => (
           <VStack
-            key={`queue-slot-${index}`}
+            key={widgetItemIdentity(item)}
             spacing={0}
             contentTransition="opacity"
             transition={QUEUE_SLOT_TRANSITION}
@@ -755,9 +751,9 @@ function LargeWidgetSection({
       </Text>
       <Spacer />
     </HStack>
-    {rows.map(({ item, index }) => (
+    {rows.map(({ item }) => (
       <VStack
-        key={`queue-slot-${index}`}
+        key={widgetItemIdentity(item)}
         spacing={0}
         contentTransition="opacity"
         transition={QUEUE_SLOT_TRANSITION}
@@ -843,7 +839,8 @@ function DueItemRow({
       <HStack
         alignment="center"
         spacing={8}
-        frame={{ maxWidth: "infinity" }}
+        frame={{ maxWidth: "infinity", height }}
+        contentShape="rect"
       >
         <Text
           font={titleFontSize}
@@ -927,29 +924,28 @@ function ListCompletionIcon({
       enabled={false}
     />
   }
-  const artwork = item.artworkImage ?? peekArtwork(item.artworkID, Script.directory)
-  if (artwork) return <Button buttonStyle="plain" contentShape="rect" frame={{ width: hitSize, height: hitSize }}
-    intent={CompleteDueItemIntent({ source: item.source, id: item.id, occurrenceKey: item.completionKey })}>
-    <ArtworkCompletionLabel image={artwork} title={widgetCompletionLabel(item, widgetRuntimeLocale())} hitSize={hitSize} widget />
-  </Button>
   return <Button
+    key={widgetItemIdentity(item)}
     buttonStyle="plain"
-    contentShape="rect"
-    title={widgetCompletionLabel(item, widgetRuntimeLocale())}
-    systemImage={item.iconName}
-    labelStyle="iconOnly"
-    font={symbolSize}
-    foregroundStyle={item.iconColor}
-    symbolRenderingMode="hierarchical"
     frame={{ width: hitSize, height: hitSize }}
-    contentTransition="symbolEffectReplace"
-    widgetAccentable
     intent={CompleteDueItemIntent({
       source: item.source,
       id: item.id,
       occurrenceKey: item.completionKey,
     })}
-  />
+  >
+    <Label
+      title={widgetCompletionLabel(item, widgetRuntimeLocale())}
+      systemImage={item.iconName}
+      labelStyle="iconOnly"
+      font={symbolSize}
+      foregroundStyle={item.iconColor}
+      symbolRenderingMode="hierarchical"
+      frame={{ width: hitSize, height: hitSize }}
+      contentShape="rect"
+      widgetAccentable
+    />
+  </Button>
 }
 
 function ListCompletionSymbol({
@@ -963,10 +959,6 @@ function ListCompletionSymbol({
   symbolSize: number
   enabled: boolean
 }) {
-  const artwork = item.artworkImage ?? peekArtwork(item.artworkID, Script.directory)
-  if (artwork) return <VStack frame={{ width: hitSize, height: hitSize }} opacity={enabled ? 1 : 0.6}>
-    <ArtworkImage image={artwork} widget />
-  </VStack>
   return <Image
     systemName={item.iconName}
     font={symbolSize}
@@ -1126,7 +1118,13 @@ function widgetIssue(props: {
 
 function itemURL(item: DisplayDueItem): string {
   if (item.source === "reminder") {
-    return appleReminderDeepLink(item.id) ?? APPLE_REMINDERS_URL
+    // WidgetKit delivers taps to the host app. Resolve and open the external
+    // Reminders URL in the foreground instead of giving it directly to Link.
+    return Script.createRunURLScheme(Script.name, { action: "open-reminder", id: item.id })
   }
   return Script.createRunURLScheme(Script.name, { action: "edit", id: item.id })
+}
+
+function widgetItemIdentity(item: DisplayDueItem): string {
+  return JSON.stringify([item.source, item.id, item.completionKey])
 }

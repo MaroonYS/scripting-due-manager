@@ -14,11 +14,8 @@ import {
 } from "./date"
 import { normalizeIconOverride, resolveDueIcon } from "./icons"
 import { normalizeLegacyIconPreferences } from "./legacy_icon_preferences"
-import { applyItemIconEdit, normalizeItemIconChoices } from "./icon_preferences"
+import { applyItemIconEdit, normalizeItemIconChoices, isKnownIconChoice } from "./icon_preferences"
 import type { IconSource, ItemIconEdit } from "./icon_preferences"
-import { isKnownIconChoice } from "./artwork_catalog"
-import { iconSubscriptions, normalizeIconSubscriptions } from "./icon_subscriptions"
-import type { IconSubscription } from "./icon_subscriptions"
 import { isItemKind, itemKindPriority } from "./item_kinds"
 import { normalizeManualItemID } from "./item_ids"
 export { normalizeManualItemID } from "./item_ids"
@@ -132,15 +129,6 @@ export function updateSettings(settings: Partial<AppSettings>): AppState {
     updatedAt: Date.now(),
   }
   return persistOrThrow(next)
-}
-
-/** Compare only subscription settings; merge unrelated item/settings edits. */
-export function updateIconSubscriptions(next: IconSubscription[], expected: IconSubscription[]): AppState {
-  const current = loadState()
-  if (JSON.stringify(iconSubscriptions(current.settings)) !== JSON.stringify(normalizeIconSubscriptions(expected))) {
-    throw Error("图库订阅已在别处更改，请返回后重新打开。")
-  }
-  return persistOrThrow({ ...current, settings: { ...current.settings, iconSubscriptions: normalizeIconSubscriptions(next) }, updatedAt: Date.now() })
 }
 
 export function upsertItem(
@@ -625,7 +613,6 @@ function normalizeSettings(raw: unknown): AppSettings {
   return {
     ...normalizeLegacyIconPreferences(value),
     ...(value.itemIconChoices != null ? { itemIconChoices: normalizeItemIconChoices(value.itemIconChoices) } : {}),
-    ...(value.iconSubscriptions != null ? { iconSubscriptions: normalizeIconSubscriptions(value.iconSubscriptions) } : {}),
     includeReminders: typeof value.includeReminders === "boolean"
       ? value.includeReminders
       : DEFAULT_SETTINGS.includeReminders,

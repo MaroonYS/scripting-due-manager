@@ -10,7 +10,7 @@ import * as dates from "../到期管家/src/date.ts"
 import { resolveDueIcon } from "../到期管家/src/icons.ts"
 import { recurrenceLabel } from "../到期管家/src/presentation.ts"
 import { itemIconID } from "../到期管家/src/icon_preferences.ts"
-import { symbolChoice } from "../到期管家/src/artwork_catalog.ts"
+import { symbolChoice } from "../到期管家/src/icon_preferences.ts"
 import type { ManualDueItem } from "../到期管家/src/types.ts"
 
 type Node = { type: string; props: Record<string, any>; children: any[] }
@@ -121,24 +121,22 @@ test("retired brand preferences never load artwork and retain the explicit syste
   }
 })
 
-test("manual color buttons keep semantic labels and occurrence guards; failed images retain native actions", async () => {
+test("retired color selections fall back to native actions and are removed on the next save", async () => {
   for (const noImages of [false, true]) {
     const env = harness({ color: true, noImages })
     try {
       const row = env.render(), button = row.children[0]
       assert.equal(button.type, "Button")
       assert.deepEqual(button.props.frame, { width: 40, height: 40 })
-      assert.equal(button.props.foregroundStyle, noImages ? resolveDueIcon(env.item.title, env.item.kind, env.item.iconName).color : undefined)
-      if (noImages) assert.equal(button.props.systemImage, env.item.iconName)
-      else {
-        assert.equal(button.children[0].type, "ArtworkCompletionLabel")
-        assert.equal(button.children[0].props.title, "完成事项：招商银行")
-      }
+      assert.equal(button.props.foregroundStyle, resolveDueIcon(env.item.title, env.item.kind, env.item.iconName).color)
+      assert.equal(button.props.systemImage, env.item.iconName)
+      assert.equal(button.props.title, "完成事项：招商银行")
+      assert.deepEqual(env.reads, [])
       const action = button.props.action
       action(); action(); await flush()
       assert.equal(env.events.filter(e => e[0] === "complete").length, 1)
       assert.equal(storage.loadState().items[0].dueDate, "2026-10-09")
-      assert.equal(storage.loadState().settings.itemIconChoices![0].iconID, "icons8-ka3InxFU3QZa")
+      assert.deepEqual(storage.loadState().settings.itemIconChoices, [])
       assert.ok(!nodes(env.render({}, true)).some(n => n.type === "Button"))
     } finally { env.cleanup() }
   }

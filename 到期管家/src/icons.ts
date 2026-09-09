@@ -182,6 +182,59 @@ export const DUE_ICON_OPTIONS: DueIconDefinition[] = [
   { name: "tag.fill", label: "会员价格", color: "systemOrange", group: "其他" },
   { name: "bell.fill", label: "提醒通知", color: "systemRed", group: "其他" },
   { name: "qrcode", label: "通行码", color: "systemIndigo", group: "其他" },
+
+  { name: "wallet.pass.fill", label: "钱包卡包", color: "systemOrange", group: "财务" },
+  { name: "sterlingsign.circle.fill", label: "英镑账户", color: "systemIndigo", group: "财务" },
+  { name: "yensign.circle.fill", label: "人民币日元", color: "systemRed", group: "财务" },
+  { name: "eurosign.circle.fill", label: "欧元账户", color: "systemBlue", group: "财务" },
+  { name: "bitcoinsign.circle.fill", label: "数字资产", color: "systemOrange", group: "财务" },
+  { name: "chart.bar.fill", label: "财务报表", color: "systemGreen", group: "财务" },
+  { name: "arrow.left.arrow.right.circle.fill", label: "转账换汇", color: "systemTeal", group: "财务" },
+  { name: "arrow.down.circle.fill", label: "收款入账", color: "systemGreen", group: "财务" },
+  { name: "arrow.up.circle.fill", label: "支出汇款", color: "systemOrange", group: "财务" },
+  { name: "checkmark.shield.fill", label: "验证保障", color: "systemGreen", group: "财务" },
+  { name: "building.2.fill", label: "企业机构", color: "systemIndigo", group: "工作效率" },
+  { name: "folder.fill", label: "文件归档", color: "systemBlue", group: "工作效率" },
+  { name: "doc.richtext", label: "报告资料", color: "systemTeal", group: "工作效率" },
+  { name: "lock.doc.fill", label: "保密文件", color: "systemIndigo", group: "工作效率" },
+  { name: "person.crop.rectangle.fill", label: "身份资料", color: "systemIndigo", group: "工作效率" },
+  { name: "simcard.fill", label: "SIM 卡", color: "systemTeal", group: "数字服务" },
+  { name: "personalhotspot", label: "个人热点", color: "systemGreen", group: "数字服务" },
+  { name: "antenna.radiowaves.left.and.right", label: "移动通信", color: "systemBlue", group: "数字服务" },
+  { name: "keyboard.fill", label: "键盘输入", color: "systemGray", group: "数字服务" },
+  { name: "ipad", label: "平板设备", color: "systemIndigo", group: "数字服务" },
+  { name: "battery.100percent", label: "电池充电", color: "systemGreen", group: "数字服务" },
+  { name: "opticaldisc.fill", label: "光盘媒体", color: "systemPurple", group: "影音娱乐" },
+  { name: "play.circle.fill", label: "播放收藏", color: "systemRed", group: "影音娱乐" },
+  { name: "hifispeaker.fill", label: "音响设备", color: "systemPurple", group: "影音娱乐" },
+  { name: "at.circle.fill", label: "社交账号", color: "systemBlue", group: "社交通讯" },
+  { name: "phone.arrow.up.right.fill", label: "拨号回访", color: "systemGreen", group: "社交通讯" },
+  { name: "sofa.fill", label: "家具家居", color: "systemBrown", group: "居家生活" },
+  { name: "refrigerator.fill", label: "冰箱食材", color: "systemTeal", group: "居家生活" },
+  { name: "oven.fill", label: "烹饪烤箱", color: "systemOrange", group: "居家生活" },
+  { name: "fan.fill", label: "空调通风", color: "systemBlue", group: "居家生活" },
+  { name: "lightbulb.led.fill", label: "照明灯具", color: "systemYellow", group: "居家生活" },
+  { name: "door.left.hand.closed", label: "门锁安防", color: "systemBrown", group: "居家生活" },
+  { name: "bandage.fill", label: "伤口护理", color: "systemPink", group: "健康运动" },
+  { name: "syringe.fill", label: "疫苗接种", color: "systemTeal", group: "健康运动" },
+  { name: "eye.fill", label: "眼科视力", color: "systemBlue", group: "健康运动" },
+  { name: "thermometer.medium", label: "体温测量", color: "systemRed", group: "健康运动" },
+  { name: "soccerball", label: "足球运动", color: "systemGreen", group: "健康运动" },
+  { name: "basketball.fill", label: "篮球运动", color: "systemOrange", group: "健康运动" },
+  { name: "figure.yoga", label: "瑜伽拉伸", color: "systemPurple", group: "健康运动" },
+  { name: "figure.walk", label: "步行散步", color: "systemGreen", group: "出行旅行" },
+  { name: "microwave.fill", label: "微波加热", color: "systemOrange", group: "居家生活" },
+  { name: "bus.doubledecker.fill", label: "城际巴士", color: "systemRed", group: "出行旅行" },
+  { name: "train.side.front.car", label: "火车铁路", color: "systemTeal", group: "出行旅行" },
+  { name: "car.side.fill", label: "租车自驾", color: "systemIndigo", group: "出行旅行" },
+  { name: "backpack.fill", label: "书包学具", color: "systemOrange", group: "学习阅读" },
+  { name: "studentdesk", label: "自习课程", color: "systemTeal", group: "学习阅读" },
+  { name: "magazine.fill", label: "期刊杂志", color: "systemBlue", group: "学习阅读" },
+  { name: "pencil.tip.crop.circle", label: "绘图创作", color: "systemPurple", group: "创作设计" },
+  { name: "viewfinder", label: "构图取景", color: "systemBlue", group: "创作设计" },
+  { name: "clock.fill", label: "时间安排", color: "systemOrange", group: "其他" },
+  { name: "hourglass", label: "期限倒计时", color: "systemOrange", group: "其他" },
+  { name: "alarm.fill", label: "闹钟唤醒", color: "systemRed", group: "其他" },
 ]
 
 export type DueIconLabelLanguage = "en" | "zh-Hans" | "zh-Hant"
@@ -189,6 +242,58 @@ export type DueIconLabelLanguage = "en" | "zh-Hans" | "zh-Hant"
 // Compact English names are intentionally curated instead of exposing SF
 // Symbol identifiers such as “takeoutbag.and.cup.and.straw.fill” in widgets.
 const ENGLISH_ICON_LABELS: Record<string, string> = {
+  "wallet.pass.fill": "Wallet & Cards",
+  "sterlingsign.circle.fill": "Pound Sterling",
+  "yensign.circle.fill": "Yuan & Yen",
+  "eurosign.circle.fill": "Euro Account",
+  "bitcoinsign.circle.fill": "Digital Assets",
+  "chart.bar.fill": "Financial Reports",
+  "arrow.left.arrow.right.circle.fill": "Transfers & Exchange",
+  "arrow.down.circle.fill": "Income & Deposits",
+  "arrow.up.circle.fill": "Outgoing Payments",
+  "checkmark.shield.fill": "Verification",
+  "building.2.fill": "Organizations",
+  "folder.fill": "File Archive",
+  "doc.richtext": "Reports",
+  "lock.doc.fill": "Private Documents",
+  "person.crop.rectangle.fill": "Identity Documents",
+  "simcard.fill": "SIM Card",
+  "personalhotspot": "Personal Hotspot",
+  "antenna.radiowaves.left.and.right": "Mobile Network",
+  "keyboard.fill": "Keyboard",
+  "ipad": "Tablet",
+  "battery.100percent": "Battery & Charging",
+  "opticaldisc.fill": "Discs & Media",
+  "play.circle.fill": "Playlists",
+  "hifispeaker.fill": "Speakers",
+  "at.circle.fill": "Social Accounts",
+  "phone.arrow.up.right.fill": "Follow-up Calls",
+  "sofa.fill": "Furniture",
+  "refrigerator.fill": "Fridge & Groceries",
+  "oven.fill": "Cooking & Oven",
+  "fan.fill": "Air & Ventilation",
+  "lightbulb.led.fill": "Lighting",
+  "door.left.hand.closed": "Doors & Locks",
+  "bandage.fill": "Wound Care",
+  "syringe.fill": "Vaccinations",
+  "eye.fill": "Eye Care",
+  "thermometer.medium": "Temperature",
+  "soccerball": "Football",
+  "basketball.fill": "Basketball",
+  "figure.yoga": "Yoga & Stretching",
+  "figure.walk": "Walking",
+  "microwave.fill": "Microwave",
+  "bus.doubledecker.fill": "Intercity Bus",
+  "train.side.front.car": "Rail Travel",
+  "car.side.fill": "Car Rental",
+  "backpack.fill": "School Supplies",
+  "studentdesk": "Study Sessions",
+  "magazine.fill": "Magazines",
+  "pencil.tip.crop.circle": "Drawing",
+  "viewfinder": "Composition",
+  "clock.fill": "Time Planning",
+  "hourglass": "Countdown",
+  "alarm.fill": "Alarm Clock",
   "creditcard.fill": "Credit Card",
   "building.columns.fill": "Banking",
   "banknote.fill": "Payments",
@@ -352,7 +457,10 @@ const TRADITIONAL_ICON_CHARACTERS: Record<string, string> = {
   "运": "運", "迹": "跡", "邮": "郵", "铁": "鐵", "银": "銀", "门": "門",
   "闻": "聞", "阅": "閱", "队": "隊", "险": "險", "项": "項", "预": "預",
   "频": "頻", "饮": "飲", "饰": "飾", "馆": "館", "骑": "騎", "员": "員",
-  "税": "稅",
+  "税": "稅", "钱": "錢", "镑": "鎊", "币": "幣", "欧": "歐", "转": "轉", "汇": "匯",
+  "账": "賬", "证": "證", "键": "鍵", "热": "熱", "个": "個", "响": "響", "号": "號",
+  "拨": "撥", "访": "訪", "风": "風", "调": "調", "锁": "鎖", "灯": "燈", "温": "溫",
+  "篮": "籃", "闹": "鬧", "钟": "鐘", "杂": "雜", "志": "誌",
 }
 
 type IconRule = {
@@ -390,6 +498,22 @@ export type ReminderNoteIconInference = {
 // Rules stay deliberately conservative: manual choices cover the long tail, while
 // automatic matching only uses product names or phrases with a clear meaning.
 const ICON_RULES: IconRule[] = [
+  { icon: "building.columns.fill", keywords: [
+    "hsbc", "barclays", "natwest", "lloyds bank", "standard chartered", "bank of america", "citibank", "wells fargo",
+    "chase bank", "jpmorgan", "monzo", "revolut", "wise account", "za bank", "mox bank", "livi bank",
+    "汇丰", "滙豐", "汇丰银行", "渣打", "恒生", "恆生", "中银", "中銀", "招商银行", "招商銀行",
+    "工商银行", "工商銀行", "建设银行", "建設銀行", "农业银行", "農業銀行", "中国银行", "中國銀行", "交通银行", "交通銀行",
+  ] },
+  { icon: "creditcard.fill", keywords: ["redotpay", "bybit card", "wirex card", "nexo card", "crypto.com card", "u卡", "u 卡", "加密货币卡", "加密貨幣卡"] },
+  { icon: "arrow.left.arrow.right.circle.fill", keywords: ["paypal", "alipay", "wechat pay", "wise transfer", "currency exchange", "bank transfer", "支付宝", "支付寶", "微信支付", "跨境汇款", "跨境匯款", "换汇", "換匯", "银行转账", "銀行轉賬"] },
+  { icon: "bitcoinsign.circle.fill", keywords: ["bitcoin", "ethereum", "usdt", "usdc", "crypto wallet", "比特币", "比特幣", "以太坊", "数字资产", "數字資產"] },
+  { icon: "simcard.fill", keywords: ["sim card", "esim", "sim卡", "电话卡", "電話卡"] },
+  { icon: "syringe.fill", keywords: ["vaccination", "vaccine appointment", "疫苗", "预防接种", "預防接種"] },
+  { icon: "eye.fill", keywords: ["eye exam", "optometrist", "验光", "驗光", "眼科"] },
+  { icon: "ferry.fill", keywords: ["ferry ticket", "ferry booking", "渡轮", "渡輪", "船票"] },
+  { icon: "train.side.front.car", keywords: ["train ticket", "rail ticket", "火车票", "火車票", "高铁票", "高鐵票"] },
+  { icon: "car.side.fill", keywords: ["car rental", "rental car", "租车", "租車"] },
+  { icon: "battery.100percent", keywords: ["charge battery", "battery replacement", "更换电池", "更換電池", "充电宝", "充電寶"] },
   {
     icon: "sparkles",
     keywords: [
@@ -800,6 +924,7 @@ const ICON_RULES: IconRule[] = [
     keywords: [
       "credit card", "visa card", "mastercard", "american express", "amex", "credit 01", "credit 02", "credit 03", "credit 04",
       "信用卡", "还款日", "卡账单", "银行账单", "卡片年费",
+      "信用卡还款", "信用卡還款", "信用卡年费", "信用卡年費", "银行卡激活", "銀行卡啟用",
     ],
   },
   {
@@ -1245,6 +1370,15 @@ export function normalizeIconOverride(value: unknown): string | null {
   return ICON_OPTION_NAMES.has(value) ? value : null
 }
 
+/** Bounded in-memory search, without any external catalog or network request. */
+export function searchSystemIcons(query: string): DueIconDefinition[] {
+  const terms = query.normalize("NFKC").toLowerCase().trim().split(/\s+/).filter(Boolean)
+  return DUE_ICON_OPTIONS.filter(icon => {
+    const text = `${icon.name} ${icon.label} ${icon.group} ${dueIconLabel(icon.name, "en")} ${dueIconLabel(icon.name, "zh-Hant")}`.normalize("NFKC").toLowerCase()
+    return terms.every(term => text.includes(term))
+  })
+}
+
 /** Human-readable catalog label for a resolved SF Symbol used by widgets. */
 export function dueIconLabel(
   iconName: string | null | undefined,
@@ -1281,7 +1415,7 @@ export function inferReminderNoteIconCandidate(
   notes: unknown,
 ): ReminderNoteIconInference | null {
   if (typeof notes !== "string") return null
-  const excerpt = notes.slice(0, 1000)
+  const excerpt = notes.slice(0, 4096)
 
   const productMatch = bestMatchingIconMatchFromRules(excerpt, COMPILED_ICON_RULES)
   const strongContentMatch = bestMatchingStrongReminderNoteMatch(excerpt)
@@ -1310,9 +1444,8 @@ export function inferReminderNoteIcon(notes: unknown): string | null {
 }
 
 /**
- * Apple Reminders use layered inference. A specific title always wins. A
- * specific List remains authoritative, while a strong product/category found
- * in notes may supplement catch-all Lists such as Tasks, Inbox or Personal.
+ * Specific titles win; notes refine generic actions before List fallbacks.
+ * Only local symbol hints are cached, never the original private notes.
  */
 export function resolveReminderIcon(
   title: string,
@@ -1325,13 +1458,10 @@ export function resolveReminderIcon(
   const numberedModuleIcon = listMatch?.numberedModules
     ? bestMatchingReminderNumberedModuleIcon(title)
     : null
-  const titleIcon = numberedModuleIcon ?? bestMatchingReminderTextIcon(title)
-  if (titleIcon) return resolvedIcon(titleIcon)
-
-  if (listMatch && !listMatch.generic) return resolvedIcon(listMatch.iconName)
-
-  const listProductIcon = bestMatchingIcon(calendarTitle)
-  if (listProductIcon) return resolvedIcon(listProductIcon)
+  if (numberedModuleIcon) return resolvedIcon(numberedModuleIcon)
+  const titleIcon = bestMatchingReminderTextIcon(title)
+  const genericTitle = titleIcon != null && ["repeat.circle.fill", "doc.text.fill", "calendar", "checklist", "checkmark.circle.fill"].includes(titleIcon)
+  if (titleIcon && !genericTitle) return resolvedIcon(titleIcon)
 
   const liveNoteMatch = inferReminderNoteIconCandidate(notes)
   const cachedIconName = normalizeIconOverride(cachedNoteIconHint)
@@ -1343,8 +1473,11 @@ export function resolveReminderIcon(
     : null
   const noteMatch = liveNoteMatch ?? cachedNoteMatch
   if (noteMatch?.confidence === "strong") return resolvedIcon(noteMatch.iconName)
-  if (listMatch) return resolvedIcon(listMatch.iconName)
+  if (titleIcon) return resolvedIcon(titleIcon)
   if (noteMatch) return resolvedIcon(noteMatch.iconName)
+  if (listMatch) return resolvedIcon(listMatch.iconName)
+  const listProductIcon = bestMatchingIcon(calendarTitle)
+  if (listProductIcon) return resolvedIcon(listProductIcon)
 
   const inferredName = "checklist"
   return resolvedIcon(inferredName)

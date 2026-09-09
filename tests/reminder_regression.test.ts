@@ -106,6 +106,51 @@ async function withRuntime(operation: (store: Map<string, any>) => Promise<void>
   }
 }
 
+test("native dueDateIncludesTime is authoritative, including all-day reminders with zero time fields", async () => {
+  await withRuntime(async () => {
+    globals.Reminder = { getIncompletes: async () => [
+      reminder({ identifier: "all-day", dueDateIncludesTime: false,
+        dueDateComponents: { year: 2026, month: 9, day: 4, hour: 0, minute: 0, date: new Date(2026, 8, 4) } }),
+      reminder({ identifier: "native-timed", dueDateIncludesTime: true,
+        dueDateComponents: { year: 2026, month: 9, day: 4, date: new Date(2026, 8, 4, 9, 30) } }),
+    ] }
+    const result = await loadReminderItems(365)
+    const allDay = result.items.find(item => item.id === "all-day")!
+    const timed = result.items.find(item => item.id === "native-timed")!
+    assert.equal(allDay.includesTime, false)
+    assert.equal(allDay.completionKey, "date:2026-09-04")
+    assert.equal(timed.includesTime, true)
+    assert.equal(timed.hour, 9)
+    assert.equal(timed.minute, 30)
+  })
+})
+
+test("legacy due components with an hour and no minute still yield an exact timed occurrence", async () => {
+  await withRuntime(async () => {
+    globals.Reminder = { getIncompletes: async () => [reminder({
+      dueDateComponents: { year: 2026, month: 9, day: 4, hour: 0, date: new Date(2026, 8, 4) },
+    })] }
+    const result = await loadReminderItems(365)
+    assert.equal(result.items[0].includesTime, true)
+    assert.equal(result.items[0].hour, 0)
+    assert.equal(result.items[0].minute, 0)
+    assert.notEqual(result.items[0].completionKey, "date:2026-09-04")
+  })
+})
+
+test("live reminder loading never fabricates action IDs and accepts the full supported identifier", async () => {
+  await withRuntime(async () => {
+    const identifier = "native-" + "a".repeat(505)
+    globals.Reminder = { getIncompletes: async () => [
+      reminder({ identifier }), reminder({ identifier: undefined }), reminder({ identifier: "" }),
+      reminder({ identifier: "bad\nidentifier" }), reminder({ identifier: "a".repeat(513) }),
+      reminder({ identifier: "completed", isCompleted: true }),
+    ] }
+    const result = await loadReminderItems(365)
+    assert.deepEqual(result.items.map(item => item.id), [identifier])
+  })
+})
+
 test("successful Reminder.save survives cache read, legacy migration and cache write failures", async () => {
   for (const fault of ["read", "legacy-migration", "write-false", "write-throw"]) {
     await withRuntime(async store => {

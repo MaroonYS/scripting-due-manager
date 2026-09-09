@@ -66,7 +66,18 @@ function StartupScreen() {
 }
 
 async function run() {
-  try { await Navigation.present({ element: <StartupScreen /> }) }
+  try {
+    if (Script.queryParameters?.action === "open-reminder") {
+      try {
+        const { openReminderFromWidget } = await import("./src/reminder_navigation")
+        await openReminderFromWidget(Script.queryParameters.id)
+      } catch (error) {
+        await Dialog.alert({ title: "无法打开对应提醒事项", message: String(error) })
+      }
+      return
+    }
+    await Navigation.present({ element: <StartupScreen /> })
+  }
   catch (error) { await Dialog.alert({ title: "启动界面未能打开", message: String(error) }) }
   finally { Script.exit() }
 }

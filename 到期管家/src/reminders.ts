@@ -311,11 +311,15 @@ export function clearReminderSnapshot(): void {
 }
 
 function reminderToCacheItem(reminder: any): CachedReminderItem | null {
+  if (reminder?.isCompleted === true || typeof reminder?.identifier !== "string"
+    || !reminder.identifier || reminder.identifier.length > 512
+    || /[\u0000-\u001f\u007f]/.test(reminder.identifier)) return null
   const components = reminder?.dueDateComponents
   const computed: Date | null = components?.date ?? null
   if (!components || !(computed instanceof Date) || Number.isNaN(computed.getTime())) return null
 
-  const includesTime = components.hour != null && components.minute != null
+  const includesTime = typeof reminder.dueDateIncludesTime === "boolean"
+    ? reminder.dueDateIncludesTime : components.hour != null
 
   // Timed reminders represent an absolute instant. Display every component in
   // the device's current time zone so the label, sort key and countdown agree.
@@ -340,7 +344,7 @@ function reminderToCacheItem(reminder: any): CachedReminderItem | null {
   const noteIconInference = inferReminderNoteIconCandidate(reminder.notes)
 
   return {
-    id: String(reminder.identifier ?? `${reminder.title}-${dueTimestamp}`),
+    id: reminder.identifier,
     title,
     dueDate,
     includesTime,
@@ -445,6 +449,7 @@ function normalizeCachedItem(raw: any): CachedReminderItem | null {
   if (
     !raw
     || typeof raw.id !== "string"
+    || !raw.id || raw.id.length > 512 || /[\u0000-\u001f\u007f]/.test(raw.id)
     || typeof raw.title !== "string"
     || typeof raw.dueDate !== "string"
     || parseDateKey(raw.dueDate) == null

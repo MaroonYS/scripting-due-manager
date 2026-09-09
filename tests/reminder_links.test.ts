@@ -51,7 +51,7 @@ test("widget item URLs deep-link reminders and retain the manual edit fallback",
   assert.match(resolver, /if \(item\.source === "reminder"\) \{/)
   assert.match(
     resolver,
-    /return appleReminderDeepLink\(item\.id\) \?\? APPLE_REMINDERS_URL/,
+    /Script\.createRunURLScheme\(Script\.name, \{ action: "open-reminder", id: item\.id \}\)/,
   )
   assert.match(
     resolver,

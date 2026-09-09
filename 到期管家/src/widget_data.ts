@@ -5,7 +5,7 @@
 import { loadReminderItems, sortDueItems } from "./reminders"
 import { loadState, manualItemsForDisplay } from "./storage"
 import type { AppState, ReminderLoadResult } from "./types"
-import { withItemIconChoices } from "./artwork_catalog"
+import { withItemIconChoices } from "./icon_preferences"
 
 function reminderScope(state: AppState): string {
   return JSON.stringify([
