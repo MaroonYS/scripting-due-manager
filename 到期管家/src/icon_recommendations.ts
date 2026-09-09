@@ -6,7 +6,7 @@ import { resolveDueIcon } from "./icons"
 import { ARTWORK_CATALOG } from "./artwork_catalog"
 import type { ItemKind } from "./types"
 
-export interface IconRecommendation { fluent: string; icons8: string; reason: string }
+export interface IconRecommendation { fluent: string; icons8: string; github: string; brand: boolean; reason: string }
 const EMOJI_BY_SYMBOL: Record<string, string> = {
   "repeat.circle.fill": "calendar", "doc.text.fill": "page", "wrench.and.screwdriver.fill": "wrench", "birthday.cake.fill": "birthday-cake",
   "creditcard.fill": "credit-card", "building.columns.fill": "bank", "banknote.fill": "money", "chart.line.uptrend.xyaxis": "chart",
@@ -63,7 +63,7 @@ function matches(title: string, word: string): boolean {
 export function recommendIconQueries(title: string, kind: ItemKind | "reminder" = "custom"): IconRecommendation {
   const normalized = title.normalize("NFKC").toLowerCase()
   const direct = DIRECT_BRANDS.find(brand => brand.words.some(word => matches(normalized, word)))
-  if (direct) return { icons8: direct.icons8, fluent: direct.fluent, reason: `识别到 ${direct.icons8}；Fluent 推荐对应类别图案` }
+  if (direct) return { github: direct.icons8, brand: true, icons8: direct.icons8, fluent: direct.fluent, reason: `识别到 ${direct.icons8}；Fluent 推荐对应类别图案` }
   const icon = resolveDueIcon(title, kind)
   const ranked = normalized ? brands.map(brand => ({ brand, score: matches(normalized, brand.full) ? 1000 + brand.full.length
     : Math.max(0, ...brand.words.filter(word => matches(normalized, word)).map(word => word.length)) }))
@@ -71,5 +71,5 @@ export function recommendIconQueries(title: string, kind: ItemKind | "reminder" 
   const brand = ranked[0]?.brand
   const symbolQuery = EMOJI_BY_SYMBOL[icon.name] ?? "calendar"
   const fluent = (symbolQuery === "calendar" || icon.name === "checklist") && brand ? EMOJI_BY_GROUP[brand.group] ?? symbolQuery : symbolQuery
-  return { fluent, icons8: brand?.query ?? fluent.replace(/-/g, " "), reason: brand ? `识别到 ${brand.query}；Fluent 推荐对应类别图案` : `按「${icon.label}」推荐` }
+  return { fluent, github: brand?.query ?? "", brand: Boolean(brand), icons8: brand?.query ?? fluent.replace(/-/g, " "), reason: brand ? `识别到 ${brand.query}；Fluent 推荐对应类别图案` : `按「${icon.label}」推荐` }
 }

@@ -6,6 +6,7 @@ import { ARTWORK_ROWS } from "./artwork_data"
 import { DUE_ICON_OPTIONS } from "./icons"
 import { itemIconID } from "./icon_preferences"
 import { parseOnlineArtworkID } from "./online_artwork_ids"
+import { parseGithubArtworkID } from "./github_artwork_ids"
 import type { AppSettings, DisplayDueItem } from "./types"
 
 export interface ArtworkDefinition { id: string; label: string; group: string; aliases: string; path: string; lightBackplate: boolean }
@@ -20,7 +21,7 @@ export const ARTWORK_STYLE = "Icons8 · Windows 11 Color"
 
 export function artworkByID(id: string | null | undefined): ArtworkDefinition | null { return id ? catalogByID.get(id) ?? null : null }
 export function symbolChoice(id: string | null | undefined) { return id?.startsWith("sf:") ? symbolsByName.get(id.slice(3)) ?? null : null }
-export function isKnownIconChoice(id: string | null) { return id == null || artworkByID(id) != null || symbolChoice(id) != null || parseOnlineArtworkID(id) != null }
+export function isKnownIconChoice(id: string | null) { return id == null || artworkByID(id) != null || symbolChoice(id) != null || parseOnlineArtworkID(id) != null || parseGithubArtworkID(id) != null }
 
 const normalizedText = (value: string) => value.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "")
 const searchIndex = new Map(ARTWORK_CATALOG.map(icon => [icon.id, normalizedText(`${icon.label} ${icon.aliases} ${icon.group}`)]))
@@ -37,6 +38,6 @@ export function withItemIconChoices(items: readonly DisplayDueItem[], settings: 
     const symbol = symbolChoice(choice)
     if (symbol) return { ...item, iconName: symbol.name, iconColor: symbol.color, iconIsExplicit: true, artworkID: undefined }
     const artwork = artworkByID(choice)
-    return artwork || parseOnlineArtworkID(choice) ? { ...item, artworkID: choice! } : { ...item, artworkID: undefined }
+    return artwork || parseOnlineArtworkID(choice) || parseGithubArtworkID(choice) ? { ...item, artworkID: choice! } : { ...item, artworkID: undefined }
   })
 }

@@ -13,17 +13,20 @@ import { artworkFrame } from "../到期管家/src/artwork_adaptation.ts"
 import { recommendIconQueries } from "../到期管家/src/icon_recommendations.ts"
 import { onlineArtworkLabel } from "../到期管家/src/online_artwork_ids.ts"
 import { ICONS8_STYLES } from "../到期管家/src/online_artwork.ts"
+import { DEFAULT_ICON_SUBSCRIPTIONS, iconSubscriptions, MAX_ICON_SUBSCRIPTIONS, normalizeIconSubscriptions } from "../到期管家/src/icon_subscriptions.ts"
+import { githubArtworkID } from "../到期管家/src/github_artwork_ids.ts"
 
 const chat = "icons8-ka3InxFU3QZa", claude = "icons8-zQjzFjPpT2Ek"
 const read = (file: string) => readFileSync(new URL(`../到期管家/src/${file}`, import.meta.url), "utf8")
 const h = (type: any, props: any, ...children: any[]) => ({ type: typeof type === "function" ? type.name : type, props: props ?? {}, children: children.flat(Infinity).filter(c => c != null && c !== false) })
 const nodes = (node: any): any[] => [node, ...node.children.filter((c: any) => typeof c === "object").flatMap(nodes)]
 const flush = async () => { for (let n = 0; n < 20; n++) await Promise.resolve() }
-const primitives = Object.fromEntries(["Button", "Image", "SVG", "SecureField", "Label", "HStack", "VStack", "ZStack", "Text", "Spacer", "RoundedRectangle", "NavigationLink", "Section", "List", "TextField", "Picker", "Link", "LazyVGrid", "ArtworkImage", "ArtworkCompletionLabel", "ArtworkBrowser", "ItemIconLibraryRow"].map(name => [name, name]))
+const primitives = Object.fromEntries(["Button", "Image", "SVG", "SecureField", "Label", "HStack", "VStack", "ZStack", "Text", "Spacer", "RoundedRectangle", "NavigationLink", "Section", "List", "TextField", "Picker", "Link", "LazyVGrid", "ArtworkImage", "ArtworkCompletionLabel", "ArtworkBrowser", "ItemIconLibraryRow", "IconSubscriptionsView", "Toggle"].map(name => [name, name]))
 function compile(source: string, names: string[], bindings: Record<string, any>) {
   const code = source.replace(/^import .*$/gm, "").replace(/^export /gm, "")
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(code)
-  const env = { h, ...primitives, artworkFrame, recommendIconQueries, onlineArtworkLabel, ICONS8_STYLES, ...bindings }
+  const env = { h, ...primitives, artworkFrame, recommendIconQueries, onlineArtworkLabel, ICONS8_STYLES,
+    DEFAULT_ICON_SUBSCRIPTIONS, iconSubscriptions, MAX_ICON_SUBSCRIPTIONS, normalizeIconSubscriptions, ...bindings }
   return new Function(...Object.keys(env), `${compiled}\nreturn {${names.join(",")}}`)(...Object.values(env))
 }
 function hooks() {
@@ -111,9 +114,10 @@ function browserHarness(select = false, itemTitle = "") {
   const searches: { provider: string; query: string; page: number; style: string; finish: (value: any) => void; fail: (error: Error) => void }[] = []
   let key: string | null = null
   const { ArtworkBrowser } = compile(read("artwork_browser.tsx"), ["ArtworkBrowser"], {
-    ...state, ...catalog, Script: { directory: "/bundle" }, Navigation: { useDismiss: () => () => events.push("dismiss") },
+    ...state, ...catalog, loadState: () => defaultState(), Script: { directory: "/bundle" }, Navigation: { useDismiss: () => () => events.push("dismiss") },
     loadArtworkPage: (ids: string[]) => new Promise(resolve => requests.push({ ids, finish: resolve })),
     searchOnlineArtwork: (provider: string, query: string, page: number, style: string) => new Promise((finish, fail) => searches.push({ provider, query, page, style, finish, fail })),
+    searchGithubArtwork: (query: string, page: number) => new Promise((finish, fail) => searches.push({ provider: "github", query, page, style: "全部风格", finish, fail })),
     readIcons8Key: () => key, iconKeychainAvailable: () => true,
     saveIcons8Key: (value: string) => { events.push("saveKey"); key = value }, removeIcons8Key: () => { events.push("removeKey"); key = null },
   })
@@ -128,7 +132,7 @@ function browserHarness(select = false, itemTitle = "") {
   }
 }
 
-const onlineIDs = (offset = 0) => Array.from({ length: 24 }, (_, i) => `fluent-emoji-flat:icon-${i + offset}`)
+const onlineIDs = (offset = 0) => Array.from({ length: 24 }, (_, i) => githubArtworkID(`https://raw.githubusercontent.com/example/icons/main/icon-${i + offset}.png`)!)
 function finishSearch(env: ReturnType<typeof browserHarness>, index: number, offset = 0) {
   const ids = onlineIDs(offset)
   env.searches[index].finish({ icons: ids.map(id => ({ id, label: id, detail: "Fluent" })), hasMore: true, page: env.searches[index].page })
@@ -139,11 +143,11 @@ test("online browser sends no request until visible and searching, decodes one p
   env.show()
   assert.equal(env.searches.length, 0); assert.equal(env.requests.length, 0)
   env.submit("clock")
-  assert.equal(env.searches[0].provider, "fluent"); assert.equal(env.searches[0].query, "clock")
+  assert.equal(env.searches[0].provider, "github"); assert.equal(env.searches[0].query, "clock")
   finishSearch(env, 0); await flush()
   let root = env.render()
   assert.equal(env.requests[0].ids.length, 24)
-  assert.equal(nodes(root).filter(n => n.type === "Button" && n.props.key?.startsWith("fluent-")).length, 24)
+  assert.equal(nodes(root).filter(n => n.type === "Button" && n.props.key?.startsWith("github-artwork:")).length, 24)
   nodes(root).find(n => n.type === "Button" && n.props.title === "下一页").props.action()
   root = env.render()
   assert.equal(env.searches[1].page, 1)
@@ -179,11 +183,11 @@ test("preview-only browser never saves; item selection requires a loaded preview
     const env = browserHarness(select)
     env.show(); env.submit("clock"); finishSearch(env, 0); await flush()
     let root = env.render()
-    let button = nodes(root).find(n => n.type === "Button" && n.props.key?.startsWith("fluent-"))
+    let button = nodes(root).find(n => n.type === "Button" && n.props.key?.startsWith("github-artwork:"))
     if (select) { assert.equal(button.props.disabled, true); button.props.action(); assert.deepEqual(env.events, []) }
     env.requests[0].finish(Object.fromEntries(env.requests[0].ids.map(id => [id, { svg: "svg" }]))); await flush()
     root = env.render()
-    button = nodes(root).find(n => n.type === "Button" && n.props.key?.startsWith("fluent-"))
+    button = nodes(root).find(n => n.type === "Button" && n.props.key?.startsWith("github-artwork:"))
     button.props.action()
     if (select) button.props.action() // Native double-taps must not dismiss two levels.
     assert.deepEqual(env.events, select ? [button.props.key, "dismiss"] : [])
@@ -210,11 +214,14 @@ test("automatic recommendations start only on appearance and never auto-save or 
   const env = browserHarness(true, "ChatGPT Plus 给张三 2026-10-01")
   env.render(); assert.equal(env.searches.length, 0)
   let root = env.show()
-  assert.equal(env.searches[0].query, "robot"); assert.deepEqual(env.events, [])
+  assert.equal(env.searches[0].provider, "github"); assert.equal(env.searches[0].query, "ChatGPT"); assert.deepEqual(env.events, [])
+  nodes(root).find(n => n.type === "Picker" && n.props.title === "在线图库").props.onChanged("fluent")
+  root = env.render()
+  assert.equal(env.searches[1].provider, "fluent"); assert.equal(env.searches[1].query, "robot")
   nodes(root).find(n => n.type === "Picker" && n.props.title === "在线图库").props.onChanged("icons8")
   env.render()
-  assert.equal(env.searches[1].query, "ChatGPT")
-  assert.equal(env.searches[1].style, "全部风格")
+  assert.equal(env.searches[2].query, "ChatGPT")
+  assert.equal(env.searches[2].style, "全部风格")
   assert.ok(!JSON.stringify(env.searches).includes("张三"))
   env.state.cleanup()
 })
@@ -235,6 +242,108 @@ test("credential configuration uses obscured input, clears it after save and doe
   root = env.render(); assert.deepEqual(env.events, ["saveKey", "removeKey"])
   assert.equal(env.searches.length, 0)
   env.state.cleanup()
+})
+
+test("GitHub is the default blank-query browser and exposes subscription management and partial-source warnings", async () => {
+  const env = browserHarness()
+  let root = env.show()
+  assert.equal(nodes(root).find(n => n.type === "Picker" && n.props.title === "在线图库").props.value, "github")
+  assert.ok(nodes(root).some(n => n.type === "NavigationLink" && n.children.some((child: any) => child.type === "Text" && child.children.includes("管理 GitHub 图库订阅"))))
+  assert.equal(nodes(root).find(n => n.type === "Button" && n.props.title === "在线搜索").props.disabled, false)
+  env.submit("")
+  env.searches[0].finish({ icons: [], hasMore: false, page: 0, warnings: ["测试源：暂时无法读取"] })
+  await flush(); root = env.render()
+  assert.ok(nodes(root).some(n => n.type === "Text" && n.children.includes("测试源：暂时无法读取")))
+  env.state.cleanup()
+})
+
+test("generic item recommendations retain Fluent while selecting a library never alters stored artwork", () => {
+  const env = browserHarness(true, "每月房租")
+  let root = env.show()
+  assert.equal(env.searches[0].provider, "fluent"); assert.equal(env.searches[0].query, "house")
+  nodes(root).find(n => n.type === "Picker" && n.props.title === "在线图库").props.onChanged("github")
+  root = env.render()
+  assert.equal(env.searches[1].provider, "github")
+  nodes(root).find(n => n.type === "Button" && n.props.title === "按事项名称推荐").props.action()
+  env.render()
+  assert.equal(env.searches[2].provider, "fluent")
+  assert.deepEqual(env.events, [])
+  env.state.cleanup()
+})
+
+function subscriptionsHarness() {
+  const state = hooks(), writes: any[] = [], checks: { source: any; finish: (value: any) => void; fail: (reason: Error) => void }[] = []
+  let current = defaultState(), failure = false
+  const { IconSubscriptionsView } = compile(read("icon_subscriptions_view.tsx"), ["IconSubscriptionsView"], {
+    ...state, loadState: () => current,
+    fetchGithubManifest: (source: any) => new Promise((finish, fail) => checks.push({ source, finish, fail })),
+    updateIconSubscriptions: (next: any, expected: any) => {
+      if (failure) throw Error("测试保存失败")
+      assert.deepEqual(expected, iconSubscriptions(current.settings))
+      current = { ...current, settings: { ...current.settings, iconSubscriptions: normalizeIconSubscriptions(next) } }
+      writes.push(current.settings.iconSubscriptions)
+      return current
+    },
+  })
+  const render = () => { state.reset(); return IconSubscriptionsView({ onSaved: () => {} }) }
+  const show = () => { render().props.onAppear(); return render() }
+  const input = (name: string, url: string) => {
+    let root = render()
+    nodes(root).find(n => n.type === "TextField" && n.props.title === "图库名称").props.onChanged(name)
+    nodes(root).find(n => n.type === "TextField" && n.props.title === "JSON 链接").props.onChanged(url)
+    return render()
+  }
+  const add = () => nodes(render()).find(n => n.type === "Button" && n.props.title === "验证并添加").props.action()
+  return { state, writes, checks, render, show, input, add, failWrites: () => { failure = true } }
+}
+
+test("subscription manager validates before saving, rejects duplicate taps and clears inputs only after success", async () => {
+  const env = subscriptionsHarness(); env.show()
+  assert.deepEqual(env.writes, []); assert.deepEqual(env.checks, [])
+  env.input("Custom", "https://github.com/fixture/icons/blob/main/custom.json")
+  const operation = env.add()
+  assert.equal(env.checks.length, 1); assert.deepEqual(env.writes, [])
+  assert.equal(env.checks[0].source.url, "https://raw.githubusercontent.com/fixture/icons/main/custom.json")
+  const busy = nodes(env.render()).find(n => n.type === "Button" && n.props.title === "正在验证清单…")
+  assert.equal(busy.props.disabled, true); busy.props.action(); assert.equal(env.checks.length, 1)
+  env.checks[0].finish({ icons: [{}], warnings: [] }); await operation
+  assert.equal(env.writes.length, 1); assert.equal(env.writes[0].length, 4)
+  assert.ok(nodes(env.render()).filter(n => n.type === "TextField").every(n => n.props.value === ""))
+})
+
+test("subscription manager preserves drafts and old sources when validation or durable saving fails", async () => {
+  const env = subscriptionsHarness(); env.show()
+  env.input("Custom", "https://raw.githubusercontent.com/fixture/icons/main/custom.json")
+  const check = env.add(); env.checks[0].fail(Error("测试读取失败")); await check
+  assert.deepEqual(env.writes, [])
+  assert.equal(nodes(env.render()).find(n => n.type === "TextField" && n.props.title === "图库名称").props.value, "Custom")
+  env.failWrites()
+  const save = env.add(); env.checks[1].finish({ icons: [{}], warnings: [] }); await save
+  assert.deepEqual(env.writes, [])
+  assert.ok(nodes(env.render()).some(n => n.type === "Text" && n.children.includes("测试保存失败")))
+})
+
+test("leaving and reopening the subscription manager cannot commit a verification started in the old visit", async () => {
+  const env = subscriptionsHarness(); env.show()
+  env.input("Custom", "https://raw.githubusercontent.com/fixture/icons/main/custom.json")
+  const operation = env.add()
+  env.render().props.onDisappear(); env.show()
+  env.checks[0].finish({ icons: [{}], warnings: [] }); await operation
+  assert.deepEqual(env.writes, [])
+})
+
+test("subscription manager rejects unsafe or duplicate URLs before networking and supports toggling and removal", async () => {
+  const env = subscriptionsHarness(); let root = env.show()
+  env.input("Unsafe", "https://localhost/a.json?key=private"); await env.add()
+  assert.deepEqual(env.checks, []); assert.deepEqual(env.writes, [])
+  env.input("Duplicate", DEFAULT_ICON_SUBSCRIPTIONS[0].url); await env.add()
+  assert.deepEqual(env.checks, []); assert.deepEqual(env.writes, [])
+  root = env.render(); nodes(root).find(n => n.type === "Toggle").props.onChanged(false)
+  assert.equal(env.writes[0][0].enabled, false)
+  root = env.render(); nodes(root).find(n => n.type === "Button" && n.props.title === "移除「恩秀 App」订阅").props.action()
+  assert.equal(env.writes[1].length, 2)
+  root = env.render(); nodes(root).find(n => n.type === "Button" && n.props.title === "补回缺少的预设图库").props.action()
+  assert.equal(env.writes[2].length, 3)
 })
 
 test("adaptive native SVG renders original colors, proportional padding and dynamic background", () => {

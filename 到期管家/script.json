@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.1.0",
-  "description": "Track due dates and Apple Reminders with Fluent Emoji Flat and Icons8 online icon search, title-based suggestions, adaptive artwork, per-item SF Symbols, backups and checked updates. Icons8 requires your API key.",
+  "version": "3.2.0",
+  "description": "Due dates and Apple Reminders with public GitHub icon subscriptions, custom JSON sources, local brand search, Fluent Emoji Flat, optional Icons8, per-item artwork and backups.",
   "localizedDescriptions": {
-    "en": "3.1 adds online search for Fluent Emoji Flat and Icons8, item-title suggestions, and adaptive sizing, proportions, padding and light/dark backgrounds. Fluent works without a key; Icons8 requires your own API key, stored only in the script's local Keychain and excluded from backups. Suggestions send recognized public brand/category keywords, not full item titles or notes, and never replace choices automatically. Main views and home-screen widgets share per-item choices with safe system-symbol fallbacks. Existing bundled artwork, items, recurrence, notifications and backups remain compatible.",
-    "zh": "3.1 接入 Fluent Emoji Flat 与 Icons8 双在线搜索、按事项名称推荐，以及尺寸、比例、留白和深浅色背景自适配。Fluent 可直接使用；Icons8 需自行配置 API Key，仅存本机钥匙串，不进入备份。自动推荐只发送识别出的公开品牌／类别词，不上传完整事项名称或备注，不自动覆盖已有选择。主界面与桌面组件同步显示，失败安全回退系统符号。原有内置图案、事项、周期、通知及备份继续兼容。",
-    "zh-Hans": "3.1 接入 Fluent Emoji Flat 与 Icons8 双在线搜索、按事项名称推荐，以及尺寸、比例、留白和深浅色背景自适配。Fluent 可直接使用；Icons8 需自行配置 API Key，仅存本机钥匙串，不进入备份。自动推荐只发送识别出的公开品牌／类别词，不上传完整事项名称或备注，不自动覆盖已有选择。主界面与桌面组件同步显示，失败安全回退系统符号。原有内置图案、事项、周期、通知及备份继续兼容。",
-    "zh-Hant": "3.1 接入 Fluent Emoji Flat 與 Icons8 雙線上搜尋、依事項名稱推薦，以及尺寸、比例、留白和深淺色背景自適配。Fluent 可直接使用；Icons8 需自行設定 API Key，僅存本機鑰匙圈，不進入備份。自動推薦只傳送辨識出的公開品牌／類別詞，不上傳完整事項名稱或備註，不自動覆蓋既有選擇。主介面與桌面元件同步顯示，失敗安全退回系統符號。原有內建圖案、事項、週期、通知及備份繼續相容。"
+    "en": "3.2 adds App, Emby and selfh.st GitHub icon subscriptions plus custom public JSON sources. Catalogues update online, search stays local and images load on demand, without API keys. App names prefer GitHub; generic items retain Fluent Emoji Flat. Icons8 remains an optional provider requiring your own Keychain-stored API key. Manage, enable or remove sources without clearing item artwork. Selected public image links and subscription settings travel with backups. Adaptive sizing, original proportions, light/dark backgrounds and safe system-symbol fallbacks remain; existing items, artwork, recurrence and notifications are unchanged.",
+    "zh": "3.2 新增 App、Emby、selfh.st 三个 GitHub 图库订阅及自定义公开 JSON 源：在线更新清单、本机搜索、图片按需加载，无需 API Key。应用名称优先推荐 GitHub 图标；通用事项保留 Fluent，Icons8 作为需自备密钥的可选补充。支持添加、启停和移除订阅，不清除已选事项图标；公开图片链接和订阅设置随备份保存。继续自适配尺寸、原始比例、留白和深浅色背景，失败回退系统符号。旧图案、事项、周期、通知及更新链接不变。",
+    "zh-Hans": "3.2 新增 App、Emby、selfh.st 三个 GitHub 图库订阅及自定义公开 JSON 源：在线更新清单、本机搜索、图片按需加载，无需 API Key。应用名称优先推荐 GitHub 图标；通用事项保留 Fluent，Icons8 作为需自备密钥的可选补充。支持添加、启停和移除订阅，不清除已选事项图标；公开图片链接和订阅设置随备份保存。继续自适配尺寸、原始比例、留白和深浅色背景，失败回退系统符号。旧图案、事项、周期、通知及更新链接不变。",
+    "zh-Hant": "3.2 新增 App、Emby、selfh.st 三個 GitHub 圖庫訂閱及自訂公開 JSON 來源：線上更新清單、本機搜尋、圖片按需載入，無需 API Key。應用名稱優先推薦 GitHub 圖示；通用事項保留 Fluent，Icons8 作為需自備金鑰的選用補充。支援新增、啟停和移除訂閱，不清除已選事項圖示；公開圖片連結和訂閱設定隨備份保存。繼續自適配尺寸、原始比例、留白及深淺色背景，失敗退回系統符號。舊圖案、事項、週期、通知及更新連結不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

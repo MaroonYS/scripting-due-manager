@@ -28,7 +28,7 @@ export function useVisibleArtwork(id: string | null | undefined) {
 
 /** Keep original alpha, colors and proportions: no recoloring, cropping or masks. */
 export function ArtworkImage({ image, size = 24, widget = false }: { image: LoadedArtwork; size?: number; widget?: boolean }) {
-  const frame = artworkFrame(size, image.svg ? image.width : image.image?.width, image.svg ? image.height : image.image?.height, image.adaptive)
+  const frame = artworkFrame(size, image.aspectWidth ?? (image.svg ? image.width : image.image?.width), image.aspectHeight ?? (image.svg ? image.height : image.image?.height), image.adaptive)
   return <ZStack frame={{ width: frame.side, height: frame.side }}>
     {image.lightBackplate || image.adaptive ? <RoundedRectangle cornerRadius={Math.max(3, frame.side / 5)}
       fill={image.adaptive ? { light: "#E9EDF2", dark: "#C8D0DC" } : { light: "clear", dark: "#FFFFFF" }}

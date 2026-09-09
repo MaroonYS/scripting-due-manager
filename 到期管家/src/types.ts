@@ -6,6 +6,7 @@ import type { ItemKind } from "./item_kinds"
 import type { NotificationSettings } from "./notifications"
 import type { LegacyItemBrandChoice, LegacySmallWidgetIconStyle } from "./legacy_icon_preferences"
 import type { ItemIconChoice } from "./icon_preferences"
+import type { IconSubscription } from "./icon_subscriptions"
 
 export type { ItemKind } from "./item_kinds"
 
@@ -53,6 +54,8 @@ export interface AppSettings {
   itemBrandChoices?: LegacyItemBrandChoice[]
   /** Independent 3.0 item-local choices; never a global rendering-mode switch. */
   itemIconChoices?: ItemIconChoice[]
+  /** Public GitHub manifests only; selections remain independent of subscriptions. */
+  iconSubscriptions?: IconSubscription[]
 }
 
 export interface AppState {

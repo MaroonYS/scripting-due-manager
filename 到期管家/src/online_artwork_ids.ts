@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 // Third-party artwork retains its own rights. See NOTICE.md.
 
+import { githubArtworkLabel } from "./github_artwork_ids"
+
 export type OnlineArtworkProvider = "fluent" | "icons8"
 export interface OnlineArtworkID { provider: OnlineArtworkProvider; name: string }
 
@@ -16,5 +18,5 @@ export function parseOnlineArtworkID(id: unknown): OnlineArtworkID | null {
 
 export function onlineArtworkLabel(id: string | null | undefined): string | null {
   const icon = parseOnlineArtworkID(id)
-  return icon ? icon.provider === "fluent" ? `Fluent · ${icon.name.replace(/-/g, " ")}` : `Icons8 · ${icon.name}` : null
+  return icon ? icon.provider === "fluent" ? `Fluent · ${icon.name.replace(/-/g, " ")}` : `Icons8 · ${icon.name}` : githubArtworkLabel(id)
 }

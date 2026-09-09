@@ -3,6 +3,7 @@
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
 import { parseOnlineArtworkID } from "./online_artwork_ids"
+import { parseGithubArtworkID } from "./github_artwork_ids"
 
 export type IconSource = "manual" | "reminder"
 export interface ItemIconChoice { source: IconSource; itemID: string; iconID: string }
@@ -10,7 +11,7 @@ export interface ItemIconEdit { iconID: string | null; expectedIconID: string | 
 export const MAX_ITEM_ICON_CHOICES = 2000
 
 export function validStoredIconID(value: unknown): value is string {
-  return typeof value === "string" && (/^(?:icons8-[A-Za-z0-9]{1,32}|sf:[a-z0-9.]{1,100})$/.test(value) || parseOnlineArtworkID(value) != null)
+  return typeof value === "string" && (/^(?:icons8-[A-Za-z0-9]{1,32}|sf:[a-z0-9.]{1,100})$/.test(value) || parseOnlineArtworkID(value) != null || parseGithubArtworkID(value) != null)
 }
 
 /** Unknown but well-formed IDs are retained for lossless imports/future catalogs. */

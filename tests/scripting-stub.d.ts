@@ -123,6 +123,7 @@ declare const FileManager: {
   readAsData(path: string): Promise<unknown>
 }
 declare class UIImage {
+  preparingThumbnail?(size: { width: number; height: number }): UIImage | null
   readonly width: number
   readonly height: number
   static fromData(data: unknown): UIImage | null

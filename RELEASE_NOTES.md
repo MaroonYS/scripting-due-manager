@@ -1,14 +1,15 @@
-# 到期管家 v3.1.0
+# 到期管家 v3.2.0
 
-Fluent Emoji Flat 与 Icons8 双在线图库，新增按事项名称推荐和图案自适配。
+新增无需 API Key 的 GitHub 图库订阅与自定义 JSON 源。
 
-- 两个图库均调用在线搜索，不再只查询随包的 829 枚图案。每页 24 枚，Icons8 默认全风格，可切换常用风格；Fluent 提供通用 Emoji 图案，Icons8 提供应用、品牌及生活图案。
-- 从手动事项或 Apple 提醒事项的图标页进入时自动推荐候选，只把本机识别出的公开品牌／类别词用于搜索，不自动上传完整事项名称、备注、金额或日期。推荐不会自动覆盖已选图标，确认选择并保存后才生效。
-- Fluent 可直接使用；Icons8 需自行申请 API Key，在图库内安全输入并保存到当前脚本的本机钥匙串，不进入源码、安装包、JSON 备份或 iCloud。无密钥、权限不足、额度限制和联网失败均明确提示，不绕过服务认证。
-- 图案按容器尺寸等比缩放、按比例留白并适配深浅色背景，保留原色和完整形状，不裁圆、不重绘。主界面、小中大桌面组件共用，锁屏附件保留系统符号。
-- 页面／行可见后才搜索或加载，四路渐进预览，离页停止后续请求，旧结果不覆盖新页面。Icons8 每次新显示实时取图，不落盘或进入成功缓存；Fluent 仅使用有界会话缓存。网络超时后显示系统符号，不改变事项或保存的选择。
-- 3.0 原有内置图案及 130 个 SF Symbols 继续保留，事项、周期、完成记录、通知、快照和备份保持兼容；原安装及更新链接不变，无需删除脚本或重建事项。
+- 预设恩秀 App、恩秀 Emby、selfh.st：在线更新清单，本机搜索名称与已知品牌别名，图片按需加载；不上传搜索词或事项内容，不把新图库整库打包。24 项分页，留空可浏览全部，单个源失败不影响其余来源。
+- 「管理 GitHub 图库订阅」可验证后添加、启停、移除及补回预设，最多 12 个源。支持 name／url 图标清单及 selfh.st／Dashboard Icons 官方索引；GitHub 文件页和 jsDelivr GitHub 链接统一规范为 Raw，仅加载公开 PNG／安全 SVG。
+- 应用／品牌默认推荐 GitHub；房租、证件等通用事项保留 Fluent Emoji Flat。Icons8 作为需自备 API Key 的可选风格补充，不纳入默认 GitHub 搜索；原钥匙串与 API 缓存限制不变。
+- 订阅设置和选中的公开图片链接随快照及 JSON 备份保留。移除订阅不清掉事项图标；已有图案、130 个 SF Symbols、事项、周期、通知及安装／更新链接保持兼容。新 GitHub 图标标识需 3.2 或更新版本恢复，不建议降级后保存数据。
+- 图案继续适配尺寸、原始比例、留白与深浅色背景。PNG 先检查体积、签名与像素尺寸，再使用轻量显示缩略图；不裁图、不修改上游文件。超时、失效链接和不支持的图片回退系统符号，保留原完成操作保护。
 
-Fluent Emoji Flat 适用 Microsoft MIT 许可，完整第三方许可随包附带。Icons8 图案和 API 分别遵循其适用授权；各品牌商标仍归权利人。
+预设仅引用原作者公开资源，不 Fork 或整库再分发。恩秀 IconLibrary 由 sooyaaabo 整理；Icons by selfh.st/icons（CC BY 4.0）。其他图案和商标仍遵循各自权利与服务条款，详见 NOTICE。
 
-349 项自动化测试在香港、UTC、纽约三个时区通过，严格类型检查通过。Fluent 的 8 组实际在线搜索及首个 SVG 校验通过。由于尚未配置用户 API Key，Icons8 真实认证搜索／取图尚未验收；iPhone Scripting／WidgetKit 的排版、着色、钥匙串和点击仍需真机验证，详见 [QA 清单](https://github.com/MaroonYS/scripting-due-manager/blob/v3.1.0/docs/QA-v3.1.0.md)。
+369 项测试在香港、UTC、纽约三个时区通过，严格类型检查通过；三个真实清单、七组品牌搜索及十张 PNG 响应体／图片头抽样通过。iPhone Scripting／WidgetKit 原生显示、缩略图、刷新与点击尚待真机验收；Icons8 真实认证仍需用户自行配置 Key 后验证。
+
+[使用说明](https://github.com/MaroonYS/scripting-due-manager/blob/v3.2.0/docs/GITHUB-ICON-SOURCES.md) · [QA 与验收边界](https://github.com/MaroonYS/scripting-due-manager/blob/v3.2.0/docs/QA-v3.2.0.md)

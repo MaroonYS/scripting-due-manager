@@ -14,7 +14,7 @@ export type Icons8Style = typeof ICONS8_STYLES[number]
 const STYLE_CODES: Record<Icons8Style, string> = { "全部风格": "", "Windows 11 Color": "fluency", Color: "color", Fluent: "fluent", "iOS Glyphs": "ios-glyphs" }
 
 export interface OnlineArtworkResult { id: string; label: string; detail: string }
-export interface OnlineArtworkPage { icons: OnlineArtworkResult[]; hasMore: boolean; page: number }
+export interface OnlineArtworkPage { icons: OnlineArtworkResult[]; hasMore: boolean; page: number; warnings?: string[] }
 export interface OnlineRequestOptions { timeout: number; headers?: Record<string, string>; handleRedirect: () => Promise<null> }
 export interface OnlineResponse { ok: boolean; status: number; text(): Promise<string>; data(): Promise<unknown>; expectedContentLength?: number }
 export type OnlineFetch = (url: string, options: OnlineRequestOptions) => Promise<OnlineResponse>

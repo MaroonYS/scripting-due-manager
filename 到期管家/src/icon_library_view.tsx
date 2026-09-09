@@ -40,8 +40,8 @@ export function IconLibraryView({ state, onChanged, manualDestination }: {
   const pages = Math.max(1, Math.ceil(rows.length / 40)), currentPage = Math.min(page, pages - 1)
   const visible = rows.slice(currentPage * 40, (currentPage + 1) * 40)
   return <List listStyle="insetGroup" navigationTitle="图标图库与逐项设置" navigationBarTitleDisplayMode="inline">
-    <Section footer={<Text>Fluent Emoji Flat 与 Icons8 均在线搜索。事项图标页会按名称推荐，仅发送本机识别出的品牌／类别关键词，不发送完整事项名称、备注、金额或日期。Icons8 需在图库内配置 API Key。</Text>}>
-      <NavigationLink destination={<ArtworkBrowser />}><Label title="在线图库 · Fluent Emoji Flat / Icons8" systemImage="square.grid.2x2.fill" /></NavigationLink>
+    <Section footer={<Text>应用优先从 GitHub 订阅图库推荐，在线更新清单、本机搜索、按需加载图片；可添加自定义 JSON 链接。通用事项保留 Fluent，Icons8 是需 API Key 的可选补充。推荐不自动替换已有图标。</Text>}>
+      <NavigationLink destination={<ArtworkBrowser />}><Label title="在线图库 · GitHub / Fluent / Icons8" systemImage="square.grid.2x2.fill" /></NavigationLink>
       <Text font="caption" foregroundStyle="secondaryLabel">原有 SF Symbols 和内置图标选择保持不变；新在线图标自动适配尺寸、比例、留白与深浅色背景。</Text>
     </Section>
     <Section header={<Text>选择要设置的事项</Text>} footer={<Text>手动事项进入编辑页，保存后生效；Apple 提醒事项的图标选择只保存在到期管家，不修改系统事项或备注。</Text>}>

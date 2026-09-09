@@ -53,7 +53,31 @@ API 图案实时请求，不缓存响应到本地文件或成功结果缓存；�
 服务：https://developers.icons8.com/docs/searchIcons
 条款说明：https://intercom.help/icons8-7fb7577e8170/en/articles/8204671-rendering-icons-with-icons8-api
 
-在线搜索会向所选服务发送搜索词。自动推荐只发送本机识别出的公开品牌／类别词，
+v3.2 增加公开 GitHub 图库订阅，预设仅引用下列上游清单及图片链接：
+- sooyaaabo/IconLibrary 的 App、Emby 图库：
+  https://github.com/sooyaaabo/IconLibrary
+  https://raw.githubusercontent.com/sooyaaabo/IconLibrary/main/App-Icon.json
+  https://raw.githubusercontent.com/sooyaaabo/IconLibrary/main/Emby-Icon.json
+  仓库列有 MIT LICENSE，同时 README 写有禁止 Fork 的要求，图案也包含网络收集素材。
+  本项目仅引用公开链接、保留作者署名，不 Fork 或将其整库图片收入发行包；
+  不将仓库级许可视为所有第三方品牌图案的无条件授权，具体使用遵循上游说明及权利人要求。
+- Icons by selfh.st/icons：
+  https://github.com/selfhst/icons
+  https://raw.githubusercontent.com/selfhst/icons/main/index.json
+  集合采用 CC BY 4.0：https://creativecommons.org/licenses/by/4.0/
+  不改上游文件或图案设计，仅按显示槽位生成等比缩略图与背景适配。
+  本项目限制性许可不改变这些素材的 CC BY 4.0 权利；第三方商标等权利不因此转移。
+
+自定义订阅由使用者添加，需遵循各自作者的许可与署名要求。兼容 Dashboard Icons
+官方索引不表示将其全部图案重新分发或授予新的素材使用权：
+https://github.com/homarr-labs/dashboard-icons
+GitHub 订阅清单与图片均按需联网读取，不向 GitHub 发送搜索词或完整事项名称。
+公开订阅地址及已选图片地址会进入用户自己的设置与备份；不保存凭证或任意网址。
+清单与轻量预览仅使用有界会话缓存，不把新图库的图片整库落盘。图标地址可能因
+上游维护而失效；关闭／移除订阅不会清除事项选择，失效图片安全回退系统符号。
+Icons8 为可选补充，不纳入默认 GitHub 搜索，原有 Keychain 与 API 缓存限制不变。
+
+Fluent／Icons8 在线搜索会向所选服务发送搜索词。自动推荐只发送本机识别出的公开品牌／类别词，
 不自动上传完整事项名称、备注、金额或日期；推荐不自动替换已经保存的选择。
 
 旧混合品牌／App Logo 图库已从当前包移除，不以旧素材补充新风格的缺项。
