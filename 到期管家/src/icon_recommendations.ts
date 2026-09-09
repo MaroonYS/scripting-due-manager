@@ -5,6 +5,7 @@
 import { resolveDueIcon } from "./icons"
 import { ARTWORK_CATALOG } from "./artwork_catalog"
 import type { ItemKind } from "./types"
+import { FINANCIAL_ICON_BRANDS } from "./financial_icon_keywords"
 
 export interface IconRecommendation { fluent: string; icons8: string; github: string; brand: boolean; reason: string }
 const EMOJI_BY_SYMBOL: Record<string, string> = {
@@ -51,6 +52,7 @@ const DIRECT_BRANDS = [
   { words: ["apple music", "苹果音乐", "蘋果音樂"], icons8: "Apple Music", fluent: "musical" },
   { words: ["icloud", "苹果云", "蘋果雲"], icons8: "iCloud", fluent: "cloud" },
   { words: ["netflix", "奈飞", "奈飛", "网飞", "網飛"], icons8: "Netflix", fluent: "movie" },
+  ...FINANCIAL_ICON_BRANDS.map(brand => ({ words: [brand.name, ...brand.aliases.split(" ")].map(word => word.normalize("NFKC").toLowerCase()), icons8: brand.name, fluent: brand.name === "WeChat" ? "speech" : "bank" })),
 ]
 
 function matches(title: string, word: string): boolean {
@@ -62,7 +64,8 @@ function matches(title: string, word: string): boolean {
 
 export function recommendIconQueries(title: string, kind: ItemKind | "reminder" = "custom"): IconRecommendation {
   const normalized = title.normalize("NFKC").toLowerCase()
-  const direct = DIRECT_BRANDS.find(brand => brand.words.some(word => matches(normalized, word)))
+  const direct = DIRECT_BRANDS.map(brand => ({ brand, score: Math.max(0, ...brand.words.filter(word => matches(normalized, word)).map(word => word.length)) }))
+    .filter(row => row.score > 0).sort((a, b) => b.score - a.score)[0]?.brand
   if (direct) return { github: direct.icons8, brand: true, icons8: direct.icons8, fluent: direct.fluent, reason: `识别到 ${direct.icons8}；Fluent 推荐对应类别图案` }
   const icon = resolveDueIcon(title, kind)
   const ranked = normalized ? brands.map(brand => ({ brand, score: matches(normalized, brand.full) ? 1000 + brand.full.length

@@ -111,6 +111,9 @@ test("SVG display accepts native geometry and normalizes only em raster dimensio
   assert.equal(safe.width, 32); assert.equal(safe.height, 32)
   assert.ok(safe.svg.includes('width="96" height="96"')); assert.ok(safe.svg.includes('viewBox="0 0 32 32"'))
   assert.ok(safe.svg.includes('fill="#F8312F" d="M1 1h20v20H1z"'))
+  const bank = safeFluentSVG('<svg viewBox="0 0 1024 512"><path d="M1 1"/></svg>')!
+  assert.equal(bank.width, 1024); assert.equal(bank.height, 512)
+  assert.ok(bank.svg.includes('width="192" height="96"'))
   for (const text of ["bad", svg.replace("<path", '<script src="https://evil.test/x.js"/><path'), svg.replace("<path", '<image href="https://evil.test/a"/><path'), svg.replace("<path", '<foreignObject/><path'), svg.replace("fill=", 'onload="alert(1)" fill='), svg.replace("#F8312F", "url(https://evil.test)"), svg.replace("0 0 32 32", "0 0 999999 32"), "<!DOCTYPE svg>" + svg, svg.repeat(2000)]) assert.equal(safeFluentSVG(text), null)
 })
 

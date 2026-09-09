@@ -11,9 +11,12 @@ import { DEFAULT_ICON_SUBSCRIPTIONS } from "../到期管家/src/icon_subscriptio
 import { fetchGithubManifest, safeGithubPNGData, searchGithubArtwork } from "../到期管家/src/github_artwork.ts"
 import { parseGithubArtworkID } from "../到期管家/src/github_artwork_ids.ts"
 import type { OnlineFetch } from "../到期管家/src/online_artwork.ts"
+import { safeFluentSVG } from "../到期管家/src/online_artwork.ts"
+import { readFileSync } from "node:fs"
 
 const run = promisify(execFile)
 async function read(url: string): Promise<Buffer> {
+  if (process.argv.includes("--local-bank") && url === DEFAULT_ICON_SUBSCRIPTIONS[3].url) return readFileSync(new URL("../catalogs/bank-logos.json", import.meta.url))
   const { stdout } = await run("curl", ["-fsS", "--proto", "=https", "--max-time", "12", url], { encoding: "buffer", maxBuffer: 3_000_000 })
   return stdout
 }
@@ -28,7 +31,7 @@ for (const source of DEFAULT_ICON_SUBSCRIPTIONS) {
   console.log(JSON.stringify({ source: source.name, count: manifest.icons.length, warnings: manifest.warnings }))
   samples.add(manifest.icons[0].id)
 }
-for (const query of ["ChatGPT Plus", "微信", "Netflix", "Spotify", "Apple Music", "iCloud", "Emby"]) {
+for (const query of ["ChatGPT Plus", "微信", "Netflix", "Spotify", "Apple Music", "iCloud", "Emby", "HSBC", "渣打", "招商银行", "恒生", "Monzo", "Revolut", "Chase", "Bybit", "英国", "美国", "香港"]) {
   const page = await searchGithubArtwork(query, 0, DEFAULT_ICON_SUBSCRIPTIONS, { fetch: transport })
   assert.ok(page.icons.length, query)
   console.log(JSON.stringify({ query, count: page.icons.length, first: page.icons[0].label, source: page.icons[0].detail }))
@@ -38,7 +41,24 @@ for (const id of samples) {
   const url = parseGithubArtworkID(id)!
   const bytes = await read(url)
   const data = { size: bytes.length, slice: (start: number, end: number) => ({ toUint8Array: () => new Uint8Array(bytes.subarray(start, end)) }) }
-  assert.equal(safeGithubPNGData(data), true, url)
-  console.log(JSON.stringify({ png: url.split("/").pop(), bytes: bytes.length, validHeader: true }))
+  assert.equal(url.endsWith(".svg") ? Boolean(safeFluentSVG(bytes.toString("utf8"))) : safeGithubPNGData(data), true, url)
+  console.log(JSON.stringify({ image: url.split("/").pop(), bytes: bytes.length, valid: true }))
+}
+for (const query of ["RedotPay", "Bybit", "Wirex", "Nexo", "Crypto.com", "ZA Bank", "Mox", "livi", "U卡"]) {
+  const page = await searchGithubArtwork(query, 0, DEFAULT_ICON_SUBSCRIPTIONS, { fetch: transport })
+  console.log(JSON.stringify({ coverageQuery: query, count: page.icons.length, labels: page.icons.map(icon => icon.label) }))
+}
+if (process.argv.includes("--all-bank-images")) {
+  const manifest = await fetchGithubManifest(DEFAULT_ICON_SUBSCRIPTIONS[3], { fetch: transport })
+  let cursor = 0, checked = 0; const failures: string[] = []
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    for (;;) {
+      const row = manifest.icons[cursor++]; if (!row) return
+      try { assert.ok(safeFluentSVG((await read(parseGithubArtworkID(row.id)!)).toString("utf8"))); checked++ }
+      catch { failures.push(row.label) }
+    }
+  }))
+  console.log(JSON.stringify({ bankImages: manifest.icons.length, checked, failures }))
+  assert.deepEqual(failures, [])
 }
 console.log(JSON.stringify({ result: "passed", checkedImages: samples.size, nativeIOSVerified: false }))

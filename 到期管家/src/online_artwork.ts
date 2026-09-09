@@ -5,6 +5,7 @@
 import { withReadDeadline } from "./async_deadline"
 import { readIcons8Key } from "./icon_credentials"
 import { parseOnlineArtworkID } from "./online_artwork_ids"
+import { loadIcons8MCPArtwork } from "./icons8_mcp_images"
 import type { OnlineArtworkProvider } from "./online_artwork_ids"
 
 export const ONLINE_ARTWORK_PAGE_SIZE = 24
@@ -109,7 +110,8 @@ export function safeFluentSVG(raw: string): { svg: string; width: number; height
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0 || width > 1024 || height > 1024) return null
   // Iconify uses em units in its standalone SVGs. Normalize only root raster
   // dimensions for the native SVG renderer; viewBox and drawing stay intact.
-  const svg = raw.replace(/<svg\s([^>]*)>/i, (_whole, attributes: string) => `<svg ${attributes.replace(/\b(?:width|height)\s*=\s*(?:"[^"]*"|'[^']*')/gi, "")} width="${Math.round(width * 3)}" height="${Math.round(height * 3)}">`)
+  const scale = Math.min(3, 192 / Math.max(width, height))
+  const svg = raw.replace(/<svg\s([^>]*)>/i, (_whole, attributes: string) => `<svg ${attributes.replace(/\b(?:width|height)\s*=\s*(?:"[^"]*"|'[^']*')/gi, "")} width="${Math.max(1, Math.round(width * scale))}" height="${Math.max(1, Math.round(height * scale))}">`)
   return { svg, width, height }
 }
 
@@ -117,6 +119,7 @@ export function safeFluentSVG(raw: string): { svg: string; width: number; height
 export async function loadOnlineArtwork(id: string, dependencies: { fetch?: OnlineFetch; apiKey?: string | null; timeoutMS?: number } = {}) {
   const icon = parseOnlineArtworkID(id)
   if (!icon) return null
+  if (icon.provider === "icons8mcp") return loadIcons8MCPArtwork(id, dependencies)
   const runFetch = dependencies.fetch ?? fetch
   const timeoutMS = dependencies.timeoutMS ?? 4000
   try {

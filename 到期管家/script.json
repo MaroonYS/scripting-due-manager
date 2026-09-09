@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.2.0",
-  "description": "Due dates and Apple Reminders with public GitHub icon subscriptions, custom JSON sources, local brand search, Fluent Emoji Flat, optional Icons8, per-item artwork and backups.",
+  "version": "3.3.0",
+  "description": "Due dates and Apple Reminders with Icons8 Windows 11 Color account login, six public GitHub icon libraries, financial-brand search, per-item artwork and safe backups.",
   "localizedDescriptions": {
-    "en": "3.2 adds App, Emby and selfh.st GitHub icon subscriptions plus custom public JSON sources. Catalogues update online, search stays local and images load on demand, without API keys. App names prefer GitHub; generic items retain Fluent Emoji Flat. Icons8 remains an optional provider requiring your own Keychain-stored API key. Manage, enable or remove sources without clearing item artwork. Selected public image links and subscription settings travel with backups. Adaptive sizing, original proportions, light/dark backgrounds and safe system-symbol fallbacks remain; existing items, artwork, recurrence and notifications are unchanged.",
-    "zh": "3.2 新增 App、Emby、selfh.st 三个 GitHub 图库订阅及自定义公开 JSON 源：在线更新清单、本机搜索、图片按需加载，无需 API Key。应用名称优先推荐 GitHub 图标；通用事项保留 Fluent，Icons8 作为需自备密钥的可选补充。支持添加、启停和移除订阅，不清除已选事项图标；公开图片链接和订阅设置随备份保存。继续自适配尺寸、原始比例、留白和深浅色背景，失败回退系统符号。旧图案、事项、周期、通知及更新链接不变。",
-    "zh-Hans": "3.2 新增 App、Emby、selfh.st 三个 GitHub 图库订阅及自定义公开 JSON 源：在线更新清单、本机搜索、图片按需加载，无需 API Key。应用名称优先推荐 GitHub 图标；通用事项保留 Fluent，Icons8 作为需自备密钥的可选补充。支持添加、启停和移除订阅，不清除已选事项图标；公开图片链接和订阅设置随备份保存。继续自适配尺寸、原始比例、留白和深浅色背景，失败回退系统符号。旧图案、事项、周期、通知及更新链接不变。",
-    "zh-Hant": "3.2 新增 App、Emby、selfh.st 三個 GitHub 圖庫訂閱及自訂公開 JSON 來源：線上更新清單、本機搜尋、圖片按需載入，無需 API Key。應用名稱優先推薦 GitHub 圖示；通用事項保留 Fluent，Icons8 作為需自備金鑰的選用補充。支援新增、啟停和移除訂閱，不清除已選事項圖示；公開圖片連結和訂閱設定隨備份保存。繼續自適配尺寸、原始比例、留白及深淺色背景，失敗退回系統符號。舊圖案、事項、週期、通知及更新連結不變。"
+    "en": "3.3 connects the Icons8 official MCP with a free account and fixes the Windows 11 Color style used by Earth Smiley. Pick artwork inside an item and save it; close the authorization browser with the top-left X. Requires a compatible Scripting Pro local callback. Credentials stay in device-only Keychain; selected public PNGs render without logging in. Bank Logos, monochrome Simple Icons and Dashboard Icons join App, Emby and selfh.st as six GitHub presets. Existing users can restore missing presets in subscription management. Financial-brand aliases support UK, US, mainland China, Hong Kong and named crypto-card brands; coverage is not exhaustive. Existing artwork, items, recurrence and notifications remain unchanged.",
+    "zh": "3.3 接入 Icons8 官方 MCP 免费账号，固定使用 Earth Smiley 所属的 Windows 11 Color 图库，可直接为事项选择并保存图标；授权后点网页左上角 × 返回。凭据仅存本机钥匙串，显示已选 PNG 不需再次登录。新增 Bank Logos、Simple Icons 单色品牌及 Dashboard Icons，连同 App、Emby、selfh.st 共六个 GitHub 预设。升级用户可在订阅管理补回新预设；英国、美国、大陆、香港及 U 卡按已收录具体品牌本机搜索，不保证全覆盖。图片按需加载，旧图案、SF Symbols、事项、周期、通知和更新地址不变。",
+    "zh-Hans": "3.3 接入 Icons8 官方 MCP 免费账号，固定使用 Earth Smiley 所属的 Windows 11 Color 图库，可直接为事项选择并保存图标；授权后点网页左上角 × 返回。凭据仅存本机钥匙串，显示已选 PNG 不需再次登录。新增 Bank Logos、Simple Icons 单色品牌及 Dashboard Icons，连同 App、Emby、selfh.st 共六个 GitHub 预设。升级用户可在订阅管理补回新预设；英国、美国、大陆、香港及 U 卡按已收录具体品牌本机搜索，不保证全覆盖。图片按需加载，旧图案、SF Symbols、事项、周期、通知和更新地址不变。",
+    "zh-Hant": "3.3 接入 Icons8 官方 MCP 免費帳號，固定使用 Earth Smiley 所屬的 Windows 11 Color 圖庫，可直接為事項選擇並保存圖示；授權後點網頁左上角 × 返回。憑據僅存本機鑰匙圈，顯示已選 PNG 不需再次登入。新增 Bank Logos、Simple Icons 單色品牌及 Dashboard Icons，連同 App、Emby、selfh.st 共六個 GitHub 預設。升級用戶可在訂閱管理補回新預設；英國、美國、大陸、香港及 U 卡按已收錄具體品牌本機搜尋，不保證全覆蓋。圖片按需載入，舊圖案、SF Symbols、事項、週期、通知和更新網址不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

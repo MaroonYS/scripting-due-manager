@@ -10,10 +10,18 @@ import { recommendIconQueries } from "./icon_recommendations"
 import { ONLINE_ARTWORK_PAGE_SIZE, safeFluentSVG } from "./online_artwork"
 import type { OnlineArtworkPage, OnlineFetch } from "./online_artwork"
 import type { LoadedArtwork } from "./artwork_assets"
+import { financialIconBrand, financialIconBrandForLabel, financialIconKeywords } from "./financial_icon_keywords"
+
+// Simple Icons' CC0 title-to-slug convention, from simple-icons/simple-icons/sdk.mjs.
+export function simpleIconsSlug(row: Record<string, unknown>): string | null {
+  const replacements: Record<string, string> = { "+": "plus", ".": "dot", "&": "and", "đ": "d", "ħ": "h", "ı": "i", "ĸ": "k", "ŀ": "l", "ł": "l", "ß": "ss", "ŧ": "t", "ø": "o" }
+  const slug = row.slug ?? (typeof row.title === "string" ? row.title.toLowerCase().replace(/[+.&đħıĸŀłßŧø]/g, char => replacements[char]).normalize("NFD").replace(/[^a-z0-9]/g, "") : "")
+  return typeof slug === "string" && /^[a-z0-9][a-z0-9_-]{0,99}$/.test(slug) ? slug : null
+}
 
 export const GITHUB_MANIFEST_LIMIT = 2_000_000
 export const GITHUB_MANIFEST_TTL = 15 * 60 * 1000
-export interface GithubIcon { id: string; label: string; keywords: string }
+export interface GithubIcon { id: string; label: string; keywords: string; financialBrand?: string }
 interface Manifest { icons: GithubIcon[]; warnings: string[]; fetchedAt: number }
 const cache = new Map<string, Manifest>()
 const pending = new Map<string, Promise<Manifest>>()
@@ -28,8 +36,9 @@ export function parseGithubManifest(raw: unknown, sourceURL: string): { icons: G
   const root = record(raw)
   const selfhst = /^https:\/\/raw\.githubusercontent\.com\/selfhst\/icons\/[^/]+\/index\.json$/.test(source)
   const dashboard = /^https:\/\/raw\.githubusercontent\.com\/homarr-labs\/dashboard-icons\/[^/]+\/metadata\.json$/.test(source)
+  const simple = /^https:\/\/raw\.githubusercontent\.com\/simple-icons\/simple-icons\/[^/]+\/(?:_?data)\/simple-icons\.json$/.test(source)
   const sourceRoot = source.slice(0, source.lastIndexOf("/") + 1)
-  const rows = selfhst && Array.isArray(raw) ? raw : dashboard && root ? Object.entries(root).map(([slug, value]) => ({ ...record(value), slug })) : root?.icons
+  const rows = (selfhst || simple) && Array.isArray(raw) ? raw : dashboard && root ? Object.entries(root).map(([slug, value]) => ({ ...record(value), slug })) : root?.icons
   if (!Array.isArray(rows) || rows.length > 10_000) throw Error("清单需包含 icons 数组（name、url），且不可超过 10000 项。")
   const seen = new Set<string>(), icons: GithubIcon[] = []
   let skipped = 0
@@ -48,6 +57,13 @@ export function parseGithubManifest(raw: unknown, sourceURL: string): { icons: G
       label = slug.replace(/-/g, " ")
       url = `${sourceRoot}png/${slug}.png`
       keywords = Array.isArray(row.aliases) ? row.aliases.slice(0, 20).map(alias => text(alias)).join(" ") : ""
+    } else if (simple && row) {
+      const slug = simpleIconsSlug(row)
+      if (!slug) { skipped++; continue }
+      label = text(row.title)
+      url = `${source.replace(/\/(?:_?data)\/simple-icons\.json$/, "")}/icons/${slug}.svg`
+      const aka = record(row.aliases)?.aka
+      keywords = slug + " " + (Array.isArray(aka) ? aka.slice(0, 20).map(alias => text(alias)).join(" ") : "")
     } else if (row) {
       keywords = text(row.aliases, 400)
     }
@@ -55,7 +71,9 @@ export function parseGithubManifest(raw: unknown, sourceURL: string): { icons: G
     if (!row || !label || !id) { skipped++; continue }
     if (seen.has(id)) continue
     seen.add(id)
-    icons.push({ id, label, keywords: `${label} ${keywords}`.slice(0, 800) })
+    const financial = financialIconBrandForLabel(label) ?? (row.brand ? financialIconBrand(text(row.brand)) : undefined)
+    icons.push({ id, label, keywords: `${label} ${financial ? financialIconKeywords(financial.name) : ""} ${keywords}`.slice(0, 800),
+      ...(financial ? { financialBrand: financial.name } : {}) })
   }
   if (rows.length && !icons.length) throw Error("清单没有可用图标；仅支持公开 GitHub PNG／SVG 图片。")
   return { icons, warnings: skipped ? [`已忽略 ${skipped} 个格式或地址不受支持的图标`] : [] }
@@ -111,6 +129,7 @@ export async function searchGithubArtwork(query: string, page: number, sources: 
   if (options.shouldContinue?.() === false) throw Error("搜索已取消。")
   if (!results.some(Boolean)) throw Error("所有已启用图库均无法读取，请检查网络后重试。")
   const term = compact(query), recommended = query.trim() ? recommendIconQueries(query) : null
+  const financialQuery = financialIconBrand(query)
   const alias = recommended?.brand ? compact(recommended.github) : ""
   const words = query.trim().split(/\s+/).map(compact).filter(Boolean)
   const found: { id: string; label: string; detail: string; score: number }[] = [], seen = new Set<string>()
@@ -118,6 +137,9 @@ export async function searchGithubArtwork(query: string, page: number, sources: 
     if (!result) return
     warnings.push(...result.warnings.map(warning => `${enabled[index].name}：${warning}`))
     for (const icon of result.icons) {
+      // A known financial brand must not turn Nexo into NEXON, Mox into Proxmox,
+      // or ZA Bank into a different bank whose filename happens to contain "za".
+      if (financialQuery && icon.financialBrand !== financialQuery.name) continue
       const name = compact(icon.label), keywords = compact(icon.keywords)
       const score = !term ? 1 : name === term || alias && name === alias ? 100 : name.startsWith(term) ? 80
         : name.includes(term) ? 70 : alias && name.includes(alias) ? 60
@@ -160,7 +182,7 @@ export async function loadGithubArtwork(id: string, options: { fetch?: OnlineFet
 }
 
 /** Inspect the PNG signature and IHDR before asking the native decoder to allocate pixels. */
-export function safeGithubPNGData(value: unknown): boolean {
+export function safeGithubPNGData(value: unknown, maxDimension = 2048): boolean {
   if (!value || typeof value !== "object") return false
   const data = value as { size?: number; slice?: (start: number, end: number) => { toUint8Array?: () => Uint8Array | null; getBytes?: () => Uint8Array | null } }
   if (typeof data.size !== "number" || !Number.isFinite(data.size) || data.size < 24 || data.size > 2_000_000 || typeof data.slice !== "function") return false
@@ -170,6 +192,6 @@ export function safeGithubPNGData(value: unknown): boolean {
     if (!bytes || bytes.length !== 24 || ![137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82].every((byte, index) => bytes[index] === byte)) return false
     const dimension = (index: number) => bytes[index] * 16777216 + bytes[index + 1] * 65536 + bytes[index + 2] * 256 + bytes[index + 3]
     const width = dimension(16), height = dimension(20)
-    return width > 0 && height > 0 && width <= 2048 && height <= 2048
+    return width > 0 && height > 0 && width <= maxDimension && height <= maxDimension
   } catch { return false }
 }

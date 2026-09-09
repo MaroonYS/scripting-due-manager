@@ -40,7 +40,8 @@ export function IconLibraryView({ state, onChanged, manualDestination }: {
   const pages = Math.max(1, Math.ceil(rows.length / 40)), currentPage = Math.min(page, pages - 1)
   const visible = rows.slice(currentPage * 40, (currentPage + 1) * 40)
   return <List listStyle="insetGroup" navigationTitle="图标图库与逐项设置" navigationBarTitleDisplayMode="inline">
-    <Section footer={<Text>应用优先从 GitHub 订阅图库推荐，在线更新清单、本机搜索、按需加载图片；可添加自定义 JSON 链接。通用事项保留 Fluent，Icons8 是需 API Key 的可选补充。推荐不自动替换已有图标。</Text>}>
+    <Section footer={<Text>Icons8 免费账号可使用 Earth Smiley 所属的 Windows 11 Color 图库；应用品牌另有 GitHub 订阅，通用事项保留 Fluent。下面选择事项后即可选图并保存，浏览图库不会自动替换已有图标。</Text>}>
+      <NavigationLink destination={<ArtworkBrowser startProvider="icons8mcp" />}><Label title="Icons8 · Windows 11 彩色图库" systemImage="paintpalette.fill" /></NavigationLink>
       <NavigationLink destination={<ArtworkBrowser />}><Label title="在线图库 · GitHub / Fluent / Icons8" systemImage="square.grid.2x2.fill" /></NavigationLink>
       <Text font="caption" foregroundStyle="secondaryLabel">原有 SF Symbols 和内置图标选择保持不变；新在线图标自动适配尺寸、比例、留白与深浅色背景。</Text>
     </Section>
@@ -104,6 +105,9 @@ export function ReminderIconEditor({ item, onChanged }: { item: DisplayDueItem; 
       <Text font="headline">{item.title}</Text>
       <NavigationLink destination={<ArtworkBrowser selectedID={selectedID} onSelected={setSelectedID} itemTitle={item.title} itemKind="reminder" />}>
         <ItemIconLibraryRow title="选择彩色图标" source="reminder" iconID={selectedID} fallback={item.iconName} />
+      </NavigationLink>
+      <NavigationLink destination={<ArtworkBrowser startProvider="icons8mcp" selectedID={selectedID} onSelected={setSelectedID} itemTitle={item.title} itemKind="reminder" />}>
+        <Text>Icons8 · Windows 11 彩色图库</Text>
       </NavigationLink>
       <Button title={selectedID == null ? "✓ 自动匹配系统图标" : "自动匹配系统图标"} action={() => setSelectedID(null)} />
     </Section>

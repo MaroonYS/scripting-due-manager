@@ -92,6 +92,7 @@ test("copyright view renders restrictions, exceptions and origin links without s
     ownership.releaseNoticeURL(manifest.version, "LICENSE"),
     ownership.releaseNoticeURL(manifest.version, "NOTICE.md"),
     "https://github.com/sooyaaabo/IconLibrary", "https://github.com/selfhst/icons", "https://creativecommons.org/licenses/by/4.0/",
+    "https://github.com/icongo/bank-logos", "https://github.com/simple-icons/simple-icons", "https://github.com/homarr-labs/dashboard-icons", "https://icons8.com/icons/fluency",
     ownership.OFFICIAL_REPOSITORY_URL, ownership.OFFICIAL_RELEASES_URL,
   ])
 })
@@ -100,7 +101,9 @@ test("malformed installed versions still show offline restrictions without unsaf
   const { nodes, texts } = renderOwnership("../../main")
   assert.ok(texts.includes(ownership.REUSE_RESTRICTION_NOTICE))
   assert.deepEqual(nodes.filter(node => node.type === "Link").map(node => node.props.url),
-    ["https://github.com/sooyaaabo/IconLibrary", "https://github.com/selfhst/icons", "https://creativecommons.org/licenses/by/4.0/", ownership.OFFICIAL_REPOSITORY_URL, ownership.OFFICIAL_RELEASES_URL])
+    ["https://github.com/sooyaaabo/IconLibrary", "https://github.com/selfhst/icons", "https://creativecommons.org/licenses/by/4.0/",
+      "https://github.com/icongo/bank-logos", "https://github.com/simple-icons/simple-icons", "https://github.com/homarr-labs/dashboard-icons", "https://icons8.com/icons/fluency",
+      ownership.OFFICIAL_REPOSITORY_URL, ownership.OFFICIAL_RELEASES_URL])
 })
 
 test("main app exposes copyright navigation without adding ownership UI to widgets", () => {

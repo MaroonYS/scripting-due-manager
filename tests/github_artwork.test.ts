@@ -7,7 +7,9 @@ import test from "node:test"
 import { readFileSync } from "node:fs"
 import { githubArtworkID, githubArtworkLabel, githubFileURL, parseGithubArtworkID } from "../到期管家/src/github_artwork_ids.ts"
 import { DEFAULT_ICON_SUBSCRIPTIONS, iconSubscriptions, normalizeIconSubscriptions } from "../到期管家/src/icon_subscriptions.ts"
-import { fetchGithubManifest, GITHUB_MANIFEST_TTL, loadGithubArtwork, parseGithubManifest, safeGithubPNGData, searchGithubArtwork } from "../到期管家/src/github_artwork.ts"
+import { fetchGithubManifest, GITHUB_MANIFEST_TTL, loadGithubArtwork, parseGithubManifest, safeGithubPNGData, searchGithubArtwork, simpleIconsSlug } from "../到期管家/src/github_artwork.ts"
+import { financialIconKeywords } from "../到期管家/src/financial_icon_keywords.ts"
+import { recommendIconQueries } from "../到期管家/src/icon_recommendations.ts"
 import { loadArtwork, loadArtworkPage, peekArtwork } from "../到期管家/src/artwork_assets.ts"
 import { isKnownIconChoice, withItemIconChoices } from "../到期管家/src/artwork_catalog.ts"
 import { onlineArtworkLabel } from "../到期管家/src/online_artwork_ids.ts"
@@ -63,7 +65,7 @@ test("GitHub artwork IDs persist only canonical public image links and remain in
 
 test("subscription defaults are copy-safe and strict normalization rejects duplicates, malformed state and overflow", () => {
   const defaults = iconSubscriptions({})
-  assert.equal(defaults.length, 3)
+  assert.equal(defaults.length, 6)
   defaults[0].enabled = false
   assert.equal(iconSubscriptions({})[0].enabled, true)
   assert.deepEqual(iconSubscriptions({ iconSubscriptions: [] }), [])
@@ -110,6 +112,48 @@ test("combined GitHub search stays local, expands known Chinese brands, deduplic
   assert.equal((await searchGithubArtwork("", 2, sources)).icons.length, 2)
   assert.equal((await searchGithubArtwork("未收录的人名", 0, sources)).icons.length, 0)
   for (const page of [-1, 0.2, NaN, 5000]) await assert.rejects(searchGithubArtwork("app", page, sources))
+})
+
+test("Simple Icons indexes follow the upstream slug rules, ignore source URLs and preserve brand aliases", () => {
+  const source = DEFAULT_ICON_SUBSCRIPTIONS[4].url
+  const result = parseGithubManifest([{ title: "C++" }, { title: ".ENV" }, { title: "Monzo", source: "https://evil.test/private", aliases: { aka: ["Mono"] } },
+    { title: "Hive", slug: "hive_blockchain" }, { title: "bad", slug: "../secret" }, { title: "x", slug: "icon?secret=token" }], source)
+  assert.deepEqual(result.icons.map(row => parseGithubArtworkID(row.id)?.split("/").pop()), ["cplusplus.svg", "dotenv.svg", "monzo.svg", "hive_blockchain.svg"])
+  assert.ok(result.icons[2].keywords.includes("英国")); assert.ok(result.icons[2].keywords.includes("Mono"))
+  assert.equal(result.warnings.length, 1)
+  assert.equal(simpleIconsSlug({ title: "Löß & øłđ" }), "lossandold")
+  assert.throws(() => parseGithubManifest([{ title: "Monzo" }], "https://raw.githubusercontent.com/other/repo/main/simple-icons.json"))
+})
+test("curated bank manifest preserves source links, exact variant IDs and searchable UK/US/CN/HK metadata", async () => {
+  const manifest = JSON.parse(readFileSync(new URL("../catalogs/bank-logos.json", import.meta.url), "utf8"))
+  const parsed = parseGithubManifest(manifest, DEFAULT_ICON_SUBSCRIPTIONS[3].url)
+  assert.equal(parsed.icons.length, 417); assert.deepEqual(parsed.warnings, [])
+  assert.equal(manifest.excludedUnsafeVariants.length, 7)
+  assert.ok(/^[a-f0-9]{40}$/.test(manifest.sourceCommit))
+  assert.ok(parsed.icons.every(row => parseGithubArtworkID(row.id)?.startsWith("https://raw.githubusercontent.com/icongo/bank-logos/main/logos/")))
+  const fixture = source()
+  for (const query of ["汇丰", "渣打", "招商银行", "恒生", "东亚银行", "英国", "美国", "大陆", "香港"]) {
+    const result = await searchGithubArtwork(query, 0, [fixture], { fetch: async () => reply(manifest) })
+    assert.ok(result.icons.length > 0, query)
+  }
+  const sc = parsed.icons.find(row => row.label === "Standard Chartered 渣打银行 · 方形")!
+  assert.ok(sc.keywords.includes("英国")); assert.ok(sc.keywords.includes("香港")); assert.ok(!sc.keywords.includes("枣庄"))
+})
+test("financial vocabulary matches concrete brands only and recommendations disclose no private title data", () => {
+  assert.ok(financialIconKeywords("RedotPay").includes("U卡"))
+  for (const unrelated of ["BuiltByBit", "NEXON", "Wwise", "Crypto currency", "Monzo private user"]) assert.equal(financialIconKeywords(unrelated), "")
+  for (const [title, brand] of [["汇丰 1234 张三 private@invalid.test", "HSBC"], ["招商银行 每月还款", "China Merchants Bank"], ["中银香港 年费", "BOCHK"], ["支付宝香港 充值", "AlipayHK"], ["RedotPay 续费", "RedotPay"]]) {
+    const recommendation = recommendIconQueries(title)
+    assert.equal(recommendation.github, brand)
+    assert.ok(!JSON.stringify(recommendation).includes("1234")); assert.ok(!JSON.stringify(recommendation).includes("张三"))
+  }
+})
+test("exact financial brand search excludes similar non-financial names without substituting generic crypto logos", async () => {
+  const fixture = source(), data = { icons: [icon("Bybit"), icon("BuiltByBit"), icon("NEXON"), icon("Inexogy"), icon("Proxmox"), icon("Livinity"), icon("Zaozhuang Bank")] }
+  for (const query of ["Nexo", "Mox", "livi", "ZA Bank", "RedotPay", "Wirex", "Crypto.com"]) {
+    assert.deepEqual((await searchGithubArtwork(query, 0, [fixture], { fetch: async () => reply(data) })).icons, [], query)
+  }
+  assert.deepEqual((await searchGithubArtwork("Bybit", 0, [fixture], { fetch: async () => reply(data) })).icons.map(row => row.label), ["Bybit"])
 })
 
 test("one unavailable source leaves successful results usable, while all-failed and all-disabled states stay explicit", async () => {

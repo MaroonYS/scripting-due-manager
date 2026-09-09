@@ -77,6 +77,33 @@ GitHub 订阅清单与图片均按需联网读取，不向 GitHub 发送搜索�
 上游维护而失效；关闭／移除订阅不会清除事项选择，失效图片安全回退系统符号。
 Icons8 为可选补充，不纳入默认 GitHub 搜索，原有 Keychain 与 API 缓存限制不变。
 
+v3.3 增加 Icons8 官方 MCP 免费账号连接，固定 Windows 11 Color（fluency）风格。
+使用本机 OAuth 回调、PKCE 和状态校验；凭据仅保存在当前脚本的本设备钥匙串，
+不启用 iCloud 同步，不进入事项、备份、源码或安装包。已选图案以 icons8-mcp:
+标识保存，并按需显示公开的 96 px PNG；小组件不读取登录或调用 MCP。
+免费 PNG 保留 Icons8 署名，不请求付费 SVG；与原 REST API Key 入口分别管理。
+此 MCP PNG 的轻量预览加入有界会话缓存，不落盘；以上 REST API 的限制不变。
+服务与署名：https://icons8.com/mcp/ · https://icons8.com/icons/fluency
+官方说明：https://github.com/icons8/icons8-mcp
+
+v3.3 同时扩展 GitHub 预设：
+- Bank Logos by IconGo：https://github.com/icongo/bank-logos
+  MIT；完整原许可见 assets/bank-logos/LICENSE。
+  本项目 catalogs/bank-logos.json 仅整理公开图像链接和搜索元数据，
+  记录上游提交、纠正明显复用的名称，并排除不支持的横版；不搬运原图。
+  标志包含历史机构，不构成当前银行名录、产品推荐或金融服务地域说明。
+- Simple Icons：https://github.com/simple-icons/simple-icons
+  项目集合与所参考的 slug 规则为 CC0 1.0，见 assets/simple-icons/LICENSE。
+  单个品牌可能另列许可和品牌要求，详见上游数据及免责声明。
+  图案为单色标志，不重绘成彩色 App 图标；商标等权利不因 CC0 而转移。
+- Dashboard Icons：https://github.com/homarr-labs/dashboard-icons
+  Apache License 2.0，原版权与完整许可见 assets/dashboard-icons/LICENSE。
+  仅适配公开 metadata.json 及 PNG 链接，不将整库图片加入安装包。
+这些许可及第三方保留的权利不受本项目限制性许可覆盖。图像显示只适配大小、
+原始比例与背景，不改设计；新增的 SVG 显示栅格尺寸最长边不超过 192 px。
+英国、美国、大陆、香港及 U 卡只是有限的本机检索词，不能据此认定业务可用、
+品牌背书、全部应用／银行／卡产品都有图标，或获得独立素材库的再分发权。
+
 Fluent／Icons8 在线搜索会向所选服务发送搜索词。自动推荐只发送本机识别出的公开品牌／类别词，
 不自动上传完整事项名称、备注、金额或日期；推荐不自动替换已经保存的选择。
 

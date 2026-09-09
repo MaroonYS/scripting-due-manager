@@ -1,0 +1,2158 @@
+{
+  "name": "Bank Logos · 银行",
+  "source": "https://github.com/icongo/bank-logos",
+  "sourceCommit": "ffca539a043900fbf2a4fd6a5d32f1706ae5dfd1",
+  "license": "https://github.com/icongo/bank-logos/blob/ffca539a043900fbf2a4fd6a5d32f1706ae5dfd1/LICENSE",
+  "description": "图案包含银行、机构和历史标志；名称按上游资料整理，不是当前银行或产品名录。名称不确定时保留文件标识。仅索引公开原图，不重新分发图像。",
+  "excludedUnsafeVariants": [
+    "logos/bangkokbank.svg",
+    "logos/dyccb.svg",
+    "logos/eastwestbank.svg",
+    "logos/jx-bank.svg",
+    "logos/megabank.svg",
+    "logos/societegenerale.svg",
+    "logos/z-bank.svg"
+  ],
+  "icons": [
+    {
+      "name": "中国农业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/abchina-rect.svg",
+      "brand": "Agricultural Bank of China",
+      "aliases": "abchina 中国农业银行 金融 银行 金融 Agricultural Bank of China abchina 农业银行 農業銀行 农行 農行 大陆 内地"
+    },
+    {
+      "name": "中国农业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/abchina.svg",
+      "brand": "Agricultural Bank of China",
+      "aliases": "abchina 中国农业银行 金融 银行 金融 Agricultural Bank of China abchina 农业银行 農業銀行 农行 農行 大陆 内地"
+    },
+    {
+      "name": "荷兰银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/abnamro-rect.svg",
+      "aliases": "abnamro 荷兰银行 金融 银行"
+    },
+    {
+      "name": "荷兰银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/abnamro.svg",
+      "aliases": "abnamro 荷兰银行 金融 银行"
+    },
+    {
+      "name": "澳新银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/anz-rect.svg",
+      "aliases": "anz 澳新银行 金融 银行"
+    },
+    {
+      "name": "澳新银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/anz.svg",
+      "aliases": "anz 澳新银行 金融 银行"
+    },
+    {
+      "name": "盘谷银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bangkokbank-rect.svg",
+      "aliases": "bangkokbank 盘谷银行 金融 银行"
+    },
+    {
+      "name": "交通银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankcomm-rect.svg",
+      "brand": "Bank of Communications",
+      "aliases": "bankcomm 交通银行 金融 银行 金融 Bank of Communications bankcomm 交通银行 交通銀行 交行 大陆 内地 金融 Bank of Communications bankcomm 交通银行 交通銀行 交行 大陆 内地"
+    },
+    {
+      "name": "交通银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankcomm.svg",
+      "brand": "Bank of Communications",
+      "aliases": "bankcomm 交通银行 金融 银行 金融 Bank of Communications bankcomm 交通银行 交通銀行 交行 大陆 内地 金融 Bank of Communications bankcomm 交通银行 交通銀行 交行 大陆 内地"
+    },
+    {
+      "name": "沧州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankcz-rect.svg",
+      "aliases": "bankcz 沧州银行 金融 银行"
+    },
+    {
+      "name": "沧州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankcz.svg",
+      "aliases": "bankcz 沧州银行 金融 银行"
+    },
+    {
+      "name": "贵阳银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankgy-rect.svg",
+      "aliases": "bankgy 贵阳银行 金融 银行"
+    },
+    {
+      "name": "贵阳银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankgy.svg",
+      "aliases": "bankgy 贵阳银行 金融 银行"
+    },
+    {
+      "name": "Bank of America 美国银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofamerica-rect.svg",
+      "brand": "Bank of America",
+      "aliases": "bankofamerica Bank of America 美国银行 金融 银行 金融 Bank of America bankofamerica BofA 美国银行 美國銀行 美银 美銀 美国"
+    },
+    {
+      "name": "Bank of America 美国银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofamerica.svg",
+      "brand": "Bank of America",
+      "aliases": "bankofamerica Bank of America 美国银行 金融 银行 金融 Bank of America bankofamerica BofA 美国银行 美國銀行 美银 美銀 美国"
+    },
+    {
+      "name": "鞍山银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofas-rect.svg",
+      "aliases": "bankofas 鞍山银行 金融 银行"
+    },
+    {
+      "name": "鞍山银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofas.svg",
+      "aliases": "bankofas 鞍山银行 金融 银行"
+    },
+    {
+      "name": "广西北部湾银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofbbg-rect.svg",
+      "aliases": "bankofbbg 广西北部湾银行 金融 银行"
+    },
+    {
+      "name": "广西北部湾银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofbbg.svg",
+      "aliases": "bankofbbg 广西北部湾银行 金融 银行"
+    },
+    {
+      "name": "北京银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofbeijing-rect.svg",
+      "brand": "Bank of Beijing",
+      "aliases": "bankofbeijing 北京银行 金融 银行 金融 Bank of Beijing bankofbeijing 北京银行 北京銀行 大陆 内地 金融 Bank of Beijing bankofbeijing 北京银行 北京銀行 大陆 内地"
+    },
+    {
+      "name": "北京银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofbeijing.svg",
+      "brand": "Bank of Beijing",
+      "aliases": "bankofbeijing 北京银行 金融 银行 金融 Bank of Beijing bankofbeijing 北京银行 北京銀行 大陆 内地 金融 Bank of Beijing bankofbeijing 北京银行 北京銀行 大陆 内地"
+    },
+    {
+      "name": "大连银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofdl-rect.svg",
+      "aliases": "bankofdl 大连银行 金融 银行"
+    },
+    {
+      "name": "大连银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofdl.svg",
+      "aliases": "bankofdl 大连银行 金融 银行"
+    },
+    {
+      "name": "抚顺银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankoffs-rect.svg",
+      "aliases": "bankoffs 抚顺银行 金融 银行"
+    },
+    {
+      "name": "抚顺银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankoffs.svg",
+      "aliases": "bankoffs 抚顺银行 金融 银行"
+    },
+    {
+      "name": "葫芦岛银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofhld-rect.svg",
+      "aliases": "bankofhld 葫芦岛银行 金融 银行"
+    },
+    {
+      "name": "葫芦岛银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofhld.svg",
+      "aliases": "bankofhld 葫芦岛银行 金融 银行"
+    },
+    {
+      "name": "宁夏银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofnx-rect.svg",
+      "aliases": "bankofnx 宁夏银行 金融 银行"
+    },
+    {
+      "name": "宁夏银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofnx.svg",
+      "aliases": "bankofnx 宁夏银行 金融 银行"
+    },
+    {
+      "name": "盘锦银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofpj-rect.svg",
+      "aliases": "bankofpj 盘锦银行 金融 银行"
+    },
+    {
+      "name": "盘锦银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofpj.svg",
+      "aliases": "bankofpj 盘锦银行 金融 银行"
+    },
+    {
+      "name": "日照银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofrizhao-rect.svg",
+      "aliases": "bankofrizhao 日照银行 金融 银行"
+    },
+    {
+      "name": "日照银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofrizhao.svg",
+      "aliases": "bankofrizhao 日照银行 金融 银行"
+    },
+    {
+      "name": "天津银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankoftianjin-rect.svg",
+      "aliases": "bankoftianjin 天津银行 金融 银行"
+    },
+    {
+      "name": "天津银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankoftianjin.svg",
+      "aliases": "bankoftianjin 天津银行 金融 银行"
+    },
+    {
+      "name": "铁岭银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankoftieling-rect.svg",
+      "aliases": "bankoftieling 铁岭银行 金融 银行"
+    },
+    {
+      "name": "铁岭银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankoftieling.svg",
+      "aliases": "bankoftieling 铁岭银行 金融 银行"
+    },
+    {
+      "name": "营口银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofyk-rect.svg",
+      "aliases": "bankofyk 营口银行 金融 银行"
+    },
+    {
+      "name": "营口银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankofyk.svg",
+      "aliases": "bankofyk 营口银行 金融 银行"
+    },
+    {
+      "name": "青海银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankqh-rect.svg",
+      "aliases": "bankqh 青海银行 金融 银行"
+    },
+    {
+      "name": "青海银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankqh.svg",
+      "aliases": "bankqh 青海银行 金融 银行"
+    },
+    {
+      "name": "潍坊银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankwf-rect.svg",
+      "aliases": "bankwf 潍坊银行 金融 银行"
+    },
+    {
+      "name": "潍坊银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankwf.svg",
+      "aliases": "bankwf 潍坊银行 金融 银行"
+    },
+    {
+      "name": "黄河农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankyellowriver-rect.svg",
+      "aliases": "bankyellowriver 黄河农商 金融 银行"
+    },
+    {
+      "name": "黄河农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bankyellowriver.svg",
+      "aliases": "bankyellowriver 黄河农商 金融 银行"
+    },
+    {
+      "name": "Barclays 巴克莱银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/barclays-rect.svg",
+      "brand": "Barclays",
+      "aliases": "barclays Barclays 巴克莱银行 金融 银行 金融 Barclays 巴克莱 巴克萊 英国"
+    },
+    {
+      "name": "Barclays 巴克莱银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/barclays.svg",
+      "brand": "Barclays",
+      "aliases": "barclays Barclays 巴克莱银行 金融 银行 金融 Barclays 巴克莱 巴克萊 英国"
+    },
+    {
+      "name": "澳门商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bcm-rect.svg",
+      "aliases": "bcm 澳门商业银行 金融 银行"
+    },
+    {
+      "name": "澳门商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bcm.svg",
+      "aliases": "bcm 澳门商业银行 金融 银行"
+    },
+    {
+      "name": "保定银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bd-bank-rect.svg",
+      "aliases": "bd-bank 保定银行 金融 银行"
+    },
+    {
+      "name": "保定银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bd-bank.svg",
+      "aliases": "bd-bank 保定银行 金融 银行"
+    },
+    {
+      "name": "贵州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bgzchina-rect.svg",
+      "aliases": "bgzchina 贵州银行 金融 银行"
+    },
+    {
+      "name": "贵州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bgzchina.svg",
+      "aliases": "bgzchina 贵州银行 金融 银行"
+    },
+    {
+      "name": "北京农商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bjrcb-rect.svg",
+      "aliases": "bjrcb 北京农商银行 金融 银行"
+    },
+    {
+      "name": "北京农商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bjrcb.svg",
+      "aliases": "bjrcb 北京农商银行 金融 银行"
+    },
+    {
+      "name": "蒙特利尔银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bmo-rect.svg",
+      "aliases": "bmo 蒙特利尔银行 金融 银行"
+    },
+    {
+      "name": "蒙特利尔银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bmo.svg",
+      "aliases": "bmo 蒙特利尔银行 金融 银行"
+    },
+    {
+      "name": "中国银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/boc-rect.svg",
+      "brand": "Bank of China",
+      "aliases": "boc 中国银行 金融 银行 金融 Bank of China boc 中国银行 中國銀行 中行 大陆 内地 金融 Bank of China boc 中国银行 中國銀行 中行 大陆 内地"
+    },
+    {
+      "name": "中国银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/boc.svg",
+      "brand": "Bank of China",
+      "aliases": "boc 中国银行 金融 银行 金融 Bank of China boc 中国银行 中國銀行 中行 大陆 内地 金融 Bank of China boc 中国银行 中國銀行 中行 大陆 内地"
+    },
+    {
+      "name": "成都银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bocd-rect.svg",
+      "aliases": "bocd 成都银行 金融 银行"
+    },
+    {
+      "name": "成都银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bocd.svg",
+      "aliases": "bocd 成都银行 金融 银行"
+    },
+    {
+      "name": "汇和银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bohuihe-rect.svg",
+      "aliases": "bohuihe 汇和银行 金融 银行"
+    },
+    {
+      "name": "汇和银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bohuihe.svg",
+      "aliases": "bohuihe 汇和银行 金融 银行"
+    },
+    {
+      "name": "柳州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bolz-rect.svg",
+      "aliases": "bolz 柳州银行 金融 银行"
+    },
+    {
+      "name": "柳州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bolz.svg",
+      "aliases": "bolz 柳州银行 金融 银行"
+    },
+    {
+      "name": "上海银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bosc-rect.svg",
+      "brand": "Bank of Shanghai",
+      "aliases": "bosc 上海银行 金融 银行 金融 Bank of Shanghai bosc 上海银行 上海銀行 大陆 内地 金融 Bank of Shanghai bosc 上海银行 上海銀行 大陆 内地"
+    },
+    {
+      "name": "上海银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/bosc.svg",
+      "brand": "Bank of Shanghai",
+      "aliases": "bosc 上海银行 金融 银行 金融 Bank of Shanghai bosc 上海银行 上海銀行 大陆 内地 金融 Bank of Shanghai bosc 上海银行 上海銀行 大陆 内地"
+    },
+    {
+      "name": "横滨银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/boy-rect.svg",
+      "aliases": "boy 横滨银行 金融 银行"
+    },
+    {
+      "name": "横滨银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/boy.svg",
+      "aliases": "boy 横滨银行 金融 银行"
+    },
+    {
+      "name": "国泰世华银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cathaybk-rect.svg",
+      "aliases": "cathaybk 国泰世华银行 金融 银行"
+    },
+    {
+      "name": "国泰世华银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cathaybk.svg",
+      "aliases": "cathaybk 国泰世华银行 金融 银行"
+    },
+    {
+      "name": "渤海银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cbhb-rect.svg",
+      "aliases": "cbhb 渤海银行 金融 银行"
+    },
+    {
+      "name": "渤海银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cbhb.svg",
+      "aliases": "cbhb 渤海银行 金融 银行"
+    },
+    {
+      "name": "长安银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ccabchina-rect.svg",
+      "aliases": "ccabchina 长安银行 金融 银行"
+    },
+    {
+      "name": "长安银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ccabchina.svg",
+      "aliases": "ccabchina 长安银行 金融 银行"
+    },
+    {
+      "name": "中国建设银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ccb-rect.svg",
+      "brand": "China Construction Bank",
+      "aliases": "ccb 中国建设银行 金融 银行 金融 China Construction Bank ccb 建设银行 建設銀行 建行 大陆 内地"
+    },
+    {
+      "name": "中国建设银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ccb.svg",
+      "brand": "China Construction Bank",
+      "aliases": "ccb 中国建设银行 金融 银行 金融 China Construction Bank ccb 建设银行 建設銀行 建行 大陆 内地"
+    },
+    {
+      "name": "重庆三峡银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ccqtgb-rect.svg",
+      "aliases": "ccqtgb 重庆三峡银行 金融 银行"
+    },
+    {
+      "name": "重庆三峡银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ccqtgb.svg",
+      "aliases": "ccqtgb 重庆三峡银行 金融 银行"
+    },
+    {
+      "name": "国家开发银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cdb-rect.svg",
+      "aliases": "cdb 国家开发银行 金融 银行"
+    },
+    {
+      "name": "国家开发银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cdb.svg",
+      "aliases": "cdb 国家开发银行 金融 银行"
+    },
+    {
+      "name": "中国光大银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cebbank-rect.svg",
+      "brand": "China Everbright Bank",
+      "aliases": "cebbank 中国光大银行 金融 银行 金融 China Everbright Bank cebbank 光大银行 光大銀行 大陆 内地"
+    },
+    {
+      "name": "中国光大银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cebbank.svg",
+      "brand": "China Everbright Bank",
+      "aliases": "cebbank 中国光大银行 金融 银行 金融 China Everbright Bank cebbank 光大银行 光大銀行 大陆 内地"
+    },
+    {
+      "name": "广发银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cgbchina-rect.svg",
+      "brand": "China Guangfa Bank",
+      "aliases": "cgbchina 广发银行 金融 银行 金融 China Guangfa Bank cgbchina 广发银行 廣發銀行 大陆 内地 金融 China Guangfa Bank cgbchina 广发银行 廣發銀行 大陆 内地"
+    },
+    {
+      "name": "广发银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cgbchina.svg",
+      "brand": "China Guangfa Bank",
+      "aliases": "cgbchina 广发银行 金融 银行 金融 China Guangfa Bank cgbchina 广发银行 廣發銀行 大陆 内地 金融 China Guangfa Bank cgbchina 广发银行 廣發銀行 大陆 内地"
+    },
+    {
+      "name": "承德银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/chengdebank-rect.svg",
+      "aliases": "chengdebank 承德银行 金融 银行"
+    },
+    {
+      "name": "承德银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/chengdebank.svg",
+      "aliases": "chengdebank 承德银行 金融 银行"
+    },
+    {
+      "name": "中国银行业协会 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/china-cba-rect.svg",
+      "aliases": "china-cba 中国银行业协会 金融 银行"
+    },
+    {
+      "name": "中国银行业协会 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/china-cba.svg",
+      "aliases": "china-cba 中国银行业协会 金融 银行"
+    },
+    {
+      "name": "德意志银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/chinadb-rect.svg",
+      "aliases": "chinadb 德意志银行 金融 银行"
+    },
+    {
+      "name": "德意志银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/chinadb.svg",
+      "aliases": "chinadb 德意志银行 金融 银行"
+    },
+    {
+      "name": "兴业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cib-rect.svg",
+      "brand": "Industrial Bank",
+      "aliases": "cib 兴业银行 金融 银行 金融 Industrial Bank cib 兴业银行 興業銀行 大陆 内地 金融 Industrial Bank cib 兴业银行 興業銀行 大陆 内地"
+    },
+    {
+      "name": "兴业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cib.svg",
+      "brand": "Industrial Bank",
+      "aliases": "cib 兴业银行 金融 银行 金融 Industrial Bank cib 兴业银行 興業銀行 大陆 内地 金融 Industrial Bank cib 兴业银行 興業銀行 大陆 内地"
+    },
+    {
+      "name": "Citi 花旗银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/citibank-rect.svg",
+      "brand": "Citi",
+      "aliases": "citibank Citi 花旗银行 金融 银行 金融 Citi Citibank 花旗 花旗银行 花旗銀行 美国 香港"
+    },
+    {
+      "name": "Citi 花旗银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/citibank.svg",
+      "brand": "Citi",
+      "aliases": "citibank Citi 花旗银行 金融 银行 金融 Citi Citibank 花旗 花旗银行 花旗銀行 美国 香港"
+    },
+    {
+      "name": "中信银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/citicbank-rect.svg",
+      "brand": "China CITIC Bank",
+      "aliases": "citicbank 中信银行 金融 银行 金融 China CITIC Bank citicbank 中信银行 中信銀行 大陆 内地 金融 China CITIC Bank citicbank 中信银行 中信銀行 大陆 内地"
+    },
+    {
+      "name": "中信银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/citicbank.svg",
+      "brand": "China CITIC Bank",
+      "aliases": "citicbank 中信银行 金融 银行 金融 China CITIC Bank citicbank 中信银行 中信銀行 大陆 内地 金融 China CITIC Bank citicbank 中信银行 中信銀行 大陆 内地"
+    },
+    {
+      "name": "江苏长江商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cjccb-rect.svg",
+      "aliases": "cjccb 江苏长江商业银行 金融 银行"
+    },
+    {
+      "name": "江苏长江商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cjccb.svg",
+      "aliases": "cjccb 江苏长江商业银行 金融 银行"
+    },
+    {
+      "name": "中国民生银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cmbc-rect.svg",
+      "brand": "China Minsheng Bank",
+      "aliases": "cmbc 中国民生银行 金融 银行 金融 China Minsheng Bank cmbc 民生银行 民生銀行 大陆 内地"
+    },
+    {
+      "name": "中国民生银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cmbc.svg",
+      "brand": "China Minsheng Bank",
+      "aliases": "cmbc 中国民生银行 金融 银行 金融 China Minsheng Bank cmbc 民生银行 民生銀行 大陆 内地"
+    },
+    {
+      "name": "招商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cmbchina-rect.svg",
+      "brand": "China Merchants Bank",
+      "aliases": "cmbchina 招商银行 金融 银行 金融 China Merchants Bank cmbchina 招商银行 招商銀行 招行 大陆 内地 金融 China Merchants Bank cmbchina 招商银行 招商銀行 招行 大陆 内地"
+    },
+    {
+      "name": "招商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cmbchina.svg",
+      "brand": "China Merchants Bank",
+      "aliases": "cmbchina 招商银行 金融 银行 金融 China Merchants Bank cmbchina 招商银行 招商銀行 招行 大陆 内地 金融 China Merchants Bank cmbchina 招商银行 招商銀行 招行 大陆 内地"
+    },
+    {
+      "name": "华商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cmbcn-rect.svg",
+      "aliases": "cmbcn 华商银行 金融 银行"
+    },
+    {
+      "name": "华商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cmbcn.svg",
+      "aliases": "cmbcn 华商银行 金融 银行"
+    },
+    {
+      "name": "重庆银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cqcbank-rect.svg",
+      "aliases": "cqcbank 重庆银行 金融 银行"
+    },
+    {
+      "name": "重庆银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cqcbank.svg",
+      "aliases": "cqcbank 重庆银行 金融 银行"
+    },
+    {
+      "name": "重庆农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cqrcb-rect.svg",
+      "aliases": "cqrcb 重庆农商 金融 银行"
+    },
+    {
+      "name": "重庆农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cqrcb.svg",
+      "aliases": "cqrcb 重庆农商 金融 银行"
+    },
+    {
+      "name": "华润银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/crbank-rect.svg",
+      "aliases": "crbank 华润银行 金融 银行"
+    },
+    {
+      "name": "华润银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/crbank.svg",
+      "aliases": "crbank 华润银行 金融 银行"
+    },
+    {
+      "name": "长沙银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cscb-rect.svg",
+      "aliases": "cscb 长沙银行 金融 银行"
+    },
+    {
+      "name": "长沙银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cscb.svg",
+      "aliases": "cscb 长沙银行 金融 银行"
+    },
+    {
+      "name": "证监会 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/csrc-rect.svg",
+      "aliases": "csrc 证监会 金融 银行"
+    },
+    {
+      "name": "证监会 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/csrc.svg",
+      "aliases": "csrc 证监会 金融 银行"
+    },
+    {
+      "name": "常熟农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/csrcbank-rect.svg",
+      "aliases": "csrcbank 常熟农商 金融 银行"
+    },
+    {
+      "name": "常熟农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/csrcbank.svg",
+      "aliases": "csrcbank 常熟农商 金融 银行"
+    },
+    {
+      "name": "三湘银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/csxbank-rect.svg",
+      "aliases": "csxbank 三湘银行 金融 银行"
+    },
+    {
+      "name": "三湘银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/csxbank.svg",
+      "aliases": "csxbank 三湘银行 金融 银行"
+    },
+    {
+      "name": "朝阳银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cycb-rect.svg",
+      "aliases": "cycb 朝阳银行 金融 银行"
+    },
+    {
+      "name": "朝阳银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/cycb.svg",
+      "aliases": "cycb 朝阳银行 金融 银行"
+    },
+    {
+      "name": "浙商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/czbank-rect.svg",
+      "aliases": "czbank 浙商银行 金融 银行"
+    },
+    {
+      "name": "浙商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/czbank.svg",
+      "aliases": "czbank 浙商银行 金融 银行"
+    },
+    {
+      "name": "浙江稠州商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/czcb-rect.svg",
+      "aliases": "czcb 浙江稠州商业银行 金融 银行"
+    },
+    {
+      "name": "浙江稠州商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/czcb.svg",
+      "aliases": "czcb 浙江稠州商业银行 金融 银行"
+    },
+    {
+      "name": "Dah Sing Bank 大新银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dahsing-rect.svg",
+      "brand": "Dah Sing Bank",
+      "aliases": "dahsing Dah Sing Bank 大新银行 金融 银行 金融 Dah Sing Bank dahsing 大新银行 大新銀行 香港"
+    },
+    {
+      "name": "Dah Sing Bank 大新银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dahsing.svg",
+      "brand": "Dah Sing Bank",
+      "aliases": "dahsing Dah Sing Bank 大新银行 金融 银行 金融 Dah Sing Bank dahsing 大新银行 大新銀行 香港"
+    },
+    {
+      "name": "丹东银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dandongbank-rect.svg",
+      "aliases": "dandongbank 丹东银行 金融 银行"
+    },
+    {
+      "name": "丹东银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dandongbank.svg",
+      "aliases": "dandongbank 丹东银行 金融 银行"
+    },
+    {
+      "name": "DBS 星展银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dbs-rect.svg",
+      "brand": "DBS",
+      "aliases": "dbs DBS 星展银行 金融 银行 金融 DBS 星展 星展银行 星展銀行 香港"
+    },
+    {
+      "name": "DBS 星展银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dbs.svg",
+      "brand": "DBS",
+      "aliases": "dbs DBS 星展银行 金融 银行 金融 DBS 星展 星展银行 星展銀行 香港"
+    },
+    {
+      "name": "东莞银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dongguanbank-rect.svg",
+      "aliases": "dongguanbank 东莞银行 金融 银行"
+    },
+    {
+      "name": "东莞银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dongguanbank.svg",
+      "aliases": "dongguanbank 东莞银行 金融 银行"
+    },
+    {
+      "name": "东莞农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/drcbank-rect.svg",
+      "aliases": "drcbank 东莞农商 金融 银行"
+    },
+    {
+      "name": "东莞农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/drcbank.svg",
+      "aliases": "drcbank 东莞农商 金融 银行"
+    },
+    {
+      "name": "东营银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dyccb-rect.svg",
+      "aliases": "dyccb 东营银行 金融 银行"
+    },
+    {
+      "name": "德州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dzbchina-rect.svg",
+      "aliases": "dzbchina 德州银行 金融 银行"
+    },
+    {
+      "name": "德州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dzbchina.svg",
+      "aliases": "dzbchina 德州银行 金融 银行"
+    },
+    {
+      "name": "达州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dzccb-rect.svg",
+      "aliases": "dzccb 达州银行 金融 银行"
+    },
+    {
+      "name": "达州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/dzccb.svg",
+      "aliases": "dzccb 达州银行 金融 银行"
+    },
+    {
+      "name": "East West Bank 华美银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/eastwestbank-rect.svg",
+      "brand": "East West Bank",
+      "aliases": "eastwestbank East West Bank 华美银行 金融 银行 金融 East West Bank eastwestbank 华美银行 華美銀行 美国"
+    },
+    {
+      "name": "中国进出口银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/eximbank-rect.svg",
+      "aliases": "eximbank 中国进出口银行 金融 银行"
+    },
+    {
+      "name": "中国进出口银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/eximbank.svg",
+      "aliases": "eximbank 中国进出口银行 金融 银行"
+    },
+    {
+      "name": "第一银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/firstbank-rect.svg",
+      "aliases": "firstbank 第一银行 金融 银行"
+    },
+    {
+      "name": "第一银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/firstbank.svg",
+      "aliases": "firstbank 第一银行 金融 银行"
+    },
+    {
+      "name": "福建海峡银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/fjhxbank-rect.svg",
+      "aliases": "fjhxbank 福建海峡银行 金融 银行"
+    },
+    {
+      "name": "福建海峡银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/fjhxbank.svg",
+      "aliases": "fjhxbank 福建海峡银行 金融 银行"
+    },
+    {
+      "name": "佛山农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/foshanbank-rect.svg",
+      "aliases": "foshanbank 佛山农商 金融 银行"
+    },
+    {
+      "name": "佛山农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/foshanbank.svg",
+      "aliases": "foshanbank 佛山农商 金融 银行"
+    },
+    {
+      "name": "富邦华一银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/fubonchina-rect.svg",
+      "aliases": "fubonchina 富邦华一银行 金融 银行"
+    },
+    {
+      "name": "富邦华一银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/fubonchina.svg",
+      "aliases": "fubonchina 富邦华一银行 金融 银行"
+    },
+    {
+      "name": "富滇银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/fudian-rect.svg",
+      "aliases": "fudian 富滇银行 金融 银行"
+    },
+    {
+      "name": "富滇银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/fudian.svg",
+      "aliases": "fudian 富滇银行 金融 银行"
+    },
+    {
+      "name": "阜新银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/fuxinbank-rect.svg",
+      "aliases": "fuxinbank 阜新银行 金融 银行"
+    },
+    {
+      "name": "阜新银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/fuxinbank.svg",
+      "aliases": "fuxinbank 阜新银行 金融 银行"
+    },
+    {
+      "name": "广东南粤银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/gdnybank-rect.svg",
+      "aliases": "gdnybank 广东南粤银行 金融 银行"
+    },
+    {
+      "name": "广东南粤银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/gdnybank.svg",
+      "aliases": "gdnybank 广东南粤银行 金融 银行"
+    },
+    {
+      "name": "广东华兴银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ghbank-rect.svg",
+      "aliases": "ghbank 广东华兴银行 金融 银行"
+    },
+    {
+      "name": "广东华兴银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ghbank.svg",
+      "aliases": "ghbank 广东华兴银行 金融 银行"
+    },
+    {
+      "name": "广东农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/grcbank-rect.svg",
+      "aliases": "grcbank 广东农商 金融 银行"
+    },
+    {
+      "name": "广东农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/grcbank.svg",
+      "aliases": "grcbank 广东农商 金融 银行"
+    },
+    {
+      "name": "甘肃银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/gsbankchina-rect.svg",
+      "aliases": "gsbankchina 甘肃银行 金融 银行"
+    },
+    {
+      "name": "甘肃银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/gsbankchina.svg",
+      "aliases": "gsbankchina 甘肃银行 金融 银行"
+    },
+    {
+      "name": "桂林银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/guilinbank-rect.svg",
+      "aliases": "guilinbank 桂林银行 金融 银行"
+    },
+    {
+      "name": "桂林银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/guilinbank.svg",
+      "aliases": "guilinbank 桂林银行 金融 银行"
+    },
+    {
+      "name": "广西农村信用社 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/gx966888-rect.svg",
+      "aliases": "gx966888 广西农村信用社 金融 银行"
+    },
+    {
+      "name": "广西农村信用社 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/gx966888.svg",
+      "aliases": "gx966888 广西农村信用社 金融 银行"
+    },
+    {
+      "name": "广州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/gzcb-rect.svg",
+      "aliases": "gzcb 广州银行 金融 银行"
+    },
+    {
+      "name": "广州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/gzcb.svg",
+      "aliases": "gzcb 广州银行 金融 银行"
+    },
+    {
+      "name": "赣州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/gzccb-rect.svg",
+      "aliases": "gzccb 赣州银行 金融 银行"
+    },
+    {
+      "name": "赣州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/gzccb.svg",
+      "aliases": "gzccb 赣州银行 金融 银行"
+    },
+    {
+      "name": "韩亚银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hanabank-rect.svg",
+      "aliases": "hanabank 韩亚银行 金融 银行"
+    },
+    {
+      "name": "韩亚银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hanabank.svg",
+      "aliases": "hanabank 韩亚银行 金融 银行"
+    },
+    {
+      "name": "Hang Seng Bank 恒生银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hangseng-rect.svg",
+      "brand": "Hang Seng Bank",
+      "aliases": "hangseng Hang Seng Bank 恒生银行 金融 银行 金融 Hang Seng Bank hangseng 恒生 恒生银行 恒生銀行 香港"
+    },
+    {
+      "name": "Hang Seng Bank 恒生银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hangseng.svg",
+      "brand": "Hang Seng Bank",
+      "aliases": "hangseng Hang Seng Bank 恒生银行 金融 银行 金融 Hang Seng Bank hangseng 恒生 恒生银行 恒生銀行 香港"
+    },
+    {
+      "name": "邯郸银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hdcb-rect.svg",
+      "aliases": "hdcb 邯郸银行 金融 银行"
+    },
+    {
+      "name": "邯郸银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hdcb.svg",
+      "aliases": "hdcb 邯郸银行 金融 银行"
+    },
+    {
+      "name": "河北银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hebbank-rect.svg",
+      "aliases": "hebbank 河北银行 金融 银行"
+    },
+    {
+      "name": "河北银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hebbank.svg",
+      "aliases": "hebbank 河北银行 金融 银行"
+    },
+    {
+      "name": "恒丰银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hfbank-rect.svg",
+      "aliases": "hfbank 恒丰银行 金融 银行"
+    },
+    {
+      "name": "恒丰银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hfbank.svg",
+      "aliases": "hfbank 恒丰银行 金融 银行"
+    },
+    {
+      "name": "合肥科技农村商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hfrcbc-rect.svg",
+      "aliases": "hfrcbc 合肥科技农村商业银行 金融 银行"
+    },
+    {
+      "name": "合肥科技农村商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hfrcbc.svg",
+      "aliases": "hfrcbc 合肥科技农村商业银行 金融 银行"
+    },
+    {
+      "name": "汉口银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hkbchina-rect.svg",
+      "aliases": "hkbchina 汉口银行 金融 银行"
+    },
+    {
+      "name": "汉口银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hkbchina.svg",
+      "aliases": "hkbchina 汉口银行 金融 银行"
+    },
+    {
+      "name": "Bank of East Asia 东亚银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hkbea-rect.svg",
+      "brand": "Bank of East Asia",
+      "aliases": "hkbea Bank of East Asia 东亚银行 金融 银行 金融 Bank of East Asia hkbea 东亚银行 東亞銀行 香港"
+    },
+    {
+      "name": "Bank of East Asia 东亚银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hkbea.svg",
+      "brand": "Bank of East Asia",
+      "aliases": "hkbea Bank of East Asia 东亚银行 金融 银行 金融 Bank of East Asia hkbea 东亚银行 東亞銀行 香港"
+    },
+    {
+      "name": "湖南省农村信用社 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hnnxs-rect.svg",
+      "aliases": "hnnxs 湖南省农村信用社 金融 银行"
+    },
+    {
+      "name": "湖南省农村信用社 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hnnxs.svg",
+      "aliases": "hnnxs 湖南省农村信用社 金融 银行"
+    },
+    {
+      "name": "哈尔滨银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hrbb-rect.svg",
+      "aliases": "hrbb 哈尔滨银行 金融 银行"
+    },
+    {
+      "name": "哈尔滨银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hrbb.svg",
+      "aliases": "hrbb 哈尔滨银行 金融 银行"
+    },
+    {
+      "name": "华融湘江银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hrxjbank-rect.svg",
+      "aliases": "hrxjbank 华融湘江银行 金融 银行"
+    },
+    {
+      "name": "华融湘江银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hrxjbank.svg",
+      "aliases": "hrxjbank 华融湘江银行 金融 银行"
+    },
+    {
+      "name": "徽商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hsbank-rect.svg",
+      "aliases": "hsbank 徽商银行 金融 银行"
+    },
+    {
+      "name": "徽商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hsbank.svg",
+      "aliases": "hsbank 徽商银行 金融 银行"
+    },
+    {
+      "name": "HSBC 汇丰银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hsbc-rect.svg",
+      "brand": "HSBC",
+      "aliases": "hsbc HSBC 汇丰银行 金融 银行 金融 HSBC 汇丰 匯豐 汇丰银行 匯豐銀行 英国 香港"
+    },
+    {
+      "name": "HSBC 汇丰银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hsbc.svg",
+      "brand": "HSBC",
+      "aliases": "hsbc HSBC 汇丰银行 金融 银行 金融 HSBC 汇丰 匯豐 汇丰银行 匯豐銀行 英国 香港"
+    },
+    {
+      "name": "湖北银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hubeibank-rect.svg",
+      "aliases": "hubeibank 湖北银行 金融 银行"
+    },
+    {
+      "name": "湖北银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hubeibank.svg",
+      "aliases": "hubeibank 湖北银行 金融 银行"
+    },
+    {
+      "name": "华夏银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hxb-rect.svg",
+      "aliases": "hxb 华夏银行 金融 银行"
+    },
+    {
+      "name": "华夏银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hxb.svg",
+      "aliases": "hxb 华夏银行 金融 银行"
+    },
+    {
+      "name": "杭州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hzbank-rect.svg",
+      "aliases": "hzbank 杭州银行 金融 银行"
+    },
+    {
+      "name": "杭州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hzbank.svg",
+      "aliases": "hzbank 杭州银行 金融 银行"
+    },
+    {
+      "name": "湖州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hzccb-rect.svg",
+      "aliases": "hzccb 湖州银行 金融 银行"
+    },
+    {
+      "name": "湖州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hzccb.svg",
+      "aliases": "hzccb 湖州银行 金融 银行"
+    },
+    {
+      "name": "惠州农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hznsyh-rect.svg",
+      "aliases": "hznsyh 惠州农商 金融 银行"
+    },
+    {
+      "name": "惠州农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/hznsyh.svg",
+      "aliases": "hznsyh 惠州农商 金融 银行"
+    },
+    {
+      "name": "韩国企业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ibk-rect.svg",
+      "aliases": "ibk 韩国企业银行 金融 银行"
+    },
+    {
+      "name": "韩国企业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ibk.svg",
+      "aliases": "ibk 韩国企业银行 金融 银行"
+    },
+    {
+      "name": "中国工商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/icbc-rect.svg",
+      "brand": "ICBC",
+      "aliases": "icbc 中国工商银行 金融 银行 金融 ICBC 中国工商银行 中國工商銀行 工商银行 工商銀行 工行 大陆 内地 金融 ICBC 中国工商银行 中國工商銀行 工商银行 工商銀行 工行 大陆 内地"
+    },
+    {
+      "name": "中国工商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/icbc.svg",
+      "brand": "ICBC",
+      "aliases": "icbc 中国工商银行 金融 银行 金融 ICBC 中国工商银行 中國工商銀行 工商银行 工商銀行 工行 大陆 内地 金融 ICBC 中国工商银行 中國工商銀行 工商银行 工商銀行 工行 大陆 内地"
+    },
+    {
+      "name": "金华银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jhccb-rect.svg",
+      "aliases": "jhccb 金华银行 金融 银行"
+    },
+    {
+      "name": "金华银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jhccb.svg",
+      "aliases": "jhccb 金华银行 金融 银行"
+    },
+    {
+      "name": "建湖农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jhrcbank-rect.svg",
+      "aliases": "jhrcbank 建湖农商 金融 银行"
+    },
+    {
+      "name": "建湖农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jhrcbank.svg",
+      "aliases": "jhrcbank 建湖农商 金融 银行"
+    },
+    {
+      "name": "锦州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jinzhoubank-rect.svg",
+      "aliases": "jinzhoubank 锦州银行 金融 银行"
+    },
+    {
+      "name": "锦州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jinzhoubank.svg",
+      "aliases": "jinzhoubank 锦州银行 金融 银行"
+    },
+    {
+      "name": "江苏靖江农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jjbank-rect.svg",
+      "aliases": "jjbank 江苏靖江农商 金融 银行"
+    },
+    {
+      "name": "江苏靖江农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jjbank.svg",
+      "aliases": "jjbank 江苏靖江农商 金融 银行"
+    },
+    {
+      "name": "九江银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jjccb-rect.svg",
+      "aliases": "jjccb 九江银行 金融 银行"
+    },
+    {
+      "name": "九江银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jjccb.svg",
+      "aliases": "jjccb 九江银行 金融 银行"
+    },
+    {
+      "name": "吉林银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jlbank-rect.svg",
+      "aliases": "jlbank 吉林银行 金融 银行"
+    },
+    {
+      "name": "吉林银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jlbank.svg",
+      "aliases": "jlbank 吉林银行 金融 银行"
+    },
+    {
+      "name": "江门农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jmrcb-rect.svg",
+      "aliases": "jmrcb 江门农商 金融 银行"
+    },
+    {
+      "name": "江门农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jmrcb.svg",
+      "aliases": "jmrcb 江门农商 金融 银行"
+    },
+    {
+      "name": "济宁银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jn-bank-rect.svg",
+      "aliases": "jn-bank 济宁银行 金融 银行"
+    },
+    {
+      "name": "济宁银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jn-bank.svg",
+      "aliases": "jn-bank 济宁银行 金融 银行"
+    },
+    {
+      "name": "济宁银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jnbank-rect.svg",
+      "aliases": "jnbank 济宁银行 金融 银行"
+    },
+    {
+      "name": "济宁银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jnbank.svg",
+      "aliases": "jnbank 济宁银行 金融 银行"
+    },
+    {
+      "name": "JPMorgan 摩根大通 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jpmorganchina-rect.svg",
+      "brand": "JPMorgan",
+      "aliases": "jpmorganchina JPMorgan 摩根大通 金融 银行 金融 JPMorgan jpmorganchina 摩根大通 美国"
+    },
+    {
+      "name": "JPMorgan 摩根大通 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jpmorganchina.svg",
+      "brand": "JPMorgan",
+      "aliases": "jpmorganchina JPMorgan 摩根大通 金融 银行 金融 JPMorgan jpmorganchina 摩根大通 美国"
+    },
+    {
+      "name": "江苏句容农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jrnsh-rect.svg",
+      "aliases": "jrnsh 江苏句容农商 金融 银行"
+    },
+    {
+      "name": "江苏句容农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jrnsh.svg",
+      "aliases": "jrnsh 江苏句容农商 金融 银行"
+    },
+    {
+      "name": "江苏银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jsbchina-rect.svg",
+      "aliases": "jsbchina 江苏银行 金融 银行"
+    },
+    {
+      "name": "江苏银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jsbchina.svg",
+      "aliases": "jsbchina 江苏银行 金融 银行"
+    },
+    {
+      "name": "晋商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jshbank-rect.svg",
+      "aliases": "jshbank 晋商银行 金融 银行"
+    },
+    {
+      "name": "晋商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jshbank.svg",
+      "aliases": "jshbank 晋商银行 金融 银行"
+    },
+    {
+      "name": "江苏宜兴农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jsyxrcb-rect.svg",
+      "aliases": "jsyxrcb 江苏宜兴农商 金融 银行"
+    },
+    {
+      "name": "江苏宜兴农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jsyxrcb.svg",
+      "aliases": "jsyxrcb 江苏宜兴农商 金融 银行"
+    },
+    {
+      "name": "九台农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jtnsh-rect.svg",
+      "aliases": "jtnsh 九台农商 金融 银行"
+    },
+    {
+      "name": "九台农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jtnsh.svg",
+      "aliases": "jtnsh 九台农商 金融 银行"
+    },
+    {
+      "name": "江西银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jx-bank-rect.svg",
+      "aliases": "jx-bank 江西银行 金融 银行"
+    },
+    {
+      "name": "江阴农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jybank-rect.svg",
+      "aliases": "jybank 江阴农商 金融 银行"
+    },
+    {
+      "name": "江阴农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/jybank.svg",
+      "aliases": "jybank 江阴农商 金融 银行"
+    },
+    {
+      "name": "韩国国民银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/kbstarchina-rect.svg",
+      "aliases": "kbstarchina 韩国国民银行 金融 银行"
+    },
+    {
+      "name": "韩国国民银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/kbstarchina.svg",
+      "aliases": "kbstarchina 韩国国民银行 金融 银行"
+    },
+    {
+      "name": "昆仑银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/klb-rect.svg",
+      "aliases": "klb 昆仑银行 金融 银行"
+    },
+    {
+      "name": "昆仑银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/klb.svg",
+      "aliases": "klb 昆仑银行 金融 银行"
+    },
+    {
+      "name": "昆山农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ksrcb-rect.svg",
+      "aliases": "ksrcb 昆山农商 金融 银行"
+    },
+    {
+      "name": "昆山农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ksrcb.svg",
+      "aliases": "ksrcb 昆山农商 金融 银行"
+    },
+    {
+      "name": "廊坊银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lccb-rect.svg",
+      "aliases": "lccb 廊坊银行 金融 银行"
+    },
+    {
+      "name": "廊坊银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lccb.svg",
+      "aliases": "lccb 廊坊银行 金融 银行"
+    },
+    {
+      "name": "龙江银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lj-bank-rect.svg",
+      "aliases": "lj-bank 龙江银行 金融 银行"
+    },
+    {
+      "name": "龙江银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lj-bank.svg",
+      "aliases": "lj-bank 龙江银行 金融 银行"
+    },
+    {
+      "name": "路桥农村合作银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lqrcb-rect.svg",
+      "aliases": "lqrcb 路桥农村合作银行 金融 银行"
+    },
+    {
+      "name": "路桥农村合作银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lqrcb.svg",
+      "aliases": "lqrcb 路桥农村合作银行 金融 银行"
+    },
+    {
+      "name": "莱商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lsbankchina-rect.svg",
+      "aliases": "lsbankchina 莱商银行 金融 银行"
+    },
+    {
+      "name": "莱商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lsbankchina.svg",
+      "aliases": "lsbankchina 莱商银行 金融 银行"
+    },
+    {
+      "name": "临商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lsbchina-rect.svg",
+      "aliases": "lsbchina 临商银行 金融 银行"
+    },
+    {
+      "name": "临商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lsbchina.svg",
+      "aliases": "lsbchina 临商银行 金融 银行"
+    },
+    {
+      "name": "乐山市商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lsccb-rect.svg",
+      "aliases": "lsccb 乐山市商业银行 金融 银行"
+    },
+    {
+      "name": "乐山市商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lsccb.svg",
+      "aliases": "lsccb 乐山市商业银行 金融 银行"
+    },
+    {
+      "name": "洛阳银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/luoyang-szgold-rect.svg",
+      "aliases": "luoyang-szgold 洛阳银行 金融 银行"
+    },
+    {
+      "name": "洛阳银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/luoyang-szgold.svg",
+      "aliases": "luoyang-szgold 洛阳银行 金融 银行"
+    },
+    {
+      "name": "连云港东方农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lygdfrcb-rect.svg",
+      "aliases": "lygdfrcb 连云港东方农商 金融 银行"
+    },
+    {
+      "name": "连云港东方农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lygdfrcb.svg",
+      "aliases": "lygdfrcb 连云港东方农商 金融 银行"
+    },
+    {
+      "name": "兰州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lzbank-rect.svg",
+      "aliases": "lzbank 兰州银行 金融 银行"
+    },
+    {
+      "name": "兰州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lzbank.svg",
+      "aliases": "lzbank 兰州银行 金融 银行"
+    },
+    {
+      "name": "泸州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lzccb-rect.svg",
+      "aliases": "lzccb 泸州银行 金融 银行"
+    },
+    {
+      "name": "泸州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/lzccb.svg",
+      "aliases": "lzccb 泸州银行 金融 银行"
+    },
+    {
+      "name": "马鞍山农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/masrcb-rect.svg",
+      "aliases": "masrcb 马鞍山农商 金融 银行"
+    },
+    {
+      "name": "马鞍山农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/masrcb.svg",
+      "aliases": "masrcb 马鞍山农商 金融 银行"
+    },
+    {
+      "name": "马来亚银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/maybank-rect.svg",
+      "aliases": "maybank 马来亚银行 金融 银行"
+    },
+    {
+      "name": "马来亚银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/maybank.svg",
+      "aliases": "maybank 马来亚银行 金融 银行"
+    },
+    {
+      "name": "兆丰国际商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/megabank-rect.svg",
+      "aliases": "megabank 兆丰国际商业银行 金融 银行"
+    },
+    {
+      "name": "名古屋银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/meigin-rect.svg",
+      "aliases": "meigin 名古屋银行 金融 银行"
+    },
+    {
+      "name": "名古屋银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/meigin.svg",
+      "aliases": "meigin 名古屋银行 金融 银行"
+    },
+    {
+      "name": "浙江民泰商行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/mintaibank-rect.svg",
+      "aliases": "mintaibank 浙江民泰商行 金融 银行"
+    },
+    {
+      "name": "浙江民泰商行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/mintaibank.svg",
+      "aliases": "mintaibank 浙江民泰商行 金融 银行"
+    },
+    {
+      "name": "东京三菱银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/mufg-rect.svg",
+      "aliases": "mufg 东京三菱银行 金融 银行"
+    },
+    {
+      "name": "东京三菱银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/mufg.svg",
+      "aliases": "mufg 东京三菱银行 金融 银行"
+    },
+    {
+      "name": "绵阳商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/mycc-rect.svg",
+      "aliases": "mycc 绵阳商业银行 金融 银行"
+    },
+    {
+      "name": "绵阳商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/mycc.svg",
+      "aliases": "mycc 绵阳商业银行 金融 银行"
+    },
+    {
+      "name": "南海农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/nanhaibank-rect.svg",
+      "aliases": "nanhaibank 南海农商 金融 银行"
+    },
+    {
+      "name": "南海农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/nanhaibank.svg",
+      "aliases": "nanhaibank 南海农商 金融 银行"
+    },
+    {
+      "name": "宁波银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/nbcb-rect.svg",
+      "aliases": "nbcb 宁波银行 金融 银行"
+    },
+    {
+      "name": "宁波银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/nbcb.svg",
+      "aliases": "nbcb 宁波银行 金融 银行"
+    },
+    {
+      "name": "宁波通商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ncbank-rect.svg",
+      "aliases": "ncbank 宁波通商银行 金融 银行"
+    },
+    {
+      "name": "宁波通商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ncbank.svg",
+      "aliases": "ncbank 宁波通商银行 金融 银行"
+    },
+    {
+      "name": "南洋商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ncbchina-rect.svg",
+      "aliases": "ncbchina 南洋商业银行 金融 银行"
+    },
+    {
+      "name": "南洋商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ncbchina.svg",
+      "aliases": "ncbchina 南洋商业银行 金融 银行"
+    },
+    {
+      "name": "南京银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/njcb-rect.svg",
+      "aliases": "njcb 南京银行 金融 银行"
+    },
+    {
+      "name": "南京银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/njcb.svg",
+      "aliases": "njcb 南京银行 金融 银行"
+    },
+    {
+      "name": "中国兵器工业集团 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/norincogroup-rect.svg",
+      "aliases": "norincogroup 中国兵器工业集团 金融 银行"
+    },
+    {
+      "name": "中国兵器工业集团 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/norincogroup.svg",
+      "aliases": "norincogroup 中国兵器工业集团 金融 银行"
+    },
+    {
+      "name": "王道银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/o-bank-rect.svg",
+      "aliases": "o-bank 王道银行 金融 银行"
+    },
+    {
+      "name": "王道银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/o-bank.svg",
+      "aliases": "o-bank 王道银行 金融 银行"
+    },
+    {
+      "name": "OCBC 华侨银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ocbc-rect.svg",
+      "brand": "OCBC",
+      "aliases": "ocbc OCBC 华侨银行 金融 银行 金融 OCBC 华侨银行 華僑銀行 华侨永亨 華僑永亨 香港"
+    },
+    {
+      "name": "OCBC 华侨银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ocbc.svg",
+      "brand": "OCBC",
+      "aliases": "ocbc OCBC 华侨银行 金融 银行 金融 OCBC 华侨银行 華僑銀行 华侨永亨 華僑永亨 香港"
+    },
+    {
+      "name": "鄂尔多斯银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ordosbank-rect.svg",
+      "aliases": "ordosbank 鄂尔多斯银行 金融 银行"
+    },
+    {
+      "name": "鄂尔多斯银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ordosbank.svg",
+      "aliases": "ordosbank 鄂尔多斯银行 金融 银行"
+    },
+    {
+      "name": "中国人民银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/pbc-rect.svg",
+      "aliases": "pbc 中国人民银行 金融 银行"
+    },
+    {
+      "name": "中国人民银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/pbc.svg",
+      "aliases": "pbc 中国人民银行 金融 银行"
+    },
+    {
+      "name": "平安银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/pingan-rect.svg",
+      "brand": "Ping An Bank",
+      "aliases": "pingan 平安银行 金融 银行 金融 Ping An Bank pingan 平安银行 平安銀行 大陆 内地 金融 Ping An Bank pingan 平安银行 平安銀行 大陆 内地"
+    },
+    {
+      "name": "平安银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/pingan.svg",
+      "brand": "Ping An Bank",
+      "aliases": "pingan 平安银行 金融 银行 金融 Ping An Bank pingan 平安银行 平安銀行 大陆 内地 金融 Ping An Bank pingan 平安银行 平安銀行 大陆 内地"
+    },
+    {
+      "name": "中国邮政储蓄银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/psbc-rect.svg",
+      "brand": "Postal Savings Bank of China",
+      "aliases": "psbc 中国邮政储蓄银行 金融 银行 金融 Postal Savings Bank of China psbc 邮储 邮儲 邮政储蓄 郵政儲蓄 大陆 内地"
+    },
+    {
+      "name": "中国邮政储蓄银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/psbc.svg",
+      "brand": "Postal Savings Bank of China",
+      "aliases": "psbc 中国邮政储蓄银行 金融 银行 金融 Postal Savings Bank of China psbc 邮储 邮儲 邮政储蓄 郵政儲蓄 大陆 内地"
+    },
+    {
+      "name": "青岛银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qdccb-rect.svg",
+      "aliases": "qdccb 青岛银行 金融 银行"
+    },
+    {
+      "name": "青岛银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qdccb.svg",
+      "aliases": "qdccb 青岛银行 金融 银行"
+    },
+    {
+      "name": "秦皇岛银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qhdbank-rect.svg",
+      "aliases": "qhdbank 秦皇岛银行 金融 银行"
+    },
+    {
+      "name": "秦皇岛银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qhdbank.svg",
+      "aliases": "qhdbank 秦皇岛银行 金融 银行"
+    },
+    {
+      "name": "清远农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qingbank-rect.svg",
+      "aliases": "qingbank 清远农商 金融 银行"
+    },
+    {
+      "name": "清远农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qingbank.svg",
+      "aliases": "qingbank 清远农商 金融 银行"
+    },
+    {
+      "name": "曲靖市商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qjccb-rect.svg",
+      "aliases": "qjccb 曲靖市商业银行 金融 银行"
+    },
+    {
+      "name": "曲靖市商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qjccb.svg",
+      "aliases": "qjccb 曲靖市商业银行 金融 银行"
+    },
+    {
+      "name": "齐鲁银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qlbchina-rect.svg",
+      "aliases": "qlbchina 齐鲁银行 金融 银行"
+    },
+    {
+      "name": "齐鲁银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qlbchina.svg",
+      "aliases": "qlbchina 齐鲁银行 金融 银行"
+    },
+    {
+      "name": "齐商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qsbank-rect.svg",
+      "aliases": "qsbank 齐商银行 金融 银行"
+    },
+    {
+      "name": "齐商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qsbank.svg",
+      "aliases": "qsbank 齐商银行 金融 银行"
+    },
+    {
+      "name": "泉州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qzccbank-rect.svg",
+      "aliases": "qzccbank 泉州银行 金融 银行"
+    },
+    {
+      "name": "泉州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/qzccbank.svg",
+      "aliases": "qzccbank 泉州银行 金融 银行"
+    },
+    {
+      "name": "加拿大皇家银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/rbcroyalbank-rect.svg",
+      "aliases": "rbcroyalbank 加拿大皇家银行 金融 银行"
+    },
+    {
+      "name": "加拿大皇家银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/rbcroyalbank.svg",
+      "aliases": "rbcroyalbank 加拿大皇家银行 金融 银行"
+    },
+    {
+      "name": "Standard Chartered 渣打银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sc-rect.svg",
+      "brand": "Standard Chartered",
+      "aliases": "sc Standard Chartered 渣打银行 金融 银行 金融 Standard Chartered 渣打 渣打银行 渣打銀行 英国 香港"
+    },
+    {
+      "name": "Standard Chartered 渣打银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sc.svg",
+      "brand": "Standard Chartered",
+      "aliases": "sc Standard Chartered 渣打银行 金融 银行 金融 Standard Chartered 渣打 渣打银行 渣打銀行 英国 香港"
+    },
+    {
+      "name": "安徽舒城农村商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/scnhh-rect.svg",
+      "aliases": "scnhh 安徽舒城农村商业银行 金融 银行"
+    },
+    {
+      "name": "安徽舒城农村商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/scnhh.svg",
+      "aliases": "scnhh 安徽舒城农村商业银行 金融 银行"
+    },
+    {
+      "name": "加拿大丰业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/scotiabank-rect.svg",
+      "aliases": "scotiabank 加拿大丰业银行 金融 银行"
+    },
+    {
+      "name": "加拿大丰业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/scotiabank.svg",
+      "aliases": "scotiabank 加拿大丰业银行 金融 银行"
+    },
+    {
+      "name": "顺德农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sdebank-rect.svg",
+      "aliases": "sdebank 顺德农商 金融 银行"
+    },
+    {
+      "name": "顺德农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sdebank.svg",
+      "aliases": "sdebank 顺德农商 金融 银行"
+    },
+    {
+      "name": "山东省农村信用社 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sdnxs-rect.svg",
+      "aliases": "sdnxs 山东省农村信用社 金融 银行"
+    },
+    {
+      "name": "山东省农村信用社 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sdnxs.svg",
+      "aliases": "sdnxs 山东省农村信用社 金融 银行"
+    },
+    {
+      "name": "中德住房储蓄银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sgb-rect.svg",
+      "aliases": "sgb 中德住房储蓄银行 金融 银行"
+    },
+    {
+      "name": "中德住房储蓄银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sgb.svg",
+      "aliases": "sgb 中德住房储蓄银行 金融 银行"
+    },
+    {
+      "name": "盛京银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/shengjingbank-rect.svg",
+      "aliases": "shengjingbank 盛京银行 金融 银行"
+    },
+    {
+      "name": "盛京银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/shengjingbank.svg",
+      "aliases": "shengjingbank 盛京银行 金融 银行"
+    },
+    {
+      "name": "永丰银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sinopac-rect.svg",
+      "aliases": "sinopac 永丰银行 金融 银行"
+    },
+    {
+      "name": "永丰银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sinopac.svg",
+      "aliases": "sinopac 永丰银行 金融 银行"
+    },
+    {
+      "name": "遂宁银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/snccb-rect.svg",
+      "aliases": "snccb 遂宁银行 金融 银行"
+    },
+    {
+      "name": "遂宁银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/snccb.svg",
+      "aliases": "snccb 遂宁银行 金融 银行"
+    },
+    {
+      "name": "法兴银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/societegenerale-rect.svg",
+      "aliases": "societegenerale 法兴银行 金融 银行"
+    },
+    {
+      "name": "浦发银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/spdb-rect.svg",
+      "brand": "Shanghai Pudong Development Bank",
+      "aliases": "spdb 浦发银行 金融 银行 金融 Shanghai Pudong Development Bank spdb 浦发银行 浦發銀行 浦发 浦發 大陆 内地 金融 Shanghai Pudong Development Bank spdb 浦发银行 浦發銀行 浦发 浦發 大陆 内地"
+    },
+    {
+      "name": "浦发银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/spdb.svg",
+      "brand": "Shanghai Pudong Development Bank",
+      "aliases": "spdb 浦发银行 金融 银行 金融 Shanghai Pudong Development Bank spdb 浦发银行 浦發銀行 浦发 浦發 大陆 内地 金融 Shanghai Pudong Development Bank spdb 浦发银行 浦發銀行 浦发 浦發 大陆 内地"
+    },
+    {
+      "name": "上饶银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/srbank-rect.svg",
+      "aliases": "srbank 上饶银行 金融 银行"
+    },
+    {
+      "name": "上饶银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/srbank.svg",
+      "aliases": "srbank 上饶银行 金融 银行"
+    },
+    {
+      "name": "上海农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/srcb-rect.svg",
+      "aliases": "srcb 上海农商 金融 银行"
+    },
+    {
+      "name": "上海农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/srcb.svg",
+      "aliases": "srcb 上海农商 金融 银行"
+    },
+    {
+      "name": "苏州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/suzhoubank-rect.svg",
+      "aliases": "suzhoubank 苏州银行 金融 银行"
+    },
+    {
+      "name": "苏州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/suzhoubank.svg",
+      "aliases": "suzhoubank 苏州银行 金融 银行"
+    },
+    {
+      "name": "绍兴银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sxccb-rect.svg",
+      "aliases": "sxccb 绍兴银行 金融 银行"
+    },
+    {
+      "name": "绍兴银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/sxccb.svg",
+      "aliases": "sxccb 绍兴银行 金融 银行"
+    },
+    {
+      "name": "江苏射阳农商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/syrcb-rect.svg",
+      "aliases": "syrcb 江苏射阳农商银行 金融 银行"
+    },
+    {
+      "name": "江苏射阳农商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/syrcb.svg",
+      "aliases": "syrcb 江苏射阳农商银行 金融 银行"
+    },
+    {
+      "name": "石嘴山银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/szsccb-rect.svg",
+      "aliases": "szsccb 石嘴山银行 金融 银行"
+    },
+    {
+      "name": "石嘴山银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/szsccb.svg",
+      "aliases": "szsccb 石嘴山银行 金融 银行"
+    },
+    {
+      "name": "泰安银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/taccb-rect.svg",
+      "aliases": "taccb 泰安银行 金融 银行"
+    },
+    {
+      "name": "泰安银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/taccb.svg",
+      "aliases": "taccb 泰安银行 金融 银行"
+    },
+    {
+      "name": "合作金库银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/tcb-bank-rect.svg",
+      "aliases": "tcb-bank 合作金库银行 金融 银行"
+    },
+    {
+      "name": "合作金库银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/tcb-bank.svg",
+      "aliases": "tcb-bank 合作金库银行 金融 银行"
+    },
+    {
+      "name": "四川天府银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/tf-rect.svg",
+      "aliases": "tf 四川天府银行 金融 银行"
+    },
+    {
+      "name": "四川天府银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/tf.svg",
+      "aliases": "tf 四川天府银行 金融 银行"
+    },
+    {
+      "name": "天津滨海农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/tjbhb-rect.svg",
+      "aliases": "tjbhb 天津滨海农商 金融 银行"
+    },
+    {
+      "name": "天津滨海农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/tjbhb.svg",
+      "aliases": "tjbhb 天津滨海农商 金融 银行"
+    },
+    {
+      "name": "天津农村商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/trcbank-rect.svg",
+      "aliases": "trcbank 天津农村商业银行 金融 银行"
+    },
+    {
+      "name": "天津农村商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/trcbank.svg",
+      "aliases": "trcbank 天津农村商业银行 金融 银行"
+    },
+    {
+      "name": "唐山银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ts-bank-rect.svg",
+      "aliases": "ts-bank 唐山银行 金融 银行"
+    },
+    {
+      "name": "唐山银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ts-bank.svg",
+      "aliases": "ts-bank 唐山银行 金融 银行"
+    },
+    {
+      "name": "瑞士银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ubs-rect.svg",
+      "aliases": "ubs 瑞士银行 金融 银行"
+    },
+    {
+      "name": "瑞士银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/ubs.svg",
+      "aliases": "ubs 瑞士银行 金融 银行"
+    },
+    {
+      "name": "乌鲁木齐商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/uccb-rect.svg",
+      "aliases": "uccb 乌鲁木齐商业银行 金融 银行"
+    },
+    {
+      "name": "乌鲁木齐商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/uccb.svg",
+      "aliases": "uccb 乌鲁木齐商业银行 金融 银行"
+    },
+    {
+      "name": "大华银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/uobchina-rect.svg",
+      "aliases": "uobchina 大华银行 金融 银行"
+    },
+    {
+      "name": "大华银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/uobchina.svg",
+      "aliases": "uobchina 大华银行 金融 银行"
+    },
+    {
+      "name": "杭州联合银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/urcb-rect.svg",
+      "aliases": "urcb 杭州联合银行 金融 银行"
+    },
+    {
+      "name": "杭州联合银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/urcb.svg",
+      "aliases": "urcb 杭州联合银行 金融 银行"
+    },
+    {
+      "name": "武汉农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/whrcbank-rect.svg",
+      "aliases": "whrcbank 武汉农商 金融 银行"
+    },
+    {
+      "name": "武汉农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/whrcbank.svg",
+      "aliases": "whrcbank 武汉农商 金融 银行"
+    },
+    {
+      "name": "无锡农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/wrcb-rect.svg",
+      "aliases": "wrcb 无锡农商 金融 银行"
+    },
+    {
+      "name": "无锡农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/wrcb.svg",
+      "aliases": "wrcb 无锡农商 金融 银行"
+    },
+    {
+      "name": "乌海银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/wuhaicb-rect.svg",
+      "aliases": "wuhaicb 乌海银行 金融 银行"
+    },
+    {
+      "name": "乌海银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/wuhaicb.svg",
+      "aliases": "wuhaicb 乌海银行 金融 银行"
+    },
+    {
+      "name": "温州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/wzcb-rect.svg",
+      "aliases": "wzcb 温州银行 金融 银行"
+    },
+    {
+      "name": "温州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/wzcb.svg",
+      "aliases": "wzcb 温州银行 金融 银行"
+    },
+    {
+      "name": "西安银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/xacbank-rect.svg",
+      "aliases": "xacbank 西安银行 金融 银行"
+    },
+    {
+      "name": "西安银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/xacbank.svg",
+      "aliases": "xacbank 西安银行 金融 银行"
+    },
+    {
+      "name": "厦门国际银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/xib-rect.svg",
+      "aliases": "xib 厦门国际银行 金融 银行"
+    },
+    {
+      "name": "厦门国际银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/xib.svg",
+      "aliases": "xib 厦门国际银行 金融 银行"
+    },
+    {
+      "name": "库尔勒市商业银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/xjkccb-rect.svg",
+      "aliases": "xjkccb 库尔勒市商业银行 金融 银行"
+    },
+    {
+      "name": "库尔勒市商业银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/xjkccb.svg",
+      "aliases": "xjkccb 库尔勒市商业银行 金融 银行"
+    },
+    {
+      "name": "厦门银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/xmbankonline-rect.svg",
+      "aliases": "xmbankonline 厦门银行 金融 银行"
+    },
+    {
+      "name": "厦门银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/xmbankonline.svg",
+      "aliases": "xmbankonline 厦门银行 金融 银行"
+    },
+    {
+      "name": "新沂农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/xynsh-rect.svg",
+      "aliases": "xynsh 新沂农商 金融 银行"
+    },
+    {
+      "name": "新沂农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/xynsh.svg",
+      "aliases": "xynsh 新沂农商 金融 银行"
+    },
+    {
+      "name": "山口银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/yamaguchibank-rect.svg",
+      "aliases": "yamaguchibank 山口银行 金融 银行"
+    },
+    {
+      "name": "山口银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/yamaguchibank.svg",
+      "aliases": "yamaguchibank 山口银行 金融 银行"
+    },
+    {
+      "name": "烟台银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/yantaibank-rect.svg",
+      "aliases": "yantaibank 烟台银行 金融 银行"
+    },
+    {
+      "name": "烟台银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/yantaibank.svg",
+      "aliases": "yantaibank 烟台银行 金融 银行"
+    },
+    {
+      "name": "武汉众邦银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/z-bank-rect.svg",
+      "aliases": "z-bank 武汉众邦银行 金融 银行"
+    },
+    {
+      "name": "枣庄银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zaozhuangbank-rect.svg",
+      "aliases": "zaozhuangbank 枣庄银行 金融 银行"
+    },
+    {
+      "name": "枣庄银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zaozhuangbank.svg",
+      "aliases": "zaozhuangbank 枣庄银行 金融 银行"
+    },
+    {
+      "name": "自贡银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zgbank-rect.svg",
+      "aliases": "zgbank 自贡银行 金融 银行"
+    },
+    {
+      "name": "自贡银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zgbank.svg",
+      "aliases": "zgbank 自贡银行 金融 银行"
+    },
+    {
+      "name": "珠海农商银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zhnsb-rect.svg",
+      "aliases": "zhnsb 珠海农商银行 金融 银行"
+    },
+    {
+      "name": "珠海农商银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zhnsb.svg",
+      "aliases": "zhnsb 珠海农商银行 金融 银行"
+    },
+    {
+      "name": "浙江农村信用社联合社 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zj96596-rect.svg",
+      "aliases": "zj96596 浙江农村信用社联合社 金融 银行"
+    },
+    {
+      "name": "浙江农村信用社联合社 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zj96596.svg",
+      "aliases": "zj96596 浙江农村信用社联合社 金融 银行"
+    },
+    {
+      "name": "泰隆银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zjtlcb-rect.svg",
+      "aliases": "zjtlcb 泰隆银行 金融 银行"
+    },
+    {
+      "name": "泰隆银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zjtlcb.svg",
+      "aliases": "zjtlcb 泰隆银行 金融 银行"
+    },
+    {
+      "name": "中山农商 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zsebank-rect.svg",
+      "aliases": "zsebank 中山农商 金融 银行"
+    },
+    {
+      "name": "中山农商 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zsebank.svg",
+      "aliases": "zsebank 中山农商 金融 银行"
+    },
+    {
+      "name": "正信银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zxbk-rect.svg",
+      "aliases": "zxbk 正信银行 金融 银行"
+    },
+    {
+      "name": "正信银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zxbk.svg",
+      "aliases": "zxbk 正信银行 金融 银行"
+    },
+    {
+      "name": "中原银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zybank-rect.svg",
+      "aliases": "zybank 中原银行 金融 银行"
+    },
+    {
+      "name": "中原银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zybank.svg",
+      "aliases": "zybank 中原银行 金融 银行"
+    },
+    {
+      "name": "郑州银行 · 方形",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zzbank-rect.svg",
+      "aliases": "zzbank 郑州银行 金融 银行"
+    },
+    {
+      "name": "郑州银行 · 横版",
+      "url": "https://raw.githubusercontent.com/icongo/bank-logos/main/logos/zzbank.svg",
+      "aliases": "zzbank 郑州银行 金融 银行"
+    }
+  ]
+}

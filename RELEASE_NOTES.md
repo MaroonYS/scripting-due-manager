@@ -1,15 +1,16 @@
-# 到期管家 v3.2.0
+# 到期管家 v3.3.0
 
-新增无需 API Key 的 GitHub 图库订阅与自定义 JSON 源。
+Icons8 Windows 11 Color 图库正式接入事项选图，并补充银行与更多 App 品牌来源。
 
-- 预设恩秀 App、恩秀 Emby、selfh.st：在线更新清单，本机搜索名称与已知品牌别名，图片按需加载；不上传搜索词或事项内容，不把新图库整库打包。24 项分页，留空可浏览全部，单个源失败不影响其余来源。
-- 「管理 GitHub 图库订阅」可验证后添加、启停、移除及补回预设，最多 12 个源。支持 name／url 图标清单及 selfh.st／Dashboard Icons 官方索引；GitHub 文件页和 jsDelivr GitHub 链接统一规范为 Raw，仅加载公开 PNG／安全 SVG。
-- 应用／品牌默认推荐 GitHub；房租、证件等通用事项保留 Fluent Emoji Flat。Icons8 作为需自备 API Key 的可选风格补充，不纳入默认 GitHub 搜索；原钥匙串与 API 缓存限制不变。
-- 订阅设置和选中的公开图片链接随快照及 JSON 备份保留。移除订阅不清掉事项图标；已有图案、130 个 SF Symbols、事项、周期、通知及安装／更新链接保持兼容。新 GitHub 图标标识需 3.2 或更新版本恢复，不建议降级后保存数据。
-- 图案继续适配尺寸、原始比例、留白与深浅色背景。PNG 先检查体积、签名与像素尺寸，再使用轻量显示缩略图；不裁图、不修改上游文件。超时、失效链接和不支持的图片回退系统符号，保留原完成操作保护。
+- 编辑事项 → 图标 →「Icons8 · Windows 11 彩色图库」连接免费账号，搜索并选图，再返回事项页保存；Apple 提醒事项也可单独设置。Earth Smiley 所属的 `fluency` 风格始终固定，不混入其他风格。图库首页仅预览，不自动修改事项。
+- 使用 Icons8 官方 MCP、本机回调及 PKCE；授权后点网页左上角 × 返回，不是底部返回箭头。需要支持 HttpServer 的 Scripting Pro。凭据仅在本机钥匙串，不同步、不进入备份，支持检查连接、续期和清除；旧 REST API Key 独立保留。
+- 已选 96 px PNG 可由主界面和小中大桌面组件按需显示，不在组件内发起登录。图案保留 Icons8 署名，网络失败回退系统符号；旧内置图案、SF Symbols、事项、周期、通知与固定更新地址不变。
+- GitHub 新增 Bank Logos（417 张通过格式检查的银行／机构方形与横版，含历史标志）、Simple Icons（单色品牌）和 Dashboard Icons，连同 App、Emby、selfh.st 共六个预设。升级用户可在订阅管理页「补回缺少的预设图库」，原自定义订阅与开关不会被覆盖。
+- 英国、美国、大陆、香港及 U 卡使用本机品牌词表搜索，不是业务地域或产品推荐。已核对 HSBC、渣打、招商、恒生、Monzo、Revolut、Chase 等。U 卡仍有明显缺项，当前仅确认 Bybit；RedotPay、Wirex、Nexo 等没有用无关品牌或币种图案填补。
+- 选图仍须保存事项，取消不生效。含 `icons8-mcp:` 选择的备份需 3.3+ 恢复；密码、授权码和令牌不会进入安装包、仓库或 JSON 备份。
 
-预设仅引用原作者公开资源，不 Fork 或整库再分发。恩秀 IconLibrary 由 sooyaaabo 整理；Icons by selfh.st/icons（CC BY 4.0）。其他图案和商标仍遵循各自权利与服务条款，详见 NOTICE。
+393 项测试在香港、UTC、纽约三时区通过，严格类型检查通过；417 个上游银行 SVG 全部通过真实下载与安全解析。用户此前的 TestFlight 3.3.0 + Pro 诊断已验证实验脚本的基础登录、搜索和 PNG 显示；本版正式集成、令牌续期及 iPhone／WidgetKit 原生效果仍需真机验收。
 
-369 项测试在香港、UTC、纽约三个时区通过，严格类型检查通过；三个真实清单、七组品牌搜索及十张 PNG 响应体／图片头抽样通过。iPhone Scripting／WidgetKit 原生显示、缩略图、刷新与点击尚待真机验收；Icons8 真实认证仍需用户自行配置 Key 后验证。
+新图库只引用公开清单和原图，不将整库图片打包。Icons8、IconGo、Simple Icons、homarr-labs、sooyaaabo、selfh.st 及各品牌保留相应权利；署名及适用许可随包保留，见 NOTICE。
 
-[使用说明](https://github.com/MaroonYS/scripting-due-manager/blob/v3.2.0/docs/GITHUB-ICON-SOURCES.md) · [QA 与验收边界](https://github.com/MaroonYS/scripting-due-manager/blob/v3.2.0/docs/QA-v3.2.0.md)
+[操作与覆盖说明](https://github.com/MaroonYS/scripting-due-manager/blob/v3.3.0/docs/GITHUB-ICON-SOURCES.md) · [QA 与真机验收边界](https://github.com/MaroonYS/scripting-due-manager/blob/v3.3.0/docs/QA-v3.3.0.md)

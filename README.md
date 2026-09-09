@@ -1,6 +1,6 @@
 # 到期管家 for Scripting
 
-紧凑原生风格的 iPhone 到期事项组件，支持信用卡账单、订阅、周期事项与 Apple 提醒事项。**3.2.0** 新增 App、Emby、selfh.st 三个 GitHub 图库订阅及自定义 JSON 源，无需 API Key；在线更新清单、本机搜索、图片按需加载。应用／品牌优先 GitHub，通用事项保留 Fluent，Icons8 作为需密钥的可选补充。每条事项独立选图并自适配尺寸、比例、留白和深浅色背景，主界面及小、中、大组件同步显示。旧图案、130 个 SF Symbols、事项、周期、通知与备份继续兼容。
+紧凑原生风格的 iPhone 到期事项组件，支持信用卡账单、订阅、周期事项与 Apple 提醒事项。**3.3.0** 将 Earth Smiley 所属的 Icons8 Windows 11 Color 图库接入事项选图，使用免费账号登录；另补入银行、Simple Icons 单色品牌和 Dashboard Icons，GitHub 预设增至六个。每条事项独立选图，保存后用于主界面与小、中、大组件；尺寸、原始比例、留白与深浅色背景自适配。旧图案、130 个 SF Symbols、事项、周期、通知与备份继续兼容。
 
 周期可输入 1–99 的正整数，提前处理可设 0–365 天；两者在同一「重复」卡片，左侧始终有名称与单位。提前处理统一从提前日零点开始，未提前的定时事项按真实到期时刻处理，全天事项从到期日零点进入待处理且次日才逾期。月末及闰日锚点保持不变。只设置提前天数不会产生通知；要接收横幅，请另外开启「通知与提醒」。
 
@@ -14,7 +14,18 @@ Copyright (c) 2026 MaroonYS. All rights reserved. 本项目公开可读，但**�
 
 核验方法、取证步骤及保护边界见 [保护说明](./docs/PROTECTION.md)。
 
-## v3.2.0 · GitHub 图库订阅与自定义源
+## v3.3.0 · Icons8 免费账号与金融品牌图库
+
+- 编辑事项 →「图标」→「Icons8 · Windows 11 彩色图库」→连接免费账号→搜索、选图→返回事项页保存。Apple 提醒事项的本地图标页也有同一入口。图库首页仍只预览；从具体事项进入才能应用，不会把整套图标自动替换。
+- 官方 MCP 登录固定使用 [Windows 11 Color](https://icons8.com/icons/fluency)（`fluency`），与 [Earth Smiley](https://icons8.com/icon/9GC5rqCM5uDh/earth-smiley) 同风格；分页每次 24 项，提供参考图案、银行、信用卡、账单等快捷搜索。没有该风格的应用时可换 GitHub 来源，不混入其他风格冒充结果。
+- 首次在本脚本连接账号。授权后点网页**左上角 ×**返回，不是底部返回箭头；回到账号页继续验证。登录采用本机回调、PKCE 和状态校验，需要支持 HttpServer 的 Scripting Pro；测试脚本的基础流程已在用户的 TestFlight 3.3.0 + Pro 通过，新正式集成仍待真机验收。密码只在 Icons8 官方页面输入。
+- 登录保存在本机、不同步的钥匙串，支持续期和清除，不进入 JSON 备份或安装包。已选图案保存 `icons8-mcp:` ID，并从公开 96 px PNG 地址按需显示，不在小组件内登录；免费使用保留 Icons8 署名。旧 REST API Key 入口独立保留，不会拿 MCP 登录代替 REST Key。
+- 新增 [Bank Logos](https://github.com/icongo/bank-logos) 银行索引（417 张可用方形／横版，含历史机构标志）、[Simple Icons](https://github.com/simple-icons/simple-icons)（单色品牌）及 [Dashboard Icons](https://github.com/homarr-labs/dashboard-icons)（应用）。结合原 App、Emby、selfh.st；升级后如已有订阅设置，请在管理页点「补回缺少的预设图库」，不会擅自改动自定义订阅或已有开关。
+- 金融快捷词支持英国、美国、大陆、香港，以及按具体品牌匹配的 U 卡；本机维护公开品牌中英文词表，不表示地区业务资格、所有银行或全部 U 卡已收录。确认为没有的品牌保持空结果，不以币种图案代替。实际覆盖和使用方式见 [图库说明](./docs/GITHUB-ICON-SOURCES.md)。
+- 图片不整库下载，不裁切或改原色。选图仍须保存事项，取消不生效；已选 MCP 图案离线／失败时回退系统符号，原有事项和完成操作保护不变。含新 MCP 选择的备份需 3.3 或更新版本恢复。
+- 测试、真实网络检查、用户已有诊断与新正式版本真机待验收范围分别记录在 [3.3 QA](./docs/QA-v3.3.0.md)。
+
+## v3.2.0 · GitHub 图库订阅与自定义源（历史）
 
 - 「图标与外观 → 图标图库与逐项设置 → 在线图库」默认选择 GitHub。预设 [恩秀 App](https://raw.githubusercontent.com/sooyaaabo/IconLibrary/main/App-Icon.json)、[恩秀 Emby](https://raw.githubusercontent.com/sooyaaabo/IconLibrary/main/Emby-Icon.json)、[selfh.st](https://raw.githubusercontent.com/selfhst/icons/main/index.json)；搜索时合并已启用来源，每页 24 项，按图片地址去重，不合并同名的不同图案。留空可浏览全部。
 - 在线读取公开清单，在本机按名称／已知品牌别名搜索，再按需加载图片；不会把搜索词或事项名称发送给 GitHub。这不是 GitHub 全站搜索接口，也不会把新图库的全部图片打包进去。会话中清单缓存 15 分钟，可点「立即更新清单并搜索」；单个源失败仍保留其余源的结果并显示提示。

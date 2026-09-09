@@ -101,9 +101,16 @@ declare function clearTimeout(timer: unknown): void
 
 declare function fetch(url: string, init?: {
   headers?: Record<string, string>
+  method?: string
+  body?: string
   timeout?: number
+  allowInsecureRequest?: boolean
+  signal?: { readonly aborted: boolean }
   handleRedirect?: () => Promise<null>
-}): Promise<{ ok: boolean; status: number; json(): Promise<any>; text(): Promise<string>; data(): Promise<unknown>; expectedContentLength?: number }>
+}): Promise<{ ok: boolean; status: number; json(): Promise<any>; text(): Promise<string>; data(): Promise<unknown>; expectedContentLength?: number;
+  headers: { get(name: string): string | null };
+  dataStream?: { getReader(): { read(): Promise<{ done: boolean; value?: Data }>; cancel(): Promise<void>; releaseLock(): void } }
+}>
 
 declare const Keychain: {
   get(key: string, options?: { synchronizable: boolean; accessibility: "first_unlock_this_device" }): string | null
@@ -111,8 +118,31 @@ declare const Keychain: {
   remove(key: string, options?: { synchronizable: boolean; accessibility: "first_unlock_this_device" }): boolean
 }
 
-declare const Safari: { openURL(url: string): Promise<boolean> }
-declare const Data: { fromString(value: string): unknown | null }
+declare const Safari: { openURL(url: string): Promise<boolean>; present(url: string, fullscreen?: boolean): Promise<void> }
+declare class Data {
+  readonly size: number
+  toBase64String(): string
+  toRawString(): string | null
+  toUint8Array(): Uint8Array | null
+  static fromString(value: string): unknown | null
+  static fromRawString(text: string): Data | null
+  static combine(chunks: Data[]): Data | null
+}
+declare class AbortController { readonly signal: { readonly aborted: boolean }; abort(): void }
+declare const Crypto: { generateSymmetricKey(bits: number): Data; sha256(data: Data): Data }
+declare class HttpServer {
+  readonly port: number | null
+  listenAddressIPv4: string | null
+  start(options: { port: number; forceIPv4: boolean }): string | null
+  stop(): void
+  registerAsyncHandler(path: string, handler: (request: { method: string; path: string; headers: Record<string, string>; queryParams: Array<{ key: string; value: string }> }) => Promise<HttpResponse>): void
+}
+declare class HttpResponse {
+  static ok(body: HttpResponseBody): HttpResponse
+  static badRequest(body: HttpResponseBody): HttpResponse
+  static raw(statusCode: number, phrase: string, options: { headers: Record<string, string>; body: Data }): HttpResponse
+}
+declare class HttpResponseBody { static text(value: string): HttpResponseBody }
 declare const DocumentPicker: {
   exportFiles(options: { files: Array<{ data: unknown; name: string }> }): Promise<string[]>
   pickFiles(options?: { types?: string[]; allowsMultipleSelection?: boolean }): Promise<string[]>

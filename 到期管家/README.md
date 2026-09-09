@@ -10,7 +10,16 @@ Copyright (c) 2026 MaroonYS. All rights reserved. 本项目公开可读，但**�
 
 核验方法与保护边界见官方仓库的 [保护说明](../docs/PROTECTION.md)。
 
-## 当前版本 3.2.0 · GitHub 图库订阅与自定义源
+## 当前版本 3.3.0 · Icons8 免费账号与金融品牌图库
+
+- 编辑事项 → 图标 →「Icons8 · Windows 11 彩色图库」连接免费账号，即可搜索 Earth Smiley 所属的 Windows 11 Color 图案。Apple 提醒事项的本地图标页也能选用；选图后须返回事项页保存，浏览首页不会自动替换图标。
+- 使用官方 MCP、PKCE 和本机回调；授权后点网页左上角 × 返回，不是底部返回箭头。需要支持 HttpServer 的 Scripting Pro，基础实验流程已有用户 TestFlight 3.3.0 + Pro 诊断通过；新正式集成仍需真机验收。测试脚本的临时登录不会自动迁移。
+- 登录仅存本机钥匙串，不同步、不进入备份，支持续期和清除。显示已选公开 96 px PNG 不读取凭据，小组件不发起登录。保留 Icons8 署名；旧 REST API Key 入口独立保留。
+- GitHub 预设扩展为 App、Emby、selfh.st、Bank Logos、Simple Icons 和 Dashboard Icons。银行索引提供 417 张已通过格式检查的方形／横版图，Simple Icons 明确为单色品牌；不保证所有 App、银行或 U 卡都有图案。旧用户可到订阅管理页「补回缺少的预设图库」。
+- 英国、美国、大陆、香港和 U 卡为本机快捷搜索词，不是产品推荐或业务地域说明。图标仍按需读取，自适配比例、留白及深浅色背景；网络失败回退系统符号，不影响事项操作。新 MCP 图标备份需 3.3+ 恢复，旧选择不变。
+- [图库操作说明](../docs/GITHUB-ICON-SOURCES.md) · [3.3 QA 与真机验收边界](../docs/QA-v3.3.0.md)。第三方许可随包保留，图案和商标仍归原权利人。
+
+### 3.2.0 · GitHub 图库订阅与自定义源（历史）
 
 - 在线图库默认提供 GitHub 订阅搜索，预设恩秀 App、恩秀 Emby 与 selfh.st。无需 API Key：在线更新清单，本机匹配名称与已知品牌别名，再按需联网加载图片。每页 24 项，留空可浏览全部；不是 GitHub 全站搜索，不会把全部新图片打包到脚本。
 - 「管理 GitHub 图库订阅」可先验证再添加公开 JSON，或启停、移除、补回预设，最多 12 个源。支持 name／url 图标数组及 selfh.st／Dashboard Icons 官方索引；文件页及 jsDelivr GitHub 链接规范为 Raw 地址，不接受凭证、查询参数、片段、私人服务器或脚本。

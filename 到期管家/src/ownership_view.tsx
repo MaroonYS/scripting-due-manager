@@ -23,12 +23,16 @@ export function OwnershipView() {
       {noticeURL ? <Link url={noticeURL}><Text>查看此版本来源与第三方声明</Text></Link> : null}
     </Section>
     <Section header={<Text>第三方在线图库</Text>}>
-      <Text>GitHub 预设引用 sooyaaabo/IconLibrary 的 App、Emby 清单及 selfh.st/icons 的公开索引；仅按需显示原图，不将整库素材打包分发。</Text>
+      <Text>GitHub 预设包含 App、Emby、selfh.st、Bank Logos、Simple Icons 和 Dashboard Icons；仅引用公开清单及原图，不将新图库整库图片打包分发。</Text>
       <Link url="https://github.com/sooyaaabo/IconLibrary"><Text>恩秀 IconLibrary · sooyaaabo · 作者说明</Text></Link>
       <Link url="https://github.com/selfhst/icons"><Text>Icons by selfh.st/icons · CC BY 4.0</Text></Link>
       <Link url="https://creativecommons.org/licenses/by/4.0/"><Text>selfh.st 图库许可 · 不改变第三方权利</Text></Link>
+      <Link url="https://github.com/icongo/bank-logos"><Text>Bank Logos · IconGo · MIT</Text></Link>
+      <Link url="https://github.com/simple-icons/simple-icons"><Text>Simple Icons · CC0 · 单色品牌</Text></Link>
+      <Link url="https://github.com/homarr-labs/dashboard-icons"><Text>Dashboard Icons · homarr-labs · Apache 2.0</Text></Link>
       <Text>Fluent Emoji Flat 由 Microsoft 提供，经 Iconify 在线加载，适用 MIT 许可；完整第三方许可随包附带。本项目的限制性许可不改变这些图案的 MIT 权利。</Text>
-      <Text>Icons8 提供在线应用与生活图标，需要配置自己的 API Key；原有 Windows 11 Color 内置图案继续兼容已选事项。</Text>
+      <Text>Icons8 官方 MCP 可用免费账号连接 Windows 11 Color 图库并显示带署名的 PNG；登录凭据仅存本机钥匙串。原有 REST API 入口仍需独立 API Key，旧内置图案继续兼容。</Text>
+      <Link url="https://icons8.com/icons/fluency"><Text>Icons8 · Windows 11 Color 图库与署名</Text></Link>
       <Text font="footnote" foregroundStyle="secondaryLabel">Icons8 图案遵循其适用授权及 API 条款，本项目不授予独立素材提取、再许可或素材库再分发权。图案与商标归各权利人，不代表品牌背书。内置文件的来源与逐图哈希随包附带。</Text>
     </Section>
     <Section header={<Text>核对官方发行</Text>}

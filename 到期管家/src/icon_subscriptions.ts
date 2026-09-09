@@ -10,6 +10,9 @@ export const DEFAULT_ICON_SUBSCRIPTIONS: readonly IconSubscription[] = [
   { name: "恩秀 App", url: "https://raw.githubusercontent.com/sooyaaabo/IconLibrary/main/App-Icon.json", enabled: true },
   { name: "恩秀 Emby", url: "https://raw.githubusercontent.com/sooyaaabo/IconLibrary/main/Emby-Icon.json", enabled: true },
   { name: "selfh.st", url: "https://raw.githubusercontent.com/selfhst/icons/main/index.json", enabled: true },
+  { name: "Bank Logos · 银行", url: "https://raw.githubusercontent.com/MaroonYS/scripting-due-manager/main/catalogs/bank-logos.json", enabled: true },
+  { name: "Simple Icons · 单色品牌", url: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/data/simple-icons.json", enabled: true },
+  { name: "Dashboard Icons · 应用", url: "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/main/metadata.json", enabled: true },
 ]
 export function normalizeIconSubscriptions(raw: unknown): IconSubscription[] {
   if (!Array.isArray(raw) || raw.length > MAX_ICON_SUBSCRIPTIONS) throw Error("图库订阅格式无效或超过 12 个，原设置已保留。")

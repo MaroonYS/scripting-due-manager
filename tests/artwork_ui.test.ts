@@ -26,7 +26,8 @@ function compile(source: string, names: string[], bindings: Record<string, any>)
   const code = source.replace(/^import .*$/gm, "").replace(/^export /gm, "")
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(code)
   const env = { h, ...primitives, artworkFrame, recommendIconQueries, onlineArtworkLabel, ICONS8_STYLES,
-    DEFAULT_ICON_SUBSCRIPTIONS, iconSubscriptions, MAX_ICON_SUBSCRIPTIONS, normalizeIconSubscriptions, ...bindings }
+    DEFAULT_ICON_SUBSCRIPTIONS, iconSubscriptions, MAX_ICON_SUBSCRIPTIONS, normalizeIconSubscriptions,
+    Icons8MCPAccountView: "Icons8MCPAccountView", hasIcons8MCPSession: () => false, ...bindings }
   return new Function(...Object.keys(env), `${compiled}\nreturn {${names.join(",")}}`)(...Object.values(env))
 }
 function hooks() {
@@ -109,7 +110,7 @@ test("native list rows defer image reads until appearance and discard results af
   state.cleanup()
 })
 
-function browserHarness(select = false, itemTitle = "") {
+function browserHarness(select = false, itemTitle = "", startProvider?: "icons8mcp") {
   const state = hooks(), events: any[] = [], requests: { ids: string[]; finish: (value: any) => void }[] = []
   const searches: { provider: string; query: string; page: number; style: string; finish: (value: any) => void; fail: (error: Error) => void }[] = []
   let key: string | null = null
@@ -118,10 +119,11 @@ function browserHarness(select = false, itemTitle = "") {
     loadArtworkPage: (ids: string[]) => new Promise(resolve => requests.push({ ids, finish: resolve })),
     searchOnlineArtwork: (provider: string, query: string, page: number, style: string) => new Promise((finish, fail) => searches.push({ provider, query, page, style, finish, fail })),
     searchGithubArtwork: (query: string, page: number) => new Promise((finish, fail) => searches.push({ provider: "github", query, page, style: "全部风格", finish, fail })),
+    searchIcons8MCP: (query: string, page: number) => new Promise((finish, fail) => searches.push({ provider: "icons8mcp", query, page, style: "fluency", finish, fail })),
     readIcons8Key: () => key, iconKeychainAvailable: () => true,
     saveIcons8Key: (value: string) => { events.push("saveKey"); key = value }, removeIcons8Key: () => { events.push("removeKey"); key = null },
   })
-  const render = () => { state.reset(); return ArtworkBrowser({ itemTitle, itemKind: "subscription", ...(select ? { onSelected: (id: string) => events.push(id) } : {}) }) }
+  const render = () => { state.reset(); return ArtworkBrowser({ itemTitle, itemKind: "subscription", startProvider, ...(select ? { onSelected: (id: string) => events.push(id) } : {}) }) }
   return { state, events, requests, searches, render,
     show: () => { render().props.onAppear(); return render() },
     submit: (query: string) => {
@@ -133,6 +135,23 @@ function browserHarness(select = false, itemTitle = "") {
 }
 
 const onlineIDs = (offset = 0) => Array.from({ length: 24 }, (_, i) => githubArtworkID(`https://raw.githubusercontent.com/example/icons/main/icon-${i + offset}.png`)!)
+test("dedicated MCP entry searches Earth Smiley on appearance and a loaded selection returns a persistable ID", async () => {
+  const env = browserHarness(true, "", "icons8mcp"), id = "icons8-mcp:9GC5rqCM5uDh"
+  assert.equal(env.searches.length, 0)
+  env.show()
+  assert.equal(env.searches[0].provider, "icons8mcp")
+  assert.equal(env.searches[0].query, "earth smiley")
+  assert.equal(env.searches[0].style, "fluency")
+  assert.ok(nodes(env.render()).some(n => n.type === "NavigationLink" && n.props.destination?.type === "Icons8MCPAccountView"))
+  env.searches[0].finish({ icons: [{ id, label: "Earth Smiley", detail: "Windows 11 Color" }], page: 0, hasMore: false })
+  await flush(); env.render()
+  const unloaded = nodes(env.render()).find(n => n.type === "Button" && n.props.key === id)
+  assert.equal(unloaded.props.disabled, true)
+  env.requests[0].finish({ [id]: { image: "png" } }); await flush()
+  nodes(env.render()).find(n => n.type === "Button" && n.props.key === id).props.action()
+  assert.deepEqual(env.events, [id, "dismiss"])
+  env.state.cleanup()
+})
 function finishSearch(env: ReturnType<typeof browserHarness>, index: number, offset = 0) {
   const ids = onlineIDs(offset)
   env.searches[index].finish({ icons: ids.map(id => ({ id, label: id, detail: "Fluent" })), hasMore: true, page: env.searches[index].page })
@@ -307,7 +326,7 @@ test("subscription manager validates before saving, rejects duplicate taps and c
   const busy = nodes(env.render()).find(n => n.type === "Button" && n.props.title === "正在验证清单…")
   assert.equal(busy.props.disabled, true); busy.props.action(); assert.equal(env.checks.length, 1)
   env.checks[0].finish({ icons: [{}], warnings: [] }); await operation
-  assert.equal(env.writes.length, 1); assert.equal(env.writes[0].length, 4)
+  assert.equal(env.writes.length, 1); assert.equal(env.writes[0].length, DEFAULT_ICON_SUBSCRIPTIONS.length + 1)
   assert.ok(nodes(env.render()).filter(n => n.type === "TextField").every(n => n.props.value === ""))
 })
 
@@ -341,9 +360,9 @@ test("subscription manager rejects unsafe or duplicate URLs before networking an
   root = env.render(); nodes(root).find(n => n.type === "Toggle").props.onChanged(false)
   assert.equal(env.writes[0][0].enabled, false)
   root = env.render(); nodes(root).find(n => n.type === "Button" && n.props.title === "移除「恩秀 App」订阅").props.action()
-  assert.equal(env.writes[1].length, 2)
+  assert.equal(env.writes[1].length, DEFAULT_ICON_SUBSCRIPTIONS.length - 1)
   root = env.render(); nodes(root).find(n => n.type === "Button" && n.props.title === "补回缺少的预设图库").props.action()
-  assert.equal(env.writes[2].length, 3)
+  assert.equal(env.writes[2].length, DEFAULT_ICON_SUBSCRIPTIONS.length)
 })
 
 test("adaptive native SVG renders original colors, proportional padding and dynamic background", () => {

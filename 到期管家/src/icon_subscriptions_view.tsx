@@ -53,7 +53,7 @@ export function IconSubscriptionsView({ onSaved }: { onSaved: (sources: IconSubs
         <Link url={source.url}><Text font="caption">查看公开清单</Text></Link>
         <Button title={`移除「${source.name}」订阅`} disabled={busy} action={() => change(sources.filter(row => row.url !== source.url))} />
     </Section>)}
-    <Section header={<Text>自定义 JSON 图库</Text>} footer={<Text>{"支持 icons: [{name, url}] 清单，以及 selfh.st／Dashboard Icons 的官方索引。接受 GitHub 文件页、Raw 或 jsDelivr GitHub 链接；仅加载公开 PNG／安全 SVG，不接受密钥、查询参数、脚本或私人服务器。请勿填写含私人信息的链接。"}</Text>}>
+    <Section header={<Text>自定义 JSON 图库</Text>} footer={<Text>{"支持 icons: [{name, url}] 清单，以及 selfh.st／Dashboard Icons／Simple Icons 的官方索引。接受 GitHub 文件页、Raw 或 jsDelivr GitHub 链接；仅加载公开 PNG／安全 SVG，不接受密钥、查询参数、脚本或私人服务器。请勿填写含私人信息的链接。"}</Text>}>
       <TextField title="图库名称" value={name} prompt="例如：我的应用图标" onChanged={setName} />
       <TextField title="JSON 链接" value={url} prompt="https://raw.githubusercontent.com/…/icons.json" onChanged={setURL} />
       <Button title={busy ? "正在验证清单…" : "验证并添加"} disabled={busy || !name.trim() || !url.trim() || sources.length >= MAX_ICON_SUBSCRIPTIONS} action={add} />
@@ -62,6 +62,9 @@ export function IconSubscriptionsView({ onSaved }: { onSaved: (sources: IconSubs
     <Section header={<Text>来源与使用说明</Text>} footer={<Text>预设仅引用上游公开链接，不搬运整库。各图案的商标与版权归其权利人；自定义图库请遵循原作者许可与署名要求。</Text>}>
       <Link url="https://github.com/sooyaaabo/IconLibrary"><Text>恩秀 IconLibrary · sooyaaabo · 作者使用说明</Text></Link>
       <Link url="https://github.com/selfhst/icons"><Text>Icons by selfh.st/icons · CC BY 4.0</Text></Link>
+      <Link url="https://github.com/icongo/bank-logos"><Text>Bank Logos · IconGo · MIT；方形与横版含历史标志</Text></Link>
+      <Link url="https://github.com/simple-icons/simple-icons"><Text>Simple Icons · CC0；单色品牌标志</Text></Link>
+      <Link url="https://github.com/homarr-labs/dashboard-icons"><Text>Dashboard Icons · homarr-labs · 上游许可</Text></Link>
     </Section>
   </List>
 }

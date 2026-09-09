@@ -1050,6 +1050,9 @@ function IconPicker({
       <NavigationLink destination={<ArtworkBrowser selectedID={artworkID} onSelected={onArtworkChanged} itemTitle={title} itemKind={kind} />}>
         <IconSettingRow title={title} kind={kind} value={value} artworkID={artworkID} />
       </NavigationLink>
+      <NavigationLink destination={<ArtworkBrowser startProvider="icons8mcp" selectedID={artworkID} onSelected={onArtworkChanged} itemTitle={title} itemKind={kind} />}>
+        <Text>Icons8 · Windows 11 彩色图库</Text>
+      </NavigationLink>
     </Section> : null}
     <Section footer={<Text>在本机按名称和类型匹配系统图标，不会上传事项名称。也可为本事项单独选择符号，保存事项后生效。</Text>}>
       <Button buttonStyle="plain" action={() => choose(null)}>

@@ -20,7 +20,8 @@ const pending = new Map<string, Promise<LoadedArtwork | null>>()
 const cacheKey = (id: string, directory: string) => JSON.stringify([directory, id])
 
 export function peekArtwork(id: string | null | undefined, directory: string): LoadedArtwork | null {
-  if (!id || (!artworkByID(id) && parseOnlineArtworkID(id)?.provider !== "fluent" && !parseGithubArtworkID(id))) return null
+  const provider = parseOnlineArtworkID(id)?.provider
+  if (!id || (!artworkByID(id) && provider !== "fluent" && provider !== "icons8mcp" && !parseGithubArtworkID(id))) return null
   const key = cacheKey(id, directory), value = ready.get(key)
   if (!value) return null
   ready.delete(key); ready.set(key, value)
@@ -62,8 +63,8 @@ export function loadArtwork(id: string | null | undefined, directory: string): P
   if (pending.size >= 64) return Promise.resolve(null)
   if (parseOnlineArtworkID(id) || parseGithubArtworkID(id)) {
     const request: Promise<LoadedArtwork | null> = (parseGithubArtworkID(id) ? loadGithubArtwork(id) : loadOnlineArtwork(id)).then(image => {
-      // GitHub and Iconify use a bounded session-only preview cache. Icons8
-      // responses never enter this cache and are loaded for each new display.
+      // GitHub, Iconify and free MCP PNG previews share a bounded session cache.
+      // The separate Icons8 REST API still never enters this successful cache.
       if (image && parseOnlineArtworkID(id)?.provider !== "icons8") {
         ready.set(key, image)
         while (ready.size > ARTWORK_CACHE_LIMIT) ready.delete(ready.keys().next().value!)

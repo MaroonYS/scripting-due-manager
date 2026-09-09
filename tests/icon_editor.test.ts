@@ -88,6 +88,19 @@ test("cancelling a staged SF Symbol change does not save or refresh widgets", ()
   assert.deepEqual(env.events, [["dismiss"]])
 })
 
+test("direct Icons8 MCP picker stages an ID and saves it only with the same manual item", async () => {
+  const env = editorHarness(), id = "icons8-mcp:9GC5rqCM5uDh"
+  const picker = env.render("IconPicker", env.pickerProps(env.render("ItemEditor")))
+  const direct = nodes(picker).find(node => node.type === "NavigationLink" && node.props.destination?.props.startProvider === "icons8mcp")
+  assert.equal(direct.props.destination.props.itemTitle, env.item.title)
+  direct.props.destination.props.onSelected(id)
+  assert.deepEqual(env.events, [])
+  const editor = env.render("ItemEditor")
+  assert.equal(env.pickerProps(editor).artworkID, id)
+  editor.props.toolbar.confirmationAction.props.action(); await flush()
+  assert.deepEqual(env.events.find(event => event[0] === "save")[3], { iconID: id, expectedIconID: null })
+})
+
 test("failed Save does not dismiss or refresh even with legacy brand data", async () => {
   const env = editorHarness({brand:"brand-retired",fail:true})
   const root = env.render("ItemEditor")
