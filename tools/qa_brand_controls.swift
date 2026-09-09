@@ -10,9 +10,9 @@ struct BrandControl: View {
     let file: String
     let name: String
     let size: CGFloat
-    var clipExpansion: CGFloat = 4
+    var circular: Bool = false
     var contentScale: CGFloat { file.hasPrefix("brand-") ? 1.2 : 1 }
-    var clipSize: CGFloat { min(size * contentScale, size + clipExpansion) }
+    var clipSize: CGFloat { circular ? min(size * contentScale, size + 4) : size }
     var body: some View {
         Button {} label: {
             ZStack {
@@ -22,7 +22,8 @@ struct BrandControl: View {
                     Image(nsImage: NSImage(contentsOfFile: "\(directory)/\(file)")!)
                         .resizable().renderingMode(.original).scaledToFit()
                         .frame(width: size * contentScale, height: size * contentScale)
-                }.frame(width: clipSize, height: clipSize).clipShape(Circle())
+                }.frame(width: clipSize, height: clipSize)
+                    .clipShape(circular ? AnyShape(Circle()) : AnyShape(Rectangle()))
             }.frame(width: 40, height: 40).contentShape(Rectangle())
         }.buttonStyle(.plain).frame(width: 40, height: 40).contentShape(Rectangle())
     }
@@ -41,13 +42,13 @@ struct ControlPanel: View {
     ]
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(dark ? "Dark · wider circular masks" : "Light · wider circular masks").font(.headline)
+            Text(dark ? "Dark · complete logo artwork" : "Light · complete logo artwork").font(.headline)
             Text("Original        Before        After").font(.system(size: 10)).foregroundStyle(.secondary)
             ForEach(rows, id: \.0) { row in
                 HStack(spacing: 12) {
                     Image(nsImage: NSImage(contentsOfFile: "\(directory)/\(row.1)")!)
                         .resizable().scaledToFit().frame(width: 24, height: 24)
-                    BrandControl(directory: directory, file: row.1, name: row.0, size: 24, clipExpansion: 0)
+                    BrandControl(directory: directory, file: row.1, name: row.0, size: 24, circular: true)
                     BrandControl(directory: directory, file: row.1, name: row.0, size: 24)
                     Text(row.0).font(.system(size: 15, weight: .semibold))
                     Spacer()
@@ -59,7 +60,7 @@ struct ControlPanel: View {
                 Text("SafePal · 20 pt mark").font(.system(size: 15, weight: .semibold))
                 Spacer()
             }
-            Text("Generated masks: 24 → 28 pt; image and 40 pt target unchanged").font(.system(size: 10)).foregroundStyle(.secondary)
+            Text("Circular crop → intact artwork; equal 24 pt size, 40 pt target").font(.system(size: 10)).foregroundStyle(.secondary)
         }.padding(20).frame(width: 380)
             .foregroundStyle(dark ? Color.white : Color.black)
             .background(dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color(red: 0.95, green: 0.95, blue: 0.97))

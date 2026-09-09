@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.7.3",
+  "version": "2.8.0",
   "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
   "localizedDescriptions": {
-    "en": "2.7.3 expands circular masks for enlarged brand artwork from 24 to 28 pt, giving logos such as ChatGPT more edge room without further image zoom. The app, picker and small widget share the adjustment. Original SafePal and Telegram sizes, 40 pt tap targets, brand choices and startup behavior are unchanged.",
-    "zh": "2.7.3 将放大品牌图案的圆形裁剪直径从 24 pt 放宽到 28 pt，让 ChatGPT 等图案外缘保留更多余量，图片本身不再放大。主界面、选择页和小号组件同步调整。SafePal、Telegram 原尺寸、40 pt 点击区、品牌选择与启动方式不变。",
-    "zh-Hans": "2.7.3 将放大品牌图案的圆形裁剪直径从 24 pt 放宽到 28 pt，让 ChatGPT 等图案外缘保留更多余量，图片本身不再放大。主界面、选择页和小号组件同步调整。SafePal、Telegram 原尺寸、40 pt 点击区、品牌选择与启动方式不变。",
-    "zh-Hant": "2.7.3 將放大品牌圖案的圓形裁剪直徑從 24 pt 放寬到 28 pt，讓 ChatGPT 等圖案外緣保留更多餘量，圖片本身不再放大。主介面、選擇頁和小號元件同步調整。SafePal、Telegram 原尺寸、40 pt 點擊區、品牌選擇與啟動方式不變。"
+    "en": "2.8.0 lets each item independently use a system icon or brand logo, with matching choices in the app and small widget. No global brand mode or automatic brand selection. Existing explicit choices are retained. Brand artwork keeps its full shape at consistent bounds, without forced circular cropping or background removal. All 332 brands, 40 pt tap targets and lightweight startup are retained; medium, large and lock-screen widgets still use system icons.",
+    "zh": "2.8.0 支持每条事项独立选择系统图标或品牌 Logo，主界面与小号组件使用同一选择，可混合使用，无需全局开关。保留已选品牌，未指定品牌时使用系统图标。图案等比完整显示，不再强制裁圆或抠除原背景。保留 332 个品牌、40 pt 点击区与轻量启动；中大号、锁屏仍使用系统图标。",
+    "zh-Hans": "2.8.0 支持每条事项独立选择系统图标或品牌 Logo，主界面与小号组件使用同一选择，可混合使用，无需全局开关。保留已选品牌，未指定品牌时使用系统图标。图案等比完整显示，不再强制裁圆或抠除原背景。保留 332 个品牌、40 pt 点击区与轻量启动；中大号、锁屏仍使用系统图标。",
+    "zh-Hant": "2.8.0 支援每條事項獨立選擇系統圖示或品牌 Logo，主介面與小號元件使用同一選擇，可混合使用，無需全域開關。保留已選品牌，未指定品牌時使用系統圖示。圖案等比完整顯示，不再強制裁圓或去除原背景。保留 332 個品牌、40 pt 點擊區與輕量啟動；中大號、鎖定畫面仍使用系統圖示。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

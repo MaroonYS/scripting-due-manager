@@ -135,14 +135,13 @@ export function updateItemBrandChoice(item: Pick<DisplayDueItem, "source" | "id"
   return updateSettings({ itemBrandChoices: withItemBrandChoice(current.settings, item, brandID) })
 }
 
-export interface ManualBrandEdit { brandID: string | null; enableBrandMode?: boolean }
+export interface ManualBrandEdit { brandID: string | null }
 
 function settingsAfterManualBrandEdit(settings: AppSettings, itemID: string, edit?: ManualBrandEdit): AppSettings {
   if (!edit) return settings
   return {
     ...settings,
     itemBrandChoices: withItemBrandChoice(settings, { source: "manual", id: itemID }, edit.brandID),
-    ...(edit.enableBrandMode ? { smallWidgetIconStyle: "brand" as const } : {}),
   }
 }
 

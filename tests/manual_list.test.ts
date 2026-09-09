@@ -25,7 +25,7 @@ const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve()
 const cmb = BRAND_CATALOG.find(brand => brand.name === "招商银行／掌上生活")!
 
 function harness(options: {
-  style?: "system" | "brand"; choice?: string; noImages?: boolean; failKey?: string;
+  style?: "system" | "brand"; choice?: string | null; noImages?: boolean; failKey?: string;
   maintenance?: () => Promise<string | null>; failDisplay?: boolean
 } = {}) {
   const previousStorage = (globalThis as any).Storage, previousImage = (globalThis as any).UIImage
@@ -36,7 +36,7 @@ function harness(options: {
     amount: "100", note: "unchanged", createdAt: 1, updatedAt: 2 }
   const state = { ...storage.defaultState(2), items: [item] }
   state.settings.smallWidgetIconStyle = options.style ?? "brand"
-  state.settings.itemBrandChoices = withItemBrandChoice(state.settings, { source: "manual", id: item.id }, options.choice ?? cmb.id)
+  state.settings.itemBrandChoices = withItemBrandChoice(state.settings, { source: "manual", id: item.id }, options.choice === undefined ? cmb.id : options.choice)
   const values = new Map<string, unknown>([[storage.STATE_KEY, structuredClone(state)]])
   const events: any[][] = [], slots: any[] = []
   let cursor = 0
@@ -125,6 +125,37 @@ test("the main list first displays a usable system icon, then the saved CMB bran
     assert.ok(source.includes(`<ManualItemsSection title="${title}" items=`))
   }
   assert.equal((source.match(/<ManualItemsSection[^>]+settings=\{state.settings\}/g) ?? []).length, 3)
+})
+
+test("brand-looking names with no explicit choice keep working SF icons without reading artwork", async () => {
+  for (const style of ["system", "brand"] as const) for (const choice of [null, "system"]) {
+    const env = harness({ style, choice })
+    try {
+      const patch = { title: "ChatGPT Pro - Monthly", iconName: null }
+      let row = env.render(patch)
+      row.props.onAppear(); await flush(); row = env.render(patch)
+      assert.equal(row.children[0].type, "Button")
+      assert.equal(nodes(row).some(node => node.type === "BrandCompletionLabel"), false)
+      assert.deepEqual(env.reads, [])
+      assert.deepEqual(env.events, [])
+    } finally { env.cleanup() }
+  }
+})
+
+test("a displayed brand disappears immediately after this item switches to system without changing another choice", async () => {
+  const env = harness()
+  try {
+    let row = env.render(); row.props.onAppear(); await flush(); row = env.render()
+    assert.ok(nodes(row).some(node => node.type === "BrandCompletionLabel"))
+    storage.updateItemBrandChoice({ source: "reminder", id: env.item.id }, cmb.id)
+    storage.updateItemBrandChoice({ source: "manual", id: env.item.id }, "system")
+    env.events.length = 0; env.reads.length = 0
+    row = env.render(); row.props.onAppear(); await flush(); row = env.render()
+    assert.equal(nodes(row).some(node => node.type === "BrandCompletionLabel"), false)
+    assert.equal(row.children[0].type, "Button")
+    assert.ok(storage.loadState().settings.itemBrandChoices?.some(choice => choice.source === "reminder" && choice.brandID === cmb.id))
+    assert.deepEqual(env.events, []); assert.deepEqual(env.reads, [])
+  } finally { env.cleanup() }
 })
 
 test("main-list completion and editing are sibling controls, and completing preserves the chosen brand", async () => {

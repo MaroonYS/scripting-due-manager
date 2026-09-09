@@ -8,7 +8,7 @@ import { brandAsset, inspectBrandLogo, brandFallbackPath } from "../到期管家
 import { ReadDeadlineError, withReadDeadline } from "../到期管家/src/async_deadline.ts"
 import { BRAND_CATALOG } from "../到期管家/src/brand_catalog.ts"
 import { defaultState } from "../到期管家/src/storage.ts"
-import { resolveItemBrand } from "../到期管家/src/brand_preferences.ts"
+import { resolveItemBrand, withItemBrandChoice } from "../到期管家/src/brand_preferences.ts"
 
 const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve() }
 const cmb = brandAsset(BRAND_CATALOG.find(brand => brand.name === "招商银行／掌上生活")!.id)!
@@ -111,14 +111,26 @@ test("changing a visible row's brand cannot apply an old asynchronous result", a
   assert.equal(env.render("a", telegram).inspection.logo.image.light, "telegram")
 })
 
+test("switching a visible item to system ignores a pending brand image without starting another read", async () => {
+  const env = hooks()
+  env.render("a").onAppear()
+  const system = env.render("a", null)
+  assert.equal(system.inspection.status, "not-bundled")
+  system.onAppear()
+  env.reads[0].pending.resolve(ready("cmb")); await flush()
+  assert.equal(env.render("a", null).inspection.logo, null)
+  assert.equal(env.reads.length, 1)
+})
+
 test("widget entry reads only the small-widget selected logo and still presents on image timeout", async () => {
   const source = readFileSync(new URL("../到期管家/widget.tsx", import.meta.url), "utf8")
   const code = source.slice(source.indexOf("async function main()"), source.indexOf("main().catch"))
   for (const family of ["systemSmall", "systemMedium", "systemLarge", "accessoryCircular"]) {
-    for (const style of ["system", "brand"] as const) {
+    for (const style of ["system", "brand"] as const) for (const choice of [null, "system", cmb.brandID]) {
       const events: any[] = [], state = defaultState(1)
       state.settings.smallWidgetIconStyle = style
       const item = { source: "manual", id: "exact-id", title: "招商银行", kind: "credit-card", canComplete: true, stale: false, iconName: "creditcard" }
+      state.settings.itemBrandChoices = withItemBrandChoice(state.settings, { source: "manual", id: item.id }, choice)
       const bindings = {
         h: (type: any, props: any) => ({ type, props }), DueManagerWidget: "DueManagerWidget",
         Widget: { family, present: (view: any) => events.push(["present", view]) },
@@ -131,7 +143,7 @@ test("widget entry reads only the small-widget selected logo and still presents 
       }
       const js = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(code)
       await new Function(...Object.keys(bindings), js + "\nreturn main()")(...Object.values(bindings))
-      const expected = family === "systemSmall" && style === "brand"
+      const expected = family === "systemSmall" && choice === cmb.brandID
       assert.equal(events.filter(event => event[0] === "image").length, expected ? 1 : 0)
       const rendered = events.find(event => event[0] === "present")[1]
       assert.equal(rendered.props.brandLogo, null)

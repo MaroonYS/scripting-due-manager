@@ -8,7 +8,7 @@ import { createHash } from "node:crypto"
 import test from "node:test"
 import { BRAND_CATALOG } from "../到期管家/src/brand_catalog.ts"
 import { BRAND_ASSETS, brandAsset, brandFallbackPath, loadBrandLogo, inspectBrandLogo, brandLogoStatusText } from "../到期管家/src/brand_assets.ts"
-import { inferItemBrand, itemBrandChoice, normalizeBrandPreferences, resolveItemBrand, withItemBrandChoice } from "../到期管家/src/brand_preferences.ts"
+import { itemBrandChoice, normalizeBrandPreferences, resolveItemBrand, withItemBrandChoice } from "../到期管家/src/brand_preferences.ts"
 import { defaultState, loadState, STATE_KEY, updateItemBrandChoice, updateSettings, listLocalSnapshots, upsertItem, completeManualItem, LOCAL_SNAPSHOTS_KEY } from "../到期管家/src/storage.ts"
 import { createRecurrenceRule } from "../到期管家/src/date.ts"
 import { createBackupJSON, parseBackupJSON } from "../到期管家/src/recovery.ts"
@@ -116,27 +116,44 @@ test("third-party sources retain upstream notices and do not claim artwork owner
   assert.ok(JSON.parse(fallbackText(BRAND_ASSETS[0].light)).notice.includes("Third-party artwork"))
 })
 
-test("automatic matching is conservative, whole-name based and refuses conflicting brands", () => {
-  assert.equal(inferItemBrand("SafePal 月费")?.name, "SafePal / Fiat24")
-  assert.equal(inferItemBrand("SPOTIFY 续费")?.name, "Spotify")
-  assert.equal(inferItemBrand("中国移动话费")?.name, "中国移动")
-  for (const title of ["3", "EE", "NOW", "理想", "坦克", "大众", "keep calm", "notspotify", "Spotifyish", "Fiat24", "Spotify / Netflix", "购买电池"]) {
-    assert.equal(inferItemBrand(title), null, title)
+test("every brand name and alias stays a system icon unless that exact item explicitly selects a brand", () => {
+  for (const style of ["system", "brand"] as const) for (const source of ["manual", "reminder"] as const) {
+    const value = { ...settings(), smallWidgetIconStyle: style }
+    const original = structuredClone(value)
+    for (const brand of BRAND_CATALOG) for (const title of [brand.name, ...brand.aliases]) {
+      assert.equal(resolveItemBrand({ ...item, source, title, iconIsExplicit: false }, value), null, `${source}:${style}:${title}`)
+    }
+    assert.deepEqual(value, original)
   }
 })
 
 test("system default, manual SF choices, stale and read-only guards take priority", () => {
   assert.equal(resolveItemBrand(item, defaultState().settings), null)
   assert.equal(resolveItemBrand({ ...item, iconIsExplicit: true }, settings()), null)
-  assert.equal(resolveItemBrand(item, settings())?.name, "SafePal / Fiat24")
+  assert.equal(resolveItemBrand(item, settings()), null)
   const selected = { ...settings(), itemBrandChoices: withItemBrandChoice(settings(), item, byName("Spotify").id) }
   assert.equal(resolveItemBrand({ ...item, iconIsExplicit: true }, selected)?.name, "Spotify")
   assert.equal(resolveItemBrand({ ...item, stale: true }, selected), null)
   assert.equal(resolveItemBrand({ ...item, canComplete: false }, selected), null)
-  assert.equal(resolveItemBrand(item, { ...selected, smallWidgetIconStyle: "system" }), null)
+  assert.equal(resolveItemBrand(item, { ...selected, smallWidgetIconStyle: "system" })?.name, "Spotify")
   for (const brandID of ["system", "brand-future"]) assert.equal(resolveItemBrand(item, {
     ...settings(), itemBrandChoices: withItemBrandChoice(settings(), item, brandID),
   }), null)
+})
+
+test("mixed per-item choices ignore both legacy modes and cannot leak across IDs, sources or renamed titles", () => {
+  for (const style of ["system", "brand"] as const) {
+    const selected = { ...settings(), smallWidgetIconStyle: style,
+      itemBrandChoices: [{ source: "manual" as const, itemID: item.id, brandID: byName("Spotify").id }] }
+    assert.equal(resolveItemBrand({ ...item, title: "Renamed Netflix" }, selected)?.name, "Spotify")
+    assert.equal(resolveItemBrand({ ...item, id: "other", title: "Spotify" }, selected), null)
+    assert.equal(resolveItemBrand({ ...item, source: "reminder", title: "Spotify" }, selected), null)
+    const mixed = { ...selected, itemBrandChoices: withItemBrandChoice(selected, { ...item, source: "reminder" }, byName("Telegram").id) }
+    const changed = { ...mixed, itemBrandChoices: withItemBrandChoice(mixed, item, "system") }
+    assert.equal(resolveItemBrand(item, changed), null)
+    assert.equal(resolveItemBrand({ ...item, source: "reminder" }, changed)?.name, "Telegram")
+    assert.equal(changed.smallWidgetIconStyle, style)
+  }
 })
 
 test("per-item selections distinguish sources and preserve unknown IDs without prototype keys", () => {
@@ -259,15 +276,15 @@ function brandStorageHarness() {
   return { draft, values, failures, writes, cleanup: () => { (globalThis as any).Storage = previous } }
 }
 
-test("saving an edited item commits its brand preference and mode in the same state write", () => {
+test("saving an edited item commits only its own brand preference without changing the legacy global mode", () => {
   const env = brandStorageHarness()
   try {
     updateItemBrandChoice({ source: "reminder", id: env.draft.id }, byName("Telegram").id)
     env.writes.length = 0
-    const next = upsertItem({ ...env.draft, title: "Edited" }, env.draft.updatedAt, { brandID: byName("Spotify").id, enableBrandMode: true })
+    const next = upsertItem({ ...env.draft, title: "Edited" }, env.draft.updatedAt, { brandID: byName("Spotify").id })
     assert.equal(env.writes.filter(key => key === STATE_KEY).length, 1)
     assert.equal(next.items[0].title, "Edited")
-    assert.equal(next.settings.smallWidgetIconStyle, "brand")
+    assert.equal(next.settings.smallWidgetIconStyle, "system")
     assert.equal(itemBrandChoice(next.settings, { source: "manual", id: env.draft.id }), byName("Spotify").id)
     assert.equal(itemBrandChoice(next.settings, { source: "reminder", id: env.draft.id }), byName("Telegram").id)
     assert.equal(itemBrandChoice(listLocalSnapshots()[0].state.settings, { source: "manual", id: env.draft.id }), null)
@@ -285,15 +302,15 @@ test("save failures and stale editor revisions cannot partially commit a brand s
     try {
       const original = structuredClone(env.values.get(STATE_KEY))
       env.failures.add(failKey)
-      assert.throws(() => upsertItem({ ...env.draft, title: "Edited" }, 2, { brandID: byName("Spotify").id, enableBrandMode: true }))
+      assert.throws(() => upsertItem({ ...env.draft, title: "Edited" }, 2, { brandID: byName("Spotify").id }))
       assert.deepEqual(env.values.get(STATE_KEY), original)
-      assert.throws(() => completeManualItem(env.draft, 2, false, new Date(2026, 8, 30).getTime(), { brandID: byName("Spotify").id, enableBrandMode: true }))
+      assert.throws(() => completeManualItem(env.draft, 2, false, new Date(2026, 8, 30).getTime(), { brandID: byName("Spotify").id }))
       assert.deepEqual(env.values.get(STATE_KEY), original)
       env.failures.clear()
-      assert.throws(() => upsertItem(env.draft, 1, { brandID: byName("Spotify").id, enableBrandMode: true }))
-      assert.throws(() => completeManualItem(env.draft, 1, false, Date.now(), { brandID: byName("Spotify").id, enableBrandMode: true }))
+      assert.throws(() => upsertItem(env.draft, 1, { brandID: byName("Spotify").id }))
+      assert.throws(() => completeManualItem(env.draft, 1, false, Date.now(), { brandID: byName("Spotify").id }))
       assert.deepEqual(env.values.get(STATE_KEY), original)
-      assert.throws(() => upsertItem(env.draft, 2, { brandID: "../bad", enableBrandMode: true }))
+      assert.throws(() => upsertItem(env.draft, 2, { brandID: "../bad" }))
       assert.deepEqual(env.values.get(STATE_KEY), original)
     } finally { env.cleanup() }
   }
@@ -302,17 +319,17 @@ test("save failures and stale editor revisions cannot partially commit a brand s
 test("complete-and-save keeps one occurrence record together with the staged brand choice", () => {
   const env = brandStorageHarness()
   try {
-    const next = completeManualItem({ ...env.draft, note: "edited note" }, 2, false, new Date(2026, 8, 30).getTime(), { brandID: byName("Spotify").id, enableBrandMode: true })
+    const next = completeManualItem({ ...env.draft, note: "edited note" }, 2, false, new Date(2026, 8, 30).getTime(), { brandID: byName("Spotify").id })
     assert.equal(env.writes.filter(key => key === STATE_KEY).length, 1)
     assert.equal(next.items[0].dueDate, "2026-10-30")
     assert.equal(next.items[0].note, "edited note")
     assert.equal(next.completionHistory?.length, 1)
     assert.equal(next.completionHistory?.[0].source, "manual")
     assert.equal(itemBrandChoice(next.settings, { source: "manual", id: env.draft.id }), byName("Spotify").id)
-    assert.equal(next.settings.smallWidgetIconStyle, "brand")
+    assert.equal(next.settings.smallWidgetIconStyle, "system")
     const cleared = upsertItem(loadState().items[0], next.items[0].updatedAt, { brandID: null })
     assert.equal(itemBrandChoice(cleared.settings, { source: "manual", id: env.draft.id }), null)
-    assert.equal(cleared.settings.smallWidgetIconStyle, "brand", "clearing one choice must not change every other item's mode")
+    assert.equal(cleared.settings.smallWidgetIconStyle, "system", "clearing one choice must not change the legacy global mode")
   } finally { env.cleanup() }
 })
 
@@ -370,7 +387,7 @@ function brandUIHarness(refreshFailure = false, saveFailure = false) {
     h: (type: any, props: any, ...children: any[]) => ({ type: typeof type === "function" ? type.name : type, props: props ?? {}, children: children.flat(Infinity).filter(value => value != null) }),
     ...Object.fromEntries(["Button", "Image", "Label", "List", "NavigationLink", "Picker", "Section", "Text", "TextField", "VStack", "BrandLogo"].map(name => [name, name])),
     Script: { directory: "/bundle" }, BRAND_CATALOG, BRAND_ASSETS, brandAsset, inspectBrandLogo, brandLogoStatusText,
-    inferItemBrand, itemBrandChoice,
+    itemBrandChoice,
     useState: (initial: any) => {
       const index = cursor++
       if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial
@@ -400,37 +417,63 @@ const allNodes = (node: any): any[] => [node, ...node.children.filter((child: an
 const uiText = (node: any): string => [node.props.title ?? "", ...[node.props.header, node.props.footer, ...node.children].filter(value => value != null).map((child: any) => typeof child === "object" ? uiText(child) : String(child))].join("")
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve() }
 
-test("actual settings picker saves only the style, defaults to system and requests a refresh", async () => {
+test("actual settings page has no global icon-mode control and browsing never changes any item", () => {
   const env = brandUIHarness()
   const root = env.render("BrandSettingsView", { onChanged: env.changed })
-  const picker = allNodes(root).find(node => node.type === "Picker")
-  assert.equal(picker.props.value, "system")
+  assert.equal(root.props.navigationTitle, "事项图标")
+  assert.equal(allNodes(root).find(node => node.type === "Picker"), undefined)
   assert.ok(uiText(root).includes("左图标完成事项，文字查看详情"))
-  assert.ok(uiText(root).includes("主界面会显示已明确选择的品牌，不受此处系统模式影响"))
-  picker.props.onChanged("brand")
-  picker.props.onChanged("system") // Same tick: saved first choice is protected by the gate.
-  await flush()
-  assert.equal(env.events.filter(event => event[0] === "settings").length, 1)
-  assert.deepEqual(env.events[0], ["settings", { smallWidgetIconStyle: "brand" }])
-  assert.equal(env.state().settings.smallWidgetIconStyle, "brand")
-  assert.equal(env.events.at(-1)[0], "refresh")
-  assert.ok(!env.events.some(event => event[0] === "choice"))
+  assert.ok(uiText(root).includes("系统图标与品牌 Logo 按事项独立任选"))
+  assert.ok(!uiText(root).includes("自动 · SafePal"))
+  assert.deepEqual(env.events, [])
 })
 
 test("actual per-item UI saves the exact source and ID without completing or editing the item", async () => {
   const env = brandUIHarness(true)
+  const first = env.render("BrandChoiceView", { item, onChanged: env.changed })
+  const picker = allNodes(first).find(node => node.type === "Picker")
+  assert.equal(picker.props.pickerStyle, "segmented")
+  picker.props.onChanged("brand")
+  assert.deepEqual(env.events, [], "browsing the other icon library cannot save a selection")
   const root = env.render("BrandChoiceView", { item, onChanged: env.changed })
   assert.equal(root.type, "BrandCatalogView")
   root.props.onSelect(byName("Telegram").id)
+  root.props.onSelect("system") // Same-tick duplicate cannot override the first save.
   await flush()
   assert.deepEqual(env.events[0], ["choice", item.source, item.id, byName("Telegram").id])
   assert.equal(itemBrandChoice(env.state().settings, item), byName("Telegram").id)
+  assert.equal(env.state().settings.smallWidgetIconStyle, undefined, "choosing a brand must not create a global-mode setting")
+  assert.equal(env.events.filter(event => event[0] === "choice").length, 1)
   assert.deepEqual(env.events.at(-1), ["alert", "设置已保存"])
   const failed = brandUIHarness(false, true)
-  failed.render("BrandChoiceView", { item, onChanged: failed.changed }).props.onSelect("system")
+  const failedView = failed.render("BrandChoiceView", { item, onChanged: failed.changed })
+  allNodes(failedView).find(node => node.type === "Button").props.action()
   await flush()
   assert.deepEqual(failed.events.map(event => event[0]), ["choice", "alert"])
   assert.equal(itemBrandChoice(failed.state().settings, item), null)
+})
+
+test("both manual and Reminder choices can switch back to system with a matching selected tab", async () => {
+  for (const source of ["manual", "reminder"] as const) {
+    const env = brandUIHarness()
+    const target = { ...item, source }
+    const props = { item: target, onChanged: env.changed }
+    let view = env.render("BrandChoiceView", props)
+    allNodes(view).find(node => node.type === "Picker").props.onChanged("brand")
+    view = env.render("BrandChoiceView", props)
+    view.props.onSelect(byName("Telegram").id); await flush()
+    view = env.render("BrandChoiceView", props)
+    assert.equal(view.props.choice, byName("Telegram").id)
+    view.props.onSelect("system"); await flush()
+    view = env.render("BrandChoiceView", props)
+    assert.equal(view.type, "List")
+    assert.equal(allNodes(view).find(node => node.type === "Picker").props.value, "system")
+    assert.ok(allNodes(view).find(node => node.type === "Button").props.title.startsWith("✓ "))
+    assert.equal(itemBrandChoice(env.state().settings, target), "system")
+    assert.equal(itemBrandChoice(env.state().settings, { ...target, source: source === "manual" ? "reminder" : "manual" }), null)
+    assert.equal(env.events.filter(event => event[0] === "choice").length, 2)
+    assert.equal(env.events.filter(event => event[0] === "settings").length, 0)
+  }
 })
 
 test("catalog search and pagination expose all 36 operators without reading any image during first render", () => {

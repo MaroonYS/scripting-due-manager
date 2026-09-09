@@ -5,16 +5,15 @@
 import { Image, Label, VStack, ZStack } from "scripting"
 import type { LoadedBrandLogo } from "./brand_assets"
 
-/** Give enlarged packaged artwork 2 pt more room on each edge, without zooming it further. */
+/** Remove only the known packaging margin; never force original artwork into a circle. */
 export function BrandLogo({ logo, widget = false }: { logo: LoadedBrandLogo; widget?: boolean }) {
   const imageSize = logo.size * (logo.contentScale ?? 1)
-  // Never make the mask larger than the image: original, unscaled artwork
-  // keeps its existing circular outline instead of exposing square edges.
-  const clipSize = Math.min(imageSize, logo.size + 4)
+  // Generated PNGs have an intact 120 px content square on a 144 px canvas.
+  // This rectangle removes that added border, not the content's four corners.
   return <VStack
     spacing={0}
-    frame={{ width: clipSize, height: clipSize }}
-    clipShape="circle"
+    frame={{ width: logo.size, height: logo.size }}
+    clipShape="rect"
   >
     <Image
       image={logo.image}

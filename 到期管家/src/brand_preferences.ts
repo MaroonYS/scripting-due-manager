@@ -5,11 +5,12 @@
 import { BRAND_CATALOG, type BrandDefinition } from "./brand_catalog"
 import type { AppSettings, DisplayDueItem } from "./types"
 
+/** Legacy field retained for lossless backup roundtrips; no longer controls rendering. */
 export type SmallWidgetIconStyle = "system" | "brand"
 export interface ItemBrandChoice {
   source: "manual" | "reminder"
   itemID: string
-  /** "system" explicitly keeps the SF Symbol; absence means automatic. */
+  /** "system" or absence uses the item's SF Symbol; a brand ID selects only that item. */
   brandID: string
 }
 export const MAX_BRAND_CHOICES = 2000
@@ -52,31 +53,14 @@ export function withItemBrandChoice(settings: AppSettings, item: Pick<DisplayDue
   return normalizeBrandPreferences({ itemBrandChoices: choices }).itemBrandChoices
 }
 
-function containsAlias(title: string, alias: string): boolean {
-  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  // Latin names need word boundaries; Chinese titles commonly append 续费/还款.
-  return new RegExp(`(^|[^a-z0-9])${escaped}(?=$|[^a-z0-9])`, "i").test(title)
-}
-
-/** Local title only. Never inspect SIM data, contacts, notes or network services. */
-export function inferItemBrand(title: string): BrandDefinition | null {
-  const matches = BRAND_CATALOG.filter(brand => brand.aliases.some(alias => containsAlias(title, alias)))
-  return matches.length === 1 ? matches[0] : null
-}
-
 export function resolveItemBrand(
   item: Pick<DisplayDueItem, "source" | "id" | "title" | "iconIsExplicit" | "stale" | "canComplete">,
   settings: AppSettings,
-  options: { showExplicitChoice?: boolean } = {},
 ): BrandDefinition | null {
   if (item.stale || !item.canComplete) return null
   const choice = itemBrandChoice(settings, item)
-  // The small-widget mode must not hide an explicitly selected icon in its
-  // own app/editor. Automatic app matches still obey the user's chosen mode.
-  if (settings.smallWidgetIconStyle !== "brand"
-    && !(options.showExplicitChoice && choice !== null && choice !== "system")) return null
-  if (choice === "system") return null
-  if (choice !== null) return BRAND_CATALOG.find(brand => brand.id === choice) ?? null
-  if (item.iconIsExplicit) return null
-  return inferItemBrand(item.title)
+  // One explicit choice, shared by the app and small widget. A legacy global
+  // mode or another item's choice can neither select nor hide this item's logo.
+  if (choice === null || choice === "system") return null
+  return BRAND_CATALOG.find(brand => brand.id === choice) ?? null
 }

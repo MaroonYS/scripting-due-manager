@@ -22,7 +22,7 @@ const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions
 const { BrandLogo, BrandCompletionLabel } = new Function("h", ...Object.keys(primitives), `${compiled}\nreturn {BrandLogo,BrandCompletionLabel}`)(h, ...Object.values(primitives))
 const nodes = (node: Node): Node[] => [node, ...node.children.filter(child => typeof child === "object").flatMap(nodes)]
 
-test("all brand masks give enlarged artwork more room without changing image scale or original logo sizes", async () => {
+test("all brand images preserve their complete content square, equal sizing and original colors without circular clipping", async () => {
   const previous = (globalThis as any).UIImage
   const previousFiles = (globalThis as any).FileManager
   ;(globalThis as any).UIImage = { fromData: (data: unknown) => data }
@@ -31,9 +31,9 @@ test("all brand masks give enlarged artwork more room without changing image sca
     for (const asset of BRAND_ASSETS) {
       const logo = (await loadBrandLogo(asset, "/bundle"))!
       const view = BrandLogo({ logo })
-      assert.equal(view.props.clipShape, "circle")
+      assert.equal(view.props.clipShape, "rect")
       const generated = asset.light.includes("/brand-")
-      const clipSize = generated ? 28 : logo.size
+      const clipSize = logo.size
       assert.deepEqual(view.props.frame, { width: clipSize, height: clipSize })
       assert.equal(view.props.background, undefined)
       const image = view.children[0]
@@ -44,28 +44,32 @@ test("all brand masks give enlarged artwork more room without changing image sca
       assert.equal(image.props.widgetAccentedRenderingMode, undefined, "widget-only modifiers must not leak into app views")
       assert.equal(BrandLogo({ logo, widget: true }).children[0].props.widgetAccentedRenderingMode, "fullColor")
       assert.equal(image.props.foregroundStyle, undefined)
-      assert.ok(clipSize <= image.props.frame.width, "a larger-than-image mask could expose flat square edges")
-      assert.ok(clipSize < 40, "the expanded mask must fit inside the existing completion target")
+      assert.ok(clipSize < 40, "the logo must fit inside the existing completion target")
+      if (generated) {
+        const sourceVisibleSize = 144 * clipSize / image.props.frame.width
+        assert.ok(Math.abs(sourceVisibleSize - 120) < 1e-9)
+        assert.ok(Math.abs((144 - sourceVisibleSize) / 2 - 12) < 1e-9, "only the added 12 px border may be removed")
+      }
     }
   } finally { (globalThis as any).UIImage = previous; (globalThis as any).FileManager = previousFiles }
 })
 
-test("ChatGPT's crop expands by 2 pt per edge while its image and 40 pt action target remain unchanged", async () => {
-  const brand = BRAND_CATALOG.find(brand => brand.name === "ChatGPT")!
+test("Ultra Mobile retains its purple square and all four content corners instead of revealing white circular crescents", () => {
+  const brand = BRAND_CATALOG.find(brand => brand.name === "Ultra Mobile")!
   const asset = brandAsset(brand.id)!
   assert.equal(asset.size, 24)
   const logo = { image: { light: {}, dark: {} }, size: asset.size, contentScale: 1.2 }
-  const view = BrandCompletionLabel({ logo, title: "完成事项：ChatGPT Pro", hitSize: 40 })
-  const mask = nodes(view).find(node => node.props.clipShape === "circle")!
+  const view = BrandCompletionLabel({ logo, title: "完成事项：Ultra Mobile PayGo", hitSize: 40 })
+  const mask = nodes(view).find(node => node.props.clipShape === "rect")!
   const image = nodes(mask).find(node => node.type === "Image")!
-  assert.deepEqual(mask.props.frame, { width: 28, height: 28 })
-  assert.equal((mask.props.frame.width - logo.size) / 2, 2)
+  assert.deepEqual(mask.props.frame, { width: 24, height: 24 })
+  assert.equal(nodes(view).some(node => node.props.clipShape === "circle"), false)
   assert.deepEqual(image.props.frame, { width: 24 * 1.2, height: 24 * 1.2 })
   assert.deepEqual(view.props.frame, { width: 40, height: 40 })
   assert.equal(view.props.contentShape, "rect")
 })
 
-test("the visible circular image is inside a rectangular semantic button label", () => {
+test("the visible complete image is inside a rectangular semantic button label", () => {
   const logo = { image: { light: {}, dark: {} }, size: 24, contentScale: 1.2 }
   const view = BrandCompletionLabel({ logo, title: "Complete: 招商银行", hitSize: 40 })
   assert.equal(view.type, "ZStack")
@@ -82,7 +86,7 @@ test("the visible circular image is inside a rectangular semantic button label",
   assert.ok(!nodes(view).some(node => node.props.background || node.props.intent || node.props.action))
 })
 
-test("main app, editor, catalog and widget share the same circular rendering path", () => {
+test("main app, editor, catalog and widget share the same complete-image rendering path", () => {
   const app = read("src/app.tsx"), widget = read("src/widget_view.tsx")
   const row = app.slice(app.indexOf("function ManualItemRow("), app.indexOf("function ManualItemDetails("))
   const editor = app.slice(app.indexOf("function IconSettingRow("), app.indexOf("function IconPicker("))
@@ -95,17 +99,16 @@ test("main app, editor, catalog and widget share the same circular rendering pat
   assert.doesNotMatch(control, /contentShape="rectangle"/)
 })
 
-test("showing a saved CMB choice in the app does not enable widget brand mode or bypass read-only protection", () => {
+test("a saved CMB choice works in the app and small widget without enabling a global mode or bypassing read-only protection", () => {
   const cmb = BRAND_CATALOG.find(brand => brand.name === "招商银行／掌上生活")!
   const item = { source: "manual" as const, id: "cmb", title: "招商银行", iconIsExplicit: true, stale: false, canComplete: true }
   const settings = defaultState().settings
   settings.itemBrandChoices = withItemBrandChoice(settings, item, cmb.id)
   const original = structuredClone(settings)
-  assert.equal(resolveItemBrand(item, settings), null)
-  assert.equal(resolveItemBrand(item, settings, { showExplicitChoice: true })?.id, cmb.id)
+  assert.equal(resolveItemBrand(item, settings)?.id, cmb.id)
   assert.ok(brandAsset(cmb.id))
-  assert.equal(resolveItemBrand({ ...item, stale: true }, settings, { showExplicitChoice: true }), null)
-  assert.equal(resolveItemBrand({ ...item, canComplete: false }, settings, { showExplicitChoice: true }), null)
+  assert.equal(resolveItemBrand({ ...item, stale: true }, settings), null)
+  assert.equal(resolveItemBrand({ ...item, canComplete: false }, settings), null)
   assert.equal(itemBrandChoice(settings, item), cmb.id)
   assert.deepEqual(settings, original)
 })

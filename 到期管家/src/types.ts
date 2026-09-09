@@ -47,7 +47,7 @@ export interface AppSettings {
   /** Empty means every Apple Reminders list. Values are Calendar identifiers. */
   reminderCalendarIDs: string[]
   showAmounts: boolean
-  /** Optional for backups from earlier releases; defaults to system. */
+  /** Legacy backup field, preserved but no longer used to override item choices. */
   smallWidgetIconStyle?: SmallWidgetIconStyle
   itemBrandChoices?: ItemBrandChoice[]
 }

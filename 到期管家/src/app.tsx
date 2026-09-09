@@ -432,7 +432,7 @@ function DueManagerApp() {
 
       <Section header={<Text>显示与组件</Text>}>
         <NavigationLink destination={<BrandSettingsView onChanged={refreshState} />}>
-          <Label title="小组件图标" systemImage="photo.on.rectangle" />
+          <Label title="事项图标" systemImage="photo.on.rectangle" />
         </NavigationLink>
         <NavigationLink destination={<WidgetActionStatusView />}>
           <Label title="上次组件操作" systemImage="exclamationmark.bubble" />
@@ -544,7 +544,7 @@ function ItemEditor({
     ? ""
     : recurrenceIntervalUnitLabel(recurrenceUnit)
   const brandEdit = brandChoiceEdited
-    ? { brandID: brandChoice, enableBrandMode: brandChoice != null && brandChoice !== "system" }
+    ? { brandID: brandChoice }
     : undefined
 
   const validationError = (): { title: string; message: string } | null => {
@@ -914,7 +914,7 @@ function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} 
   const [gate] = useState(() => ({ busy: false }))
   const icon = resolveDueIcon(item.title, item.kind, item.iconName)
   const brand = resolveItemBrand({ source: "manual", id: item.id, title: item.title,
-    iconIsExplicit: item.iconName !== null, stale: false, canComplete: !inactive && item.enabled }, settings, { showExplicitChoice: true })
+    iconIsExplicit: item.iconName !== null, stale: false, canComplete: !inactive && item.enabled }, settings)
   const brandImage = useBrandLogo(brand ? brandAsset(brand.id) : null, Script.directory)
   const logo = brandImage.inspection.logo
   const completionKey = manualOccurrenceKey(item)
@@ -1039,19 +1039,18 @@ function IconPicker({
 
   const choose = (next: string | null) => {
     onChanged(next)
-    onBrandChanged?.(next == null ? null : "system")
+    onBrandChanged?.("system")
     dismiss()
   }
-  const modePicker = <Picker title="图标类别" value={mode} pickerStyle="menu"
+  const modePicker = <Picker title="图标类别" value={mode} pickerStyle="segmented"
     onChanged={(value: unknown) => { if (value === "system" || value === "brand") setMode(value) }}>
     <Text tag="system">系统图标</Text>
     <Text tag="brand">品牌 Logo</Text>
   </Picker>
   if (mode === "brand") return <BrandCatalogView title="选择图标" choice={brandChoice} topContent={modePicker}
-    selectionHint="选择先保留在编辑页面，保存事项时才生效；保存指定品牌会开启小号组件的品牌优先模式。主图标点击仍是完成事项。"
+    selectionHint="系统图标与品牌 Logo 可按事项独立任选。选择先保留在编辑页面，保存事项时才生效；只影响本事项，主界面与小号组件使用同一选择。主图标点击仍是完成事项。"
     onSelect={(brandID: string | null) => {
       onBrandChanged?.(brandID)
-      if (brandID == null) onChanged(null)
       dismiss()
     }} />
 
@@ -1061,14 +1060,14 @@ function IconPicker({
     navigationBarTitleDisplayMode="inline"
   >
     <Section>{modePicker}</Section>
-    <Section footer={<Text>自动匹配只在本机根据名称和类型判断，不会上传事项名称。</Text>}>
+    <Section footer={<Text>只在本机自动匹配系统图标，不会自动切换成品牌 Logo，也不会上传事项名称。</Text>}>
       <Button buttonStyle="plain" action={() => choose(null)}>
         <IconChoiceRow
           name={automatic.name}
           color={automatic.color}
-          title="自动匹配"
+          title="自动匹配系统图标"
           detail={`当前：${automatic.label}`}
-          selected={value == null}
+          selected={(!brandChoice || brandChoice === "system") && value == null}
         />
       </Button>
     </Section>
@@ -1086,7 +1085,7 @@ function IconPicker({
                 name={option.name}
                 color={option.color}
                 title={option.label}
-                selected={value === option.name}
+                selected={(!brandChoice || brandChoice === "system") && value === option.name}
               />
             </Button>
           ))}
