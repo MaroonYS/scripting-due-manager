@@ -18,9 +18,9 @@ import { CompleteDueItemIntent } from "../app_intents"
 import { dueStatus } from "./date"
 import { dueIconLabel } from "./icons"
 import { APPLE_REMINDERS_URL, appleReminderDeepLink } from "./reminder_links"
-import type { AppSettings, DisplayDueItem } from "./types"
-import type { LoadedBrandLogo } from "./brand_assets"
-import { BrandCompletionLabel } from "./brand_logo"
+import type { DisplayDueItem } from "./types"
+import { peekArtwork } from "./artwork_assets"
+import { ArtworkImage, ArtworkCompletionLabel } from "./artwork_image"
 import {
   currentWidgetLocale,
   formatWidgetDate,
@@ -45,8 +45,6 @@ import {
 
 type WidgetDataProps = {
   items: DisplayDueItem[]
-  iconSettings?: AppSettings
-  brandLogo?: LoadedBrandLogo | null
   completionGeneration: number
   reminderFetchedAt: number | null
   remindersLive: boolean
@@ -238,7 +236,9 @@ function LargeSummaryHeader({
             foregroundStyle={issue.color}
           />
           : null}
-        <Image
+        {item && peekArtwork(item.artworkID, Script.directory) ? <VStack frame={{ width: 40, height: 40 }}>
+          <ArtworkImage image={peekArtwork(item.artworkID, Script.directory)!} size={30} widget />
+        </VStack> : <Image
           systemName={item?.iconName ?? "calendar.badge.clock"}
           font={26}
           foregroundStyle={item?.iconColor ?? "systemOrange"}
@@ -246,7 +246,7 @@ function LargeSummaryHeader({
           frame={{ width: 40, height: 40 }}
           contentTransition="symbolEffectReplace"
           widgetAccentable
-        />
+        />}
       </HStack>
       <Spacer minLength={0} />
       <Divider padding={{ leading: 5, trailing: 5 }} />
@@ -288,7 +288,6 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number }) {
   const item = items[0]
   const nextItem = items[1]
   const issue = widgetIssue(props)
-  const logo = props.brandLogo ?? null
 
   return <WidgetFrame contentPadding={11}>
     <VStack
@@ -313,7 +312,6 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number }) {
           nextItem={nextItem}
           issue={issue}
           displayWidth={displayWidth}
-          logo={logo}
         />
       </CompletionContent>
     </VStack>
@@ -325,13 +323,11 @@ function SmallWidgetBody({
   nextItem,
   issue,
   displayWidth,
-  logo,
 }: {
   item: DisplayDueItem | undefined
   nextItem: DisplayDueItem | undefined
   issue: WidgetIssue | null
   displayWidth?: number
-  logo?: LoadedBrandLogo | null
 }) {
   return item
     ? <SmallDueItem
@@ -339,7 +335,6 @@ function SmallWidgetBody({
       nextItem={nextItem}
       displayWidth={displayWidth}
       issue={issue}
-      logo={logo}
     />
     : <Link url={Script.createRunURLScheme(Script.name)}>
       <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
@@ -355,13 +350,11 @@ function SmallDueItem({
   nextItem,
   displayWidth,
   issue,
-  logo,
 }: {
   item: DisplayDueItem
   nextItem: DisplayDueItem | undefined
   displayWidth?: number
   issue: WidgetIssue | null
-  logo?: LoadedBrandLogo | null
 }) {
   const detail = smallItemDetail(item)
   const titleFontSize = smallItemTitleFontSize(item.title, displayWidth)
@@ -391,7 +384,6 @@ function SmallDueItem({
             item={item}
             hitSize={40}
             symbolSize={17}
-            logo={logo}
           />
         </VStack>
         <Link url={itemURL(item)}>
@@ -494,14 +486,14 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
         padding={{ top: -5, leading: 5, trailing: 5, bottom: 9 }}
         frame={{ maxWidth: "infinity" }}
       >
-        <Image
+        {peekArtwork(item.artworkID, Script.directory) ? <ArtworkImage image={peekArtwork(item.artworkID, Script.directory)!} size={12} widget /> : <Image
           systemName={item.iconName}
           font={11}
           foregroundStyle={item.iconColor}
           symbolRenderingMode="hierarchical"
           frame={{ width: 12, height: 12 }}
           widgetAccentable
-        />
+        />}
         <Text
           font="caption2"
           fontWeight="medium"
@@ -922,12 +914,10 @@ function ListCompletionIcon({
   item,
   hitSize,
   symbolSize,
-  logo,
 }: {
   item: DisplayDueItem
   hitSize: number
   symbolSize: number
-  logo?: LoadedBrandLogo | null
 }) {
   if (!item.canComplete || item.stale) {
     return <ListCompletionSymbol
@@ -937,18 +927,10 @@ function ListCompletionIcon({
       enabled={false}
     />
   }
-  if (logo) return <Button
-    buttonStyle="plain"
-    frame={{ width: hitSize, height: hitSize }}
-    contentShape="rect"
-    widgetAccentable={false}
-    intent={CompleteDueItemIntent({
-      source: item.source,
-      id: item.id,
-      occurrenceKey: item.completionKey,
-    })}
-  >
-    <BrandCompletionLabel logo={logo} title={widgetCompletionLabel(item, widgetRuntimeLocale())} hitSize={hitSize} widget />
+  const artwork = peekArtwork(item.artworkID, Script.directory)
+  if (artwork) return <Button buttonStyle="plain" contentShape="rect" frame={{ width: hitSize, height: hitSize }}
+    intent={CompleteDueItemIntent({ source: item.source, id: item.id, occurrenceKey: item.completionKey })}>
+    <ArtworkCompletionLabel image={artwork} title={widgetCompletionLabel(item, widgetRuntimeLocale())} hitSize={hitSize} widget />
   </Button>
   return <Button
     buttonStyle="plain"
@@ -981,6 +963,10 @@ function ListCompletionSymbol({
   symbolSize: number
   enabled: boolean
 }) {
+  const artwork = peekArtwork(item.artworkID, Script.directory)
+  if (artwork) return <VStack frame={{ width: hitSize, height: hitSize }} opacity={enabled ? 1 : 0.6}>
+    <ArtworkImage image={artwork} widget />
+  </VStack>
   return <Image
     systemName={item.iconName}
     font={symbolSize}

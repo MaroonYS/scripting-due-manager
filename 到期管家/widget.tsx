@@ -15,8 +15,9 @@ import {
 import { configureWidgetLocale, currentWidgetLocale, widgetText } from "./src/widget_localization"
 import { DueManagerWidget } from "./src/widget_view"
 import { reconcileNotifications } from "./src/notifications"
-import { brandAsset, loadBrandLogo } from "./src/brand_assets"
-import { resolveItemBrand } from "./src/brand_preferences"
+import { loadArtworkPage } from "./src/artwork_assets"
+import { withReadDeadline } from "./src/async_deadline"
+import { widgetItemCapacity } from "./src/widget_layout"
 
 configureWidgetLocale(Device)
 const WIDGET_LOCALE = currentWidgetLocale()
@@ -25,15 +26,20 @@ async function main() {
   const { state, reminderResult, items } = await loadWidgetData()
   const completionTransition = readWidgetCompletionTransition()
   const refreshAt = nextWidgetRefresh(items, new Date(), state.settings.includeReminders)
-  // Other families never read artwork. A slow optional image falls back within 1.5 s.
-  const brand = Widget.family === "systemSmall" && items[0] ? resolveItemBrand(items[0], state.settings) : null
-  const brandLogo = brand ? await loadBrandLogo(brandAsset(brand.id), Script.directory) : null
+
+  // Decode only visible home-widget artwork. Accessory/lock-screen families
+  // stay with native symbols. A corrupt/missing image cannot block the timeline.
+  const family = Widget.family
+  const iconLimit = family === "systemSmall" ? 2
+    : family === "systemMedium" || family === "systemLarge" ? widgetItemCapacity(family, Widget.displaySize?.height) : 0
+  if (iconLimit > 0) {
+    try { await withReadDeadline(() => loadArtworkPage(items.slice(0, iconLimit).map(item => item.artworkID), Script.directory), 1600) }
+    catch { /* Present usable SF Symbol actions on the same timeline. */ }
+  }
 
   Widget.present(
     <DueManagerWidget
       items={items}
-      iconSettings={state.settings}
-      brandLogo={brandLogo}
       completionGeneration={completionTransition.generation}
       reminderFetchedAt={reminderResult.fetchedAt}
       remindersLive={reminderResult.live}

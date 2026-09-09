@@ -4,7 +4,8 @@
 
 import type { ItemKind } from "./item_kinds"
 import type { NotificationSettings } from "./notifications"
-import type { ItemBrandChoice, SmallWidgetIconStyle } from "./brand_preferences"
+import type { LegacyItemBrandChoice, LegacySmallWidgetIconStyle } from "./legacy_icon_preferences"
+import type { ItemIconChoice } from "./icon_preferences"
 
 export type { ItemKind } from "./item_kinds"
 
@@ -47,9 +48,11 @@ export interface AppSettings {
   /** Empty means every Apple Reminders list. Values are Calendar identifiers. */
   reminderCalendarIDs: string[]
   showAmounts: boolean
-  /** Legacy backup field, preserved but no longer used to override item choices. */
-  smallWidgetIconStyle?: SmallWidgetIconStyle
-  itemBrandChoices?: ItemBrandChoice[]
+  /** Inactive legacy fields retained solely for lossless backup compatibility. */
+  smallWidgetIconStyle?: LegacySmallWidgetIconStyle
+  itemBrandChoices?: LegacyItemBrandChoice[]
+  /** Independent 3.0 item-local choices; never a global rendering-mode switch. */
+  itemIconChoices?: ItemIconChoice[]
 }
 
 export interface AppState {
@@ -123,8 +126,10 @@ export interface DisplayDueItem {
   kind: ItemKind | "reminder"
   iconName: string
   iconColor: string
-  /** Preserve a manual SF Symbol selection when automatic brand matching is on. */
+  /** A user-selected SF Symbol is independent of automatic category matching. */
   iconIsExplicit?: boolean
+  /** Known bundled color artwork; missing images fall back to iconName. */
+  artworkID?: string
   dueDate: string
   includesTime: boolean
   hour: number

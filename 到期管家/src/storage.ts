@@ -13,7 +13,10 @@ import {
   parseDateKey,
 } from "./date"
 import { normalizeIconOverride, resolveDueIcon } from "./icons"
-import { normalizeBrandPreferences, withItemBrandChoice } from "./brand_preferences"
+import { normalizeLegacyIconPreferences } from "./legacy_icon_preferences"
+import { applyItemIconEdit, normalizeItemIconChoices } from "./icon_preferences"
+import type { IconSource, ItemIconEdit } from "./icon_preferences"
+import { isKnownIconChoice } from "./artwork_catalog"
 import { isItemKind, itemKindPriority } from "./item_kinds"
 import { normalizeManualItemID } from "./item_ids"
 export { normalizeManualItemID } from "./item_ids"
@@ -129,26 +132,10 @@ export function updateSettings(settings: Partial<AppSettings>): AppState {
   return persistOrThrow(next)
 }
 
-/** Read the latest state immediately before changing one item's visual choice. */
-export function updateItemBrandChoice(item: Pick<DisplayDueItem, "source" | "id">, brandID: string | null): AppState {
-  const current = loadState()
-  return updateSettings({ itemBrandChoices: withItemBrandChoice(current.settings, item, brandID) })
-}
-
-export interface ManualBrandEdit { brandID: string | null }
-
-function settingsAfterManualBrandEdit(settings: AppSettings, itemID: string, edit?: ManualBrandEdit): AppSettings {
-  if (!edit) return settings
-  return {
-    ...settings,
-    itemBrandChoices: withItemBrandChoice(settings, { source: "manual", id: itemID }, edit.brandID),
-  }
-}
-
 export function upsertItem(
   item: ManualDueItem,
   expectedUpdatedAt?: number,
-  brandEdit?: ManualBrandEdit,
+  iconEdit?: ItemIconEdit,
 ): AppState {
   assertItemMetadata(item)
   const current = loadState()
@@ -161,8 +148,23 @@ export function upsertItem(
   }
   if (index >= 0) items[index] = revised
   else items.push(revised)
-  const next = { ...current, items, settings: settingsAfterManualBrandEdit(current.settings, item.id, brandEdit), updatedAt: Date.now() }
+  assertKnownIconEdit(iconEdit)
+  const settings = applyItemIconEdit(current.settings, "manual", item.id, iconEdit)
+  const next = { ...current, items, settings, updatedAt: Date.now() }
   return persistOrThrow(next)
+}
+
+function assertKnownIconEdit(edit?: ItemIconEdit) {
+  if (edit && !isKnownIconChoice(edit.iconID)) throw Error("此图标未收录在当前版本，请重新选择。")
+}
+
+/** Local appearance only; never writes to Apple Reminders or its notes. */
+export function updateItemIconChoice(source: IconSource, itemID: string, edit: ItemIconEdit): AppState {
+  assertKnownIconEdit(edit)
+  const current = loadState()
+  if (source === "manual" && !current.items.some(item => item.id === itemID)) throw Error("事项已被移除。")
+  const settings = applyItemIconEdit(current.settings, source, itemID, edit)
+  return persistOrThrow({ ...current, settings, updatedAt: Date.now() })
 }
 
 export function deleteItem(id: string, expectedUpdatedAt?: number): AppState {
@@ -172,6 +174,10 @@ export function deleteItem(id: string, expectedUpdatedAt?: number): AppState {
   const next = {
     ...current,
     items: current.items.filter(item => item.id !== id),
+    settings: current.settings.itemIconChoices ? {
+      ...current.settings,
+      itemIconChoices: current.settings.itemIconChoices.filter(choice => choice.source !== "manual" || choice.itemID !== id),
+    } : current.settings,
     updatedAt: Date.now(),
   }
   return persistOrThrow(next)
@@ -298,7 +304,7 @@ export function completeManualItem(
   expectedUpdatedAt?: number,
   skipToFuture = false,
   nowMs = Date.now(),
-  brandEdit?: ManualBrandEdit,
+  iconEdit?: ItemIconEdit,
 ): AppState {
   assertItemMetadata(item)
   const current = loadState()
@@ -312,10 +318,12 @@ export function completeManualItem(
   const after = { ...advanced, updatedAt: nextRevision(current, current.items[index], nowMs) }
   const items = [...current.items]
   items[index] = after
+  assertKnownIconEdit(iconEdit)
+  const settings = applyItemIconEdit(current.settings, "manual", item.id, iconEdit)
   return persistOrThrow({
     ...current,
     items,
-    settings: settingsAfterManualBrandEdit(current.settings, item.id, brandEdit),
+    settings,
     updatedAt: after.updatedAt,
     completionHistory: appendCompletionRecord(current, manualCompletionRecord(item, after, nowMs, skipToFuture)),
   })
@@ -604,7 +612,8 @@ function normalizeStoredState(raw: unknown): AppState {
 function normalizeSettings(raw: unknown): AppSettings {
   const value = isRecord(raw) ? raw : {}
   return {
-    ...normalizeBrandPreferences(value),
+    ...normalizeLegacyIconPreferences(value),
+    ...(value.itemIconChoices != null ? { itemIconChoices: normalizeItemIconChoices(value.itemIconChoices) } : {}),
     includeReminders: typeof value.includeReminders === "boolean"
       ? value.includeReminders
       : DEFAULT_SETTINGS.includeReminders,

@@ -21,6 +21,7 @@ declare module "scripting" {
   export const Image: any
   export const Label: any
   export const LabeledContent: any
+  export const LazyVGrid: any
   export const Link: any
   export const List: any
   export const Navigation: any

@@ -2906,11 +2906,11 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
   assert.match(smallWidget, /completionGeneration,\s*displayWidth,/)
   assert.match(
     smallWidget,
-    /<SmallWidgetBody\s+item=\{item\}\s+nextItem=\{nextItem\}\s+issue=\{issue\}\s+displayWidth=\{displayWidth\}\s+logo=\{logo\}\s*\/>/,
+    /<SmallWidgetBody\s+item=\{item\}\s+nextItem=\{nextItem\}\s+issue=\{issue\}\s+displayWidth=\{displayWidth\}\s*\/>/,
   )
   assert.match(
     smallBody,
-    /<SmallDueItem\s+item=\{item\}\s+nextItem=\{nextItem\}\s+displayWidth=\{displayWidth\}\s+issue=\{issue\}\s+logo=\{logo\}\s*\/>/,
+    /<SmallDueItem\s+item=\{item\}\s+nextItem=\{nextItem\}\s+displayWidth=\{displayWidth\}\s+issue=\{issue\}\s*\/>/,
   )
   assert.match(
     smallWidget,
@@ -2938,7 +2938,7 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
   assert.match(smallItem, /<HStack\s+alignment="top"\s+spacing=\{0\}\s+padding=\{\{ top: 15 \}\}/)
   assert.match(
     smallItem,
-    /<VStack\s+spacing=\{0\}\s+padding=\{\{ top: -5, bottom: 5 \}\}\s*>\s*<ListCompletionIcon\s+item=\{item\}\s+hitSize=\{40\}\s+symbolSize=\{17\}\s+logo=\{logo\}\s*\/>\s*<\/VStack>/,
+    /<VStack\s+spacing=\{0\}\s+padding=\{\{ top: -5, bottom: 5 \}\}\s*>\s*<ListCompletionIcon\s+item=\{item\}\s+hitSize=\{40\}\s+symbolSize=\{17\}\s*\/>\s*<\/VStack>/,
     "the small item icon must replace the old circle without shrinking its tap target",
   )
   assert.doesNotMatch(smallItem, /CompletionControl|systemName="circle"/)
@@ -3275,7 +3275,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "2.8.0")
+  assert.equal(manifest.version, "3.0.0")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

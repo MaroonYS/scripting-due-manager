@@ -9,9 +9,8 @@ import * as storage from "../到期管家/src/storage.ts"
 import * as dates from "../到期管家/src/date.ts"
 import { resolveDueIcon } from "../到期管家/src/icons.ts"
 import { recurrenceLabel } from "../到期管家/src/presentation.ts"
-import { resolveItemBrand, withItemBrandChoice } from "../到期管家/src/brand_preferences.ts"
-import { BRAND_CATALOG } from "../到期管家/src/brand_catalog.ts"
-import { brandAsset, inspectBrandLogo } from "../到期管家/src/brand_assets.ts"
+import { itemIconID } from "../到期管家/src/icon_preferences.ts"
+import { symbolChoice } from "../到期管家/src/artwork_catalog.ts"
 import type { ManualDueItem } from "../到期管家/src/types.ts"
 
 type Node = { type: string; props: Record<string, any>; children: any[] }
@@ -22,21 +21,23 @@ const h = (type: string | ((props: any) => Node), props: any, ...children: any[]
   }
 const nodes = (node: Node): Node[] => [node, ...node.children.filter(child => typeof child === "object").flatMap(nodes)]
 const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve() }
-const cmb = BRAND_CATALOG.find(brand => brand.name === "招商银行／掌上生活")!
+const legacyBrandID = "brand-retired-cmb"
 
 function harness(options: {
   style?: "system" | "brand"; choice?: string | null; noImages?: boolean; failKey?: string;
   maintenance?: () => Promise<string | null>; failDisplay?: boolean
+  color?: boolean
 } = {}) {
   const previousStorage = (globalThis as any).Storage, previousImage = (globalThis as any).UIImage
   const previousFiles = (globalThis as any).FileManager
-  const item: ManualDueItem = { id: "manual-cmb", title: "招商银行", kind: "other", iconName: "calendar.badge.clock",
+  const item: ManualDueItem = { id: "manual-cmb", title: "招商银行", kind: "custom", iconName: "calendar.badge.clock",
     dueDate: "2026-09-09", includesTime: false, hour: 0, minute: 0, remindBeforeDays: 0,
     recurrence: dates.createRecurrenceRule("month", 1, "2026-09-09"), enabled: true,
     amount: "100", note: "unchanged", createdAt: 1, updatedAt: 2 }
   const state = { ...storage.defaultState(2), items: [item] }
   state.settings.smallWidgetIconStyle = options.style ?? "brand"
-  state.settings.itemBrandChoices = withItemBrandChoice(state.settings, { source: "manual", id: item.id }, options.choice === undefined ? cmb.id : options.choice)
+  state.settings.itemBrandChoices = options.choice === null ? [] : [{ source: "manual", itemID: item.id, brandID: options.choice ?? legacyBrandID }]
+  if (options.color) state.settings.itemIconChoices = [{ source: "manual", itemID: item.id, iconID: "icons8-ka3InxFU3QZa" }]
   const values = new Map<string, unknown>([[storage.STATE_KEY, structuredClone(state)]])
   const events: any[][] = [], slots: any[] = []
   let cursor = 0
@@ -59,8 +60,9 @@ function harness(options: {
     readAsString: async () => { throw Error("missing fallback") },
   }
   const bindings = {
-    h, ...dates, resolveDueIcon, recurrenceLabel, resolveItemBrand, brandAsset,
-    ...Object.fromEntries(["Button", "Image", "HStack", "VStack", "NavigationLink", "Section", "Text", "Spacer", "ItemEditor", "BrandCompletionLabel", "BrandLogo"].map(name => [name, name])),
+    h, ...dates, resolveDueIcon, recurrenceLabel, itemIconID, symbolChoice,
+    useVisibleArtwork: () => ({ image: options.color && !options.noImages ? { image: "png", lightBackplate: false } : null }), ArtworkImage: "ArtworkImage", ArtworkCompletionLabel: "ArtworkCompletionLabel",
+    ...Object.fromEntries(["Button", "Image", "HStack", "VStack", "NavigationLink", "Section", "Text", "Spacer", "ItemEditor"].map(name => [name, name])),
     Script: { directory: "/bundle" },
     manualOccurrenceKey: storage.manualOccurrenceKey, loadState: storage.loadState,
     completeManualOccurrence: (id: string, key: string) => {
@@ -81,11 +83,7 @@ function harness(options: {
       }
     },
   }
-  const hookCode = readFileSync(new URL("../到期管家/src/brand_loading.ts", import.meta.url), "utf8")
-    .replace(/^import .* from .*\n/gm, "").replace(/^export /gm, "")
-  const hookJS = new Bun.Transpiler({ loader: "ts" }).transformSync(hookCode)
-  const useBrandLogo = new Function("useState", "useEffect", "inspectBrandLogo", `${hookJS}\nreturn useBrandLogo`)(bindings.useState, bindings.useEffect, inspectBrandLogo)
-  const rowBindings = { ...bindings, useBrandLogo }
+  const rowBindings = bindings
   const code = source.slice(source.indexOf("function ManualItemsSection("), source.indexOf("function IconSettingRow("))
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(code)
   const renderRow = new Function(...Object.keys(rowBindings), `${compiled}\nreturn ManualItemRow`)(...Object.values(rowBindings))
@@ -104,72 +102,70 @@ function harness(options: {
   }
 }
 
-test("the main list first displays a usable system icon, then the saved CMB brand in either widget mode", async () => {
-  for (const style of ["brand", "system"] as const) {
-    const env = harness({ style })
+test("retired brand preferences never load artwork and retain the explicit system symbol", () => {
+  for (const style of ["brand", "system"] as const) for (const choice of [legacyBrandID, "brand-future", "system", null]) {
+    const env = harness({ style, choice })
     try {
-      let row = env.render()
-      assert.equal(nodes(row).some(node => node.type === "BrandCompletionLabel"), false)
-      assert.deepEqual(env.reads, [], "first render must not access artwork")
-      assert.equal(row.children[0].type, "Button")
-      row.props.onAppear(); await flush(); row = env.render()
-      const label = nodes(row).find(node => node.type === "BrandCompletionLabel")!
-      assert.ok(label)
-      assert.ok(label.props.logo.image.light.path.endsWith(brandAsset(cmb.id)!.light))
-      assert.equal(label.props.logo.contentScale, 1.2)
-      assert.equal(label.props.title, "完成事项：招商银行")
-      assert.deepEqual(env.events, [], "rendering the chosen image cannot change settings or items")
+      const row = env.render(), button = row.children[0]
+      assert.equal(button.type, "Button")
+      assert.equal(button.props.systemImage, env.item.iconName)
+      assert.equal(button.props.title, "完成事项：招商银行")
+      assert.deepEqual(env.reads, [])
+      assert.deepEqual(env.events, [])
+      assert.equal(row.props.onAppear, undefined)
+      assert.deepEqual(storage.loadState().items, env.original.items)
     } finally { env.cleanup() }
   }
   for (const title of ["已逾期", "需要处理", "接下来"]) {
     assert.ok(source.includes(`<ManualItemsSection title="${title}" items=`))
   }
-  assert.equal((source.match(/<ManualItemsSection[^>]+settings=\{state.settings\}/g) ?? []).length, 3)
 })
 
-test("brand-looking names with no explicit choice keep working SF icons without reading artwork", async () => {
-  for (const style of ["system", "brand"] as const) for (const choice of [null, "system"]) {
-    const env = harness({ style, choice })
+test("manual color buttons keep semantic labels and occurrence guards; failed images retain native actions", async () => {
+  for (const noImages of [false, true]) {
+    const env = harness({ color: true, noImages })
     try {
-      const patch = { title: "ChatGPT Pro - Monthly", iconName: null }
-      let row = env.render(patch)
-      row.props.onAppear(); await flush(); row = env.render(patch)
-      assert.equal(row.children[0].type, "Button")
-      assert.equal(nodes(row).some(node => node.type === "BrandCompletionLabel"), false)
-      assert.deepEqual(env.reads, [])
-      assert.deepEqual(env.events, [])
+      const row = env.render(), button = row.children[0]
+      assert.equal(button.type, "Button")
+      assert.deepEqual(button.props.frame, { width: 40, height: 40 })
+      assert.equal(button.props.foregroundStyle, noImages ? resolveDueIcon(env.item.title, env.item.kind, env.item.iconName).color : undefined)
+      if (noImages) assert.equal(button.props.systemImage, env.item.iconName)
+      else {
+        assert.equal(button.children[0].type, "ArtworkCompletionLabel")
+        assert.equal(button.children[0].props.title, "完成事项：招商银行")
+      }
+      const action = button.props.action
+      action(); action(); await flush()
+      assert.equal(env.events.filter(e => e[0] === "complete").length, 1)
+      assert.equal(storage.loadState().items[0].dueDate, "2026-10-09")
+      assert.equal(storage.loadState().settings.itemIconChoices![0].iconID, "icons8-ka3InxFU3QZa")
+      assert.ok(!nodes(env.render({}, true)).some(n => n.type === "Button"))
     } finally { env.cleanup() }
   }
 })
 
-test("a displayed brand disappears immediately after this item switches to system without changing another choice", async () => {
+test("brand-looking titles still auto-match a local system category without artwork", () => {
   const env = harness()
   try {
-    let row = env.render(); row.props.onAppear(); await flush(); row = env.render()
-    assert.ok(nodes(row).some(node => node.type === "BrandCompletionLabel"))
-    storage.updateItemBrandChoice({ source: "reminder", id: env.item.id }, cmb.id)
-    storage.updateItemBrandChoice({ source: "manual", id: env.item.id }, "system")
-    env.events.length = 0; env.reads.length = 0
-    row = env.render(); row.props.onAppear(); await flush(); row = env.render()
-    assert.equal(nodes(row).some(node => node.type === "BrandCompletionLabel"), false)
-    assert.equal(row.children[0].type, "Button")
-    assert.ok(storage.loadState().settings.itemBrandChoices?.some(choice => choice.source === "reminder" && choice.brandID === cmb.id))
-    assert.deepEqual(env.events, []); assert.deepEqual(env.reads, [])
+    const patch = { title: "ChatGPT Pro - Monthly", iconName: null }
+    const row = env.render(patch)
+    assert.equal(row.children[0].props.systemImage, resolveDueIcon(patch.title, env.item.kind).name)
+    assert.deepEqual(env.reads, [])
+    assert.deepEqual(env.events, [])
   } finally { env.cleanup() }
 })
 
-test("main-list completion and editing are sibling controls, and completing preserves the chosen brand", async () => {
+test("main-list completion and editing are sibling controls, and completing preserves legacy backup data", async () => {
   const env = harness()
   try {
     let row = env.render()
-    row.props.onAppear(); await flush(); row = env.render()
     const [button, link] = row.children
     assert.equal(button.type, "Button")
     assert.equal(button.props.buttonStyle, "borderless")
     assert.equal(button.props.contentShape, "rect")
     assert.deepEqual(button.props.frame, { width: 40, height: 40 })
     assert.equal(button.props.background, undefined)
-    assert.equal(button.props.foregroundStyle, undefined)
+    assert.equal(button.props.foregroundStyle, resolveDueIcon(env.item.title, env.item.kind, env.item.iconName).color)
     assert.equal(link.type, "NavigationLink")
     assert.equal(link.props.destination.type, "ItemEditor")
     assert.equal(link.props.destination.props.item.id, env.item.id)
@@ -251,7 +247,7 @@ test("main-list refresh failures after a committed completion report success wit
   }
 })
 
-test("system choices and broken images keep a working SF completion button, while inactive rows stay read-only", async () => {
+test("system completion buttons stay usable without image support, while inactive rows stay read-only", async () => {
   for (const options of [{ choice: "system" }, { noImages: true }]) {
     const env = harness(options)
     try {

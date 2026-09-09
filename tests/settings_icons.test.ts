@@ -80,7 +80,7 @@ function settings(includeReminders: boolean, loading = false) {
   const bindings = {
     h, ...primitives, ...icons,
     ...Object.fromEntries(["Section", "Toggle", "NavigationLink", "ReminderCalendarPicker", "Spacer", "Button",
-      "ReminderStatusRow", "WidgetActionStatusView", "NotificationView", "BrandSettingsView", "Label"].map(name => [name, name])),
+      "ReminderStatusRow", "WidgetActionStatusView", "NotificationView", "Label"].map(name => [name, name])),
     refreshState: () => {},
     state: { settings: { includeReminders, reminderCalendarIDs: ["selected"], showAmounts: true } },
     reminderStatus: { loading },

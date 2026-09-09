@@ -89,12 +89,12 @@ import { OwnershipView } from "./ownership_view"
 import { SettingsRowIcon, SettingsRowLabel } from "./settings_icons"
 import { readRecoveryStatus } from "./recovery"
 import { WidgetActionStatusView } from "./widget_action_view"
-import { BrandCatalogView, BrandSettingsView } from "./brand_view"
-import { BRAND_CATALOG } from "./brand_catalog"
-import { itemBrandChoice, resolveItemBrand } from "./brand_preferences"
-import { brandAsset } from "./brand_assets"
-import { useBrandLogo } from "./brand_loading"
-import { BrandCompletionLabel, BrandLogo } from "./brand_logo"
+import { ArtworkBrowser } from "./artwork_browser"
+import { ArtworkCompletionLabel, ArtworkImage, useVisibleArtwork } from "./artwork_image"
+import { artworkByID, symbolChoice } from "./artwork_catalog"
+import { itemIconID } from "./icon_preferences"
+import type { ItemIconEdit } from "./icon_preferences"
+import { IconLibraryView } from "./icon_library_view"
 
 configureWidgetLocale(Device)
 
@@ -380,11 +380,18 @@ function DueManagerApp() {
               key={item.id}
               destination={<ItemEditor item={item} onChanged={refreshState} />}
             >
-              <ManualItemRow item={item} settings={state.settings} inactive />
+              <ManualItemRow item={item} inactive settings={state.settings} />
             </NavigationLink>
           ))}
         </Section>
         : null}
+
+      <Section header={<Text>图标与外观 · 3.0</Text>} footer={<Text>每个事项可独立选择彩色图标或 SF Symbols，主界面与桌面组件同步显示。</Text>}>
+        <NavigationLink destination={<IconLibraryView state={state} onChanged={refreshState}
+          manualDestination={item => <ItemEditor item={item} onChanged={refreshState} />} />}>
+          <Label title="图标图库与逐项设置" systemImage="square.grid.2x2.fill" />
+        </NavigationLink>
+      </Section>
 
       <Section
         header={<Text>系统提醒事项</Text>}
@@ -431,9 +438,6 @@ function DueManagerApp() {
       </Section>
 
       <Section header={<Text>显示与组件</Text>}>
-        <NavigationLink destination={<BrandSettingsView onChanged={refreshState} />}>
-          <Label title="事项图标" systemImage="photo.on.rectangle" />
-        </NavigationLink>
         <NavigationLink destination={<WidgetActionStatusView />}>
           <Label title="上次组件操作" systemImage="exclamationmark.bubble" />
         </NavigationLink>
@@ -505,9 +509,11 @@ function ItemEditor({
   const initialDate = dateKeyToLocalDate(item.dueDate, true, item.hour, item.minute)
   const [title, setTitle] = useState(item.title)
   const [kind, setKind] = useState<ItemKind>(item.kind)
-  const [iconName, setIconName] = useState<string | null>(item.iconName)
-  const [brandChoice, setBrandChoice] = useState<string | null>(() => itemBrandChoice(loadState().settings, { source: "manual", id: item.id }))
-  const [brandChoiceEdited, setBrandChoiceEdited] = useState(false)
+  const [initialIconID] = useState(() => itemIconID(loadState().settings, "manual", item.id))
+  const [iconName, setIconName] = useState<string | null>(() => symbolChoice(initialIconID)?.name ?? item.iconName)
+  const [artworkID, setArtworkID] = useState<string | null>(() => symbolChoice(initialIconID) ? null : initialIconID)
+  const [iconTouched, setIconTouched] = useState(false)
+  const stagedIconEdit = (): ItemIconEdit | undefined => iconTouched ? { iconID: artworkID, expectedIconID: initialIconID } : undefined
   const [dueTimestamp, setDueTimestamp] = useState(initialDate.getTime())
   const [includesTime, setIncludesTime] = useState(item.includesTime)
   const [recurrenceUnit, setRecurrenceUnit] = useState<RecurrenceUnit | "none">(
@@ -543,9 +549,6 @@ function ItemEditor({
   const intervalUnitLabel = recurrenceUnit === "none"
     ? ""
     : recurrenceIntervalUnitLabel(recurrenceUnit)
-  const brandEdit = brandChoiceEdited
-    ? { brandID: brandChoice }
-    : undefined
 
   const validationError = (): { title: string; message: string } | null => {
     if (!title.trim()) {
@@ -624,7 +627,7 @@ function ItemEditor({
     const nextItem = buildItem()
     if (!nextItem) return
     try {
-      const nextState = upsertItem(nextItem, expectedUpdatedAt, brandEdit)
+      const nextState = upsertItem(nextItem, expectedUpdatedAt, stagedIconEdit())
       onChanged(nextState)
       const warning = await refreshAfterDataChange()
       if (warning) await Dialog.alert({ title: "事项已保存", message: warning })
@@ -663,7 +666,7 @@ function ItemEditor({
     if (!confirmed) return
 
     try {
-      const nextState = completeManualItem(nextItem, expectedUpdatedAt, skipToFuture, Date.now(), brandEdit)
+      const nextState = completeManualItem(nextItem, expectedUpdatedAt, skipToFuture, Date.now(), stagedIconEdit())
       onChanged(nextState)
       const warning = await refreshAfterDataChange()
       if (warning) await Dialog.alert({ title: "本期已完成", message: warning })
@@ -732,13 +735,13 @@ function ItemEditor({
             title={title}
             kind={kind}
             value={iconName}
-            onChanged={setIconName}
-            brandChoice={brandChoice}
-            onBrandChanged={(value: string | null) => { setBrandChoice(value); setBrandChoiceEdited(true) }}
+            artworkID={artworkID}
+            onChanged={(value: string | null) => { setIconName(value); setArtworkID(null); setIconTouched(true) }}
+            onArtworkChanged={(id: string) => { setArtworkID(id); setIconTouched(true) }}
           />
         }
       >
-        <IconSettingRow title={title} kind={kind} value={iconName} brandChoice={brandChoice} />
+        <IconSettingRow title={title} kind={kind} value={iconName} artworkID={artworkID} />
       </NavigationLink>
       <Toggle
         title="包含具体时间"
@@ -896,7 +899,7 @@ function ManualItemsSection({
 }: {
   title: string
   items: ManualDueItem[]
-  settings: AppSettings
+  settings?: AppSettings
   onChanged: (state?: AppState) => void
 }) {
   if (items.length === 0) return null
@@ -908,15 +911,13 @@ function ManualItemsSection({
 }
 
 function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} }: {
-  item: ManualDueItem; settings: AppSettings; inactive?: boolean; onChanged?: (state?: AppState) => void
+  item: ManualDueItem; settings?: AppSettings; inactive?: boolean; onChanged?: (state?: AppState) => void
 }) {
   const [busy, setBusy] = useState(false)
   const [gate] = useState(() => ({ busy: false }))
-  const icon = resolveDueIcon(item.title, item.kind, item.iconName)
-  const brand = resolveItemBrand({ source: "manual", id: item.id, title: item.title,
-    iconIsExplicit: item.iconName !== null, stale: false, canComplete: !inactive && item.enabled }, settings)
-  const brandImage = useBrandLogo(brand ? brandAsset(brand.id) : null, Script.directory)
-  const logo = brandImage.inspection.logo
+  const choiceID = itemIconID(settings, "manual", item.id)
+  const icon = symbolChoice(choiceID) ?? resolveDueIcon(item.title, item.kind, item.iconName)
+  const artworkState = useVisibleArtwork(choiceID), artwork = artworkState.image
   const completionKey = manualOccurrenceKey(item)
   const completionTitle = `完成事项：${item.title}`
   const complete = async () => {
@@ -944,13 +945,13 @@ function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} 
       if (warnings.length) await Dialog.alert({ title: "事项已完成", message: `${warnings.join("\n")}\n无需再次点击完成。` })
     } finally { gate.busy = false; setBusy(false) }
   }
-  if (inactive || !item.enabled) return <HStack spacing={10}>
-    <Image systemName={icon.name} foregroundStyle="tertiaryLabel" frame={{ width: 24 }} />
+  if (inactive || !item.enabled) return <HStack spacing={10} onAppear={artworkState.onAppear} onDisappear={artworkState.onDisappear}>
+    {artwork ? <ArtworkImage image={artwork} /> : <Image systemName={icon.name} foregroundStyle="tertiaryLabel" frame={{ width: 24 }} />}
     <ManualItemDetails item={item} inactive />
   </HStack>
-  return <HStack spacing={2} onAppear={brandImage.onAppear} onDisappear={brandImage.onDisappear}>
-    {logo ? <Button buttonStyle="borderless" frame={{ width: 40, height: 40 }} contentShape="rect" disabled={busy} action={() => { void complete() }}>
-      <BrandCompletionLabel logo={logo} title={completionTitle} hitSize={40} />
+  return <HStack spacing={2} onAppear={artworkState.onAppear} onDisappear={artworkState.onDisappear}>
+    {artwork ? <Button buttonStyle="borderless" contentShape="rect" frame={{ width: 40, height: 40 }} disabled={busy} action={() => { void complete() }}>
+      <ArtworkCompletionLabel image={artwork} title={completionTitle} />
     </Button> : <Button
       title={completionTitle}
       systemImage={icon.name}
@@ -996,24 +997,22 @@ function IconSettingRow({
   title,
   kind,
   value,
-  brandChoice,
+  artworkID,
 }: {
   title: string
   kind: ItemKind
   value: string | null
-  brandChoice?: string | null
+  artworkID?: string | null
 }) {
   const icon = resolveDueIcon(title, kind, value)
-  const brand = BRAND_CATALOG.find(entry => entry.id === brandChoice)
-  const brandImage = useBrandLogo(brand ? brandAsset(brand.id) : null, Script.directory)
-  const logo = brandImage.inspection.logo
-  return <HStack spacing={10} onAppear={brandImage.onAppear} onDisappear={brandImage.onDisappear}>
-    {logo ? <VStack frame={{ width: 40, height: 40 }}><BrandLogo logo={logo} /></VStack>
-      : <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 24 }} />}
+  const artworkState = useVisibleArtwork(artworkID), artwork = artworkState.image
+  const definition = artworkByID(artworkID)
+  return <HStack spacing={10} onAppear={artworkState.onAppear} onDisappear={artworkState.onDisappear}>
+    {artwork ? <ArtworkImage image={artwork} /> : <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 24 }} />}
     <Text>图标</Text>
     <Spacer />
     <Text font="subheadline" foregroundStyle="secondaryLabel" lineLimit={1}>
-      {brand ? brand.name : value == null ? `自动 · ${icon.label}` : icon.label}
+      {definition ? definition.label : artworkID ? "未收录 · 保留选择" : value == null ? `自动 · ${icon.label}` : icon.label}
     </Text>
   </HStack>
 }
@@ -1023,51 +1022,42 @@ function IconPicker({
   kind,
   value,
   onChanged,
-  brandChoice,
-  onBrandChanged,
+  artworkID,
+  onArtworkChanged,
 }: {
   title: string
   kind: ItemKind
   value: string | null
   onChanged: (value: string | null) => void
-  brandChoice?: string | null
-  onBrandChanged?: (value: string | null) => void
+  artworkID?: string | null
+  onArtworkChanged?: (id: string) => void
 }) {
   const dismiss = Navigation.useDismiss()
   const automatic = resolveDueIcon(title, kind)
-  const [mode, setMode] = useState<"system" | "brand">(brandChoice && brandChoice !== "system" ? "brand" : "system")
 
   const choose = (next: string | null) => {
     onChanged(next)
-    onBrandChanged?.("system")
     dismiss()
   }
-  const modePicker = <Picker title="图标类别" value={mode} pickerStyle="segmented"
-    onChanged={(value: unknown) => { if (value === "system" || value === "brand") setMode(value) }}>
-    <Text tag="system">系统图标</Text>
-    <Text tag="brand">品牌 Logo</Text>
-  </Picker>
-  if (mode === "brand") return <BrandCatalogView title="选择图标" choice={brandChoice} topContent={modePicker}
-    selectionHint="系统图标与品牌 Logo 可按事项独立任选。选择先保留在编辑页面，保存事项时才生效；只影响本事项，主界面与小号组件使用同一选择。主图标点击仍是完成事项。"
-    onSelect={(brandID: string | null) => {
-      onBrandChanged?.(brandID)
-      dismiss()
-    }} />
 
   return <List
     listStyle="insetGroup"
     navigationTitle="选择图标"
     navigationBarTitleDisplayMode="inline"
   >
-    <Section>{modePicker}</Section>
-    <Section footer={<Text>只在本机自动匹配系统图标，不会自动切换成品牌 Logo，也不会上传事项名称。</Text>}>
+    {onArtworkChanged ? <Section header={<Text>彩色图标</Text>} footer={<Text>应用图标与系统符号可以逐项混合使用，不会切换全局模式。</Text>}>
+      <NavigationLink destination={<ArtworkBrowser selectedID={artworkID} onSelected={onArtworkChanged} />}>
+        <IconSettingRow title={title} kind={kind} value={value} artworkID={artworkID} />
+      </NavigationLink>
+    </Section> : null}
+    <Section footer={<Text>在本机按名称和类型匹配系统图标，不会上传事项名称。也可为本事项单独选择符号，保存事项后生效。</Text>}>
       <Button buttonStyle="plain" action={() => choose(null)}>
         <IconChoiceRow
           name={automatic.name}
           color={automatic.color}
           title="自动匹配系统图标"
           detail={`当前：${automatic.label}`}
-          selected={(!brandChoice || brandChoice === "system") && value == null}
+          selected={value == null && !artworkID}
         />
       </Button>
     </Section>
@@ -1085,7 +1075,7 @@ function IconPicker({
                 name={option.name}
                 color={option.color}
                 title={option.label}
-                selected={(!brandChoice || brandChoice === "system") && value === option.name}
+                selected={value === option.name && !artworkID}
               />
             </Button>
           ))}

@@ -5,6 +5,7 @@
 import { loadReminderItems, sortDueItems } from "./reminders"
 import { loadState, manualItemsForDisplay } from "./storage"
 import type { AppState, ReminderLoadResult } from "./types"
+import { withItemIconChoices } from "./artwork_catalog"
 
 function reminderScope(state: AppState): string {
   return JSON.stringify([
@@ -29,13 +30,13 @@ export async function loadWidgetData() {
       : emptyReminders()
     state = loadState()
     if (scope === reminderScope(state)) {
-      return { state, reminderResult, items: sortDueItems([
+      return { state, reminderResult, items: withItemIconChoices(sortDueItems([
         ...manualItemsForDisplay(state), ...reminderResult.items,
-      ]) }
+      ]), state.settings) }
     }
   }
   // Repeated scope changes cannot justify showing an old List under new settings.
   reminderResult = emptyReminders(state.settings.includeReminders
     ? "提醒事项列表在读取期间发生变化，请重新同步。" : null)
-  return { state, reminderResult, items: sortDueItems(manualItemsForDisplay(state)) }
+  return { state, reminderResult, items: withItemIconChoices(sortDueItems(manualItemsForDisplay(state)), state.settings) }
 }

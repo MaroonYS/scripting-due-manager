@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "2.8.0",
-  "description": "Track recurring due dates and Apple Reminders with compact widgets, safe completion history, local backups, optional notifications, and checked updates.",
+  "version": "3.0.0",
+  "description": "Track due dates and Apple Reminders with compact widgets, 829 offline Icons8 color icons, per-item SF Symbols, safe completion, backups and checked updates.",
   "localizedDescriptions": {
-    "en": "2.8.0 lets each item independently use a system icon or brand logo, with matching choices in the app and small widget. No global brand mode or automatic brand selection. Existing explicit choices are retained. Brand artwork keeps its full shape at consistent bounds, without forced circular cropping or background removal. All 332 brands, 40 pt tap targets and lightweight startup are retained; medium, large and lock-screen widgets still use system icons.",
-    "zh": "2.8.0 支持每条事项独立选择系统图标或品牌 Logo，主界面与小号组件使用同一选择，可混合使用，无需全局开关。保留已选品牌，未指定品牌时使用系统图标。图案等比完整显示，不再强制裁圆或抠除原背景。保留 332 个品牌、40 pt 点击区与轻量启动；中大号、锁屏仍使用系统图标。",
-    "zh-Hans": "2.8.0 支持每条事项独立选择系统图标或品牌 Logo，主界面与小号组件使用同一选择，可混合使用，无需全局开关。保留已选品牌，未指定品牌时使用系统图标。图案等比完整显示，不再强制裁圆或抠除原背景。保留 332 个品牌、40 pt 点击区与轻量启动；中大号、锁屏仍使用系统图标。",
-    "zh-Hant": "2.8.0 支援每條事項獨立選擇系統圖示或品牌 Logo，主介面與小號元件使用同一選擇，可混合使用，無需全域開關。保留已選品牌，未指定品牌時使用系統圖示。圖案等比完整顯示，不再強制裁圓或去除原背景。保留 332 個品牌、40 pt 點擊區與輕量啟動；中大號、鎖定畫面仍使用系統圖示。"
+    "en": "3.0 introduces 829 offline Icons8 Windows 11 Color icons across 23 categories, with search and paged browsing. Choose color artwork or SF Symbols independently for manual items and Apple Reminders. The main list and small, medium and large widgets share each choice; lock-screen accessories retain system symbols. Original image colors and proportions are preserved, with local fallbacks and dark-mode contrast plates where needed. Existing items, recurrence, notifications and backups remain compatible. The old mixed-source brand library is retired; its choices remain only as inactive backup metadata.",
+    "zh": "3.0 内置 829 枚 Icons8 Windows 11 Color 图标，覆盖 23 个分类，支持中英文搜索和分页预览。手动事项与 Apple 提醒事项均可独立选择彩色图标或 SF Symbols，主界面及小中大组件同步显示，锁屏附件保留系统符号。原图不裁剪、不重绘，按需离线加载，缺图安全回退，深色标志带暗色模式对比底板。事项、周期、通知、记录与备份继续兼容；旧混合品牌库已退役，旧选择仅作备份兼容保留。",
+    "zh-Hans": "3.0 内置 829 枚 Icons8 Windows 11 Color 图标，覆盖 23 个分类，支持中英文搜索和分页预览。手动事项与 Apple 提醒事项均可独立选择彩色图标或 SF Symbols，主界面及小中大组件同步显示，锁屏附件保留系统符号。原图不裁剪、不重绘，按需离线加载，缺图安全回退，深色标志带暗色模式对比底板。事项、周期、通知、记录与备份继续兼容；旧混合品牌库已退役，旧选择仅作备份兼容保留。",
+    "zh-Hant": "3.0 內建 829 枚 Icons8 Windows 11 Color 圖示，涵蓋 23 個分類，支援中英文搜尋和分頁預覽。手動事項與 Apple 提醒事項均可獨立選擇彩色圖示或 SF Symbols，主介面及小中大元件同步顯示，鎖定畫面附件保留系統符號。原圖不裁切、不重繪，按需離線載入，缺圖安全退回系統符號，深色標誌帶深色模式對比底板。事項、週期、通知、記錄與備份繼續相容；舊混合品牌庫已退役，舊選擇僅作備份相容保留。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

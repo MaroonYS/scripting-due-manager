@@ -55,7 +55,7 @@ function StartupScreen() {
   return <NavigationStack>
     <List listStyle="insetGroup" navigationTitle="到期管家启动" navigationBarTitleDisplayMode="inline"
       toolbar={{ cancellationAction: <Button title="关闭" action={() => dismiss()} /> }}>
-      <Section header={<Text>正在启动</Text>} footer={<Text>本页不解码品牌图片，也不清空或重建事项。若一直停在这里，请记录下方的阶段和错误。</Text>}>
+      <Section header={<Text>正在启动</Text>} footer={<Text>本页不会清空或重建事项。若一直停在这里，请记录下方的阶段和错误。</Text>}>
         <Text>{`版本 ${Script.metadata.version ?? "未知"}`}</Text>
         <Text>{`当前阶段：${stage}`}</Text>
         {error ? <Text foregroundStyle="systemRed">{error}</Text> : <Text foregroundStyle="secondaryLabel">正在加载，请稍候…</Text>}
