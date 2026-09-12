@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.4.0",
-  "description": "Due dates and Apple Reminders with 182 offline SF Symbols, collapsible icon themes, local title-and-note matching and guarded widget actions.",
+  "version": "3.4.1",
+  "description": "Due dates and Apple Reminders with full read-only notes, precise widget links, 182 offline SF Symbols and safe recurring completion.",
   "localizedDescriptions": {
-    "en": "3.4 removes external icon libraries, artwork resources, online search and account login. Choose among 182 offline SF Symbols in 11 collapsible, searchable themes. Local title-and-note inference, widget completion hit areas and occurrence identity are improved. Reminder detail links enter Scripting and validate the exact item before navigation; unsupported IDs report an error. Run the updated original script once to remove retired icon preferences and device-only credentials. Existing items, recurrence, notifications and explicit system symbols are preserved. Native navigation and WidgetKit interactions still require device verification.",
-    "zh": "3.4 仅保留系统图标，删除新增的外部图库、登录和搜索。182 个 SF Symbols 按 11 个主题折叠，支持中英文搜索和逐项保存。优化标题／备注本机匹配、桌面组件完成按钮热区与期次身份；提醒事项详情经 Scripting 转交并查验准确 ID，无法定位时明确提示。更新原脚本后运行一次，清理旧图库设置及本机凭据；事项、周期、通知和原系统图标保留。实际跳转及 WidgetKit 交互仍需真机验证。",
-    "zh-Hans": "3.4 仅保留系统图标，删除新增的外部图库、登录和搜索。182 个 SF Symbols 按 11 个主题折叠，支持中英文搜索和逐项保存。优化标题／备注本机匹配、桌面组件完成按钮热区与期次身份；提醒事项详情经 Scripting 转交并查验准确 ID，无法定位时明确提示。更新原脚本后运行一次，清理旧图库设置及本机凭据；事项、周期、通知和原系统图标保留。实际跳转及 WidgetKit 交互仍需真机验证。",
-    "zh-Hant": "3.4 僅保留系統圖示，刪除新增的外部圖庫、登入和搜尋。182 個 SF Symbols 按 11 個主題摺疊，支援中英文搜尋與逐項保存。優化標題／備註本機匹配、桌面元件完成按鈕範圍與期次識別；提醒事項詳情經 Scripting 轉交並核對準確 ID，無法定位時明確提示。更新原腳本後執行一次，清理舊圖庫設定及本機憑據；事項、週期、通知和原系統圖示保留。實際跳轉及 WidgetKit 互動仍需真機驗證。"
+    "en": "3.4.1 opens a dedicated read-only page for the exact reminder's complete notes from widget themes and content links. External Reminders navigation is now an explicit secondary action. Includes loading, empty, completed, deleted, permission and timeout states with retry. Notes stay in view memory, not caches or backups. A main-app notes browser provides an explicit fallback; old widget links remain compatible. Preserves 182 SF Symbols, collapsible themes, completion controls, recurrence and notifications. Native widget activation still requires device verification.",
+    "zh": "3.4.1 完善小组件备注入口：点击左上角主题或提醒事项内容，先在到期管家显示对应提醒的完整备注，再可选择在系统提醒事项中打开。不再把外部详情跳转作为阅读备注的前提。增加加载、空备注、已完成、删除、权限及超时提示，支持重试；备注只在本页读取，不写入缓存和备份。主界面新增查看备注入口，兼容旧组件链接。182 个系统图标、折叠主题、完成按钮、周期和通知保留。原生小组件点击仍需设备验收。",
+    "zh-Hans": "3.4.1 完善小组件备注入口：点击左上角主题或提醒事项内容，先在到期管家显示对应提醒的完整备注，再可选择在系统提醒事项中打开。不再把外部详情跳转作为阅读备注的前提。增加加载、空备注、已完成、删除、权限及超时提示，支持重试；备注只在本页读取，不写入缓存和备份。主界面新增查看备注入口，兼容旧组件链接。182 个系统图标、折叠主题、完成按钮、周期和通知保留。原生小组件点击仍需设备验收。",
+    "zh-Hant": "3.4.1 完善小元件備註入口：點選左上角主題或提醒事項內容，先在到期管家顯示對應提醒的完整備註，再可選擇在系統提醒事項中開啟。不再把外部詳情跳轉作為閱讀備註的前提。增加載入、空備註、已完成、刪除、權限及逾時提示，支援重試；備註只在本頁讀取，不寫入快取與備份。主介面新增查看備註入口，相容舊元件連結。182 個系統圖示、摺疊主題、完成按鈕、週期和通知保留。原生小元件點選仍需裝置驗收。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

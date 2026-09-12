@@ -51,7 +51,7 @@ test("widget item URLs deep-link reminders and retain the manual edit fallback",
   assert.match(resolver, /if \(item\.source === "reminder"\) \{/)
   assert.match(
     resolver,
-    /Script\.createRunURLScheme\(Script\.name, \{ action: "open-reminder", id: item\.id \}\)/,
+    /Script\.createRunURLScheme\(Script\.name, \{ action: "reminder-notes", id: item\.id \}\)/,
   )
   assert.match(
     resolver,

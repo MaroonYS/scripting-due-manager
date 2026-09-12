@@ -131,7 +131,8 @@ function WidgetHeader({
         leading: 5,
         trailing: 5,
       }}
-      frame={{ maxWidth: "infinity" }}
+      frame={{ maxWidth: "infinity", minHeight: compact ? 24 : undefined }}
+      contentShape="rect"
     >
       {compact
         ? null
@@ -1118,9 +1119,9 @@ function widgetIssue(props: {
 
 function itemURL(item: DisplayDueItem): string {
   if (item.source === "reminder") {
-    // WidgetKit delivers taps to the host app. Resolve and open the external
-    // Reminders URL in the foreground instead of giving it directly to Link.
-    return Script.createRunURLScheme(Script.name, { action: "open-reminder", id: item.id })
+    // Render the exact reminder's notes in the foreground; external navigation
+    // is an explicit action on that page, not a prerequisite for reading notes.
+    return Script.createRunURLScheme(Script.name, { action: "reminder-notes", id: item.id })
   }
   return Script.createRunURLScheme(Script.name, { action: "edit", id: item.id })
 }

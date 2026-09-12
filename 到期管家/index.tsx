@@ -67,12 +67,14 @@ function StartupScreen() {
 
 async function run() {
   try {
-    if (Script.queryParameters?.action === "open-reminder") {
+    if (Script.queryParameters?.action === "reminder-notes" || Script.queryParameters?.action === "open-reminder") {
       try {
-        const { openReminderFromWidget } = await import("./src/reminder_navigation")
-        await openReminderFromWidget(Script.queryParameters.id)
+        const { ReminderNotesView } = await import("./src/reminder_notes_view")
+        await Navigation.present({ element: <NavigationStack>
+          <ReminderNotesView id={Script.queryParameters.id} standalone />
+        </NavigationStack> })
       } catch (error) {
-        await Dialog.alert({ title: "无法打开对应提醒事项", message: String(error) })
+        await Dialog.alert({ title: "无法打开提醒事项备注", message: String(error) })
       }
       return
     }

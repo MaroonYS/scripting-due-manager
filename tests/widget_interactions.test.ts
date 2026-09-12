@@ -52,23 +52,30 @@ test("a failed native open is an explicit failure, not a reported successful dee
   finally { env.cleanup() }
 })
 
-test("the real entry routes a widget navigation without loading the app, storage or maintenance", async () => {
-  for (const fail of [false, true]) {
+test("new and legacy reminder links present a dedicated notes page before reading or external navigation", async () => {
+  for (const action of ["reminder-notes", "open-reminder"]) for (const fail of [false, true]) {
     const events: any[] = []
+    const h = (type: any, props: any, ...children: any[]) => ({ type, props, children })
     const bindings = {
-      Script: { queryParameters: { action: "open-reminder", id: UUID }, exit: () => events.push("exit") },
-      loadReminderNavigation: async () => ({ openReminderFromWidget: async (id: string) => { events.push(["open", id]); if (fail) throw Error("denied") } }),
+      h, NavigationStack: "NavigationStack",
+      Script: { queryParameters: { action, id: UUID }, exit: () => events.push("exit") },
+      loadReminderNotes: async () => ({ ReminderNotesView: "ReminderNotesView" }),
       loadApplication: () => assert.fail("must not load main app"),
-      Navigation: { present: () => assert.fail("must not mount main app") },
+      Navigation: { present: async ({ element }: any) => {
+        assert.equal(element.type, "NavigationStack")
+        assert.equal(element.children[0].type, "ReminderNotesView")
+        assert.deepEqual(element.children[0].props, { id: UUID, standalone: true })
+        events.push(["present", UUID]); if (fail) throw Error("denied")
+      } },
       Dialog: { alert: async (value: any) => events.push(["alert", value.title]) },
     }
     const source = withoutImports(read("index.tsx"))
-      .replace('await import("./src/reminder_navigation")', "await loadReminderNavigation()")
+      .replace('await import("./src/reminder_notes_view")', "await loadReminderNotes()")
       .replace('import("./src/app")', "loadApplication()")
       .replace(/^void run\(\)\s*$/m, "")
     const run = new Function(...Object.keys(bindings), `${transpile(source)}\nreturn run`)(...Object.values(bindings))
     await run()
-    assert.deepEqual(events, [["open", UUID], ...(fail ? [["alert", "无法打开对应提醒事项"]] : []), "exit"])
+    assert.deepEqual(events, [["present", UUID], ...(fail ? [["alert", "无法打开提醒事项备注"]] : []), "exit"])
   }
 })
 
@@ -151,6 +158,6 @@ test("widget controls use occurrence identity rather than slot position and give
   const completion = source.slice(source.indexOf("function ListCompletionIcon"), source.indexOf("function ListCompletionSymbol"))
   assert.match(completion, /<Label[\s\S]*?frame=\{\{ width: hitSize, height: hitSize \}\}\s+contentShape="rect"/)
   assert.doesNotMatch(completion, /<Link|onTapGesture|open-reminder/)
-  assert.match(source, /action: "open-reminder", id: item.id/)
+  assert.match(source, /action: "reminder-notes", id: item.id/)
   assert.doesNotMatch(source, /return appleReminderDeepLink|APPLE_REMINDERS_URL/)
 })

@@ -92,6 +92,7 @@ import type { ItemIconEdit } from "./icon_preferences"
 import { IconLibraryView } from "./icon_library_view"
 import { SystemIconThemes } from "./system_icon_themes"
 import { cleanupRetiredIcons } from "./icon_cleanup"
+import { ReminderNotesList } from "./reminder_notes_list"
 
 configureWidgetLocale(Device)
 
@@ -429,6 +430,9 @@ function DueManagerApp() {
               action={() => { if (!reminderStatus.loading) void refreshReminders() }}
             />
           : null}
+        {state.settings.includeReminders ? <NavigationLink destination={<ReminderNotesList settings={state.settings} />}>
+          <Label title="查看提醒事项备注" systemImage="note.text" />
+        </NavigationLink> : null}
         {state.settings.includeReminders
           ? <ReminderStatusRow status={reminderStatus} />
           : null}
