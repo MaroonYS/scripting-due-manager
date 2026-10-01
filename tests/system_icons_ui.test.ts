@@ -56,7 +56,7 @@ test("the first screen exposes eight relevant symbols without expanding a catalo
   assert.equal(category.children.length, icons.DUE_ICON_GROUPS.length + 1)
   const search = nodes(root).find(node => node.type === "TextField" && node.props.title === "搜索图标")!
   assert.ok(search)
-  assert.equal(search.props.prompt, "房租、护照、年检、ChatGPT…")
+  assert.equal(search.props.prompt, "还款、存款、护照、HSBC…")
   assert.ok(JSON.stringify(root.props.footer).includes("场景、品牌"))
   assert.ok(nodes(root).filter(node => node.type === "Button").every(node => JSON.stringify(node).includes("minHeight")))
 })

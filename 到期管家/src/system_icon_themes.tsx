@@ -20,7 +20,7 @@ export function SystemIconThemes({ value, automaticName, title, kind, onChanged 
     : DUE_ICON_OPTIONS.filter(icon => icon.group === category)
   return <Section header={<Text>{searching ? `搜索结果 · ${choices.length}` : category === "推荐" ? "为此事项推荐" : `${category} · ${choices.length}`}</Text>}
     footer={<Text>{`点图标预览，再点右上角确认。搜索覆盖全部 ${DUE_ICON_OPTIONS.length} 个图标，支持场景、品牌、中文、英文及 SF Symbol 名称；所有匹配均在本机完成。`}</Text>}>
-    <TextField title="搜索图标" prompt="房租、护照、年检、ChatGPT…" value={query} onChanged={setQuery} />
+    <TextField title="搜索图标" prompt="还款、存款、护照、HSBC…" value={query} onChanged={setQuery} />
     {!searching ? <Picker title="浏览分类" value={category} onChanged={setCategory} pickerStyle="menu">
       <Text tag="推荐">为此事项推荐</Text>
       {DUE_ICON_GROUPS.map(group => <Text key={group} tag={group}>{group}</Text>)}

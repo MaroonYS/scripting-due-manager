@@ -61,7 +61,7 @@ test("indexed icon search preserves multilingual normalization, AND terms and ca
   assert.equal(searchSystemIcons("").length, DUE_ICON_OPTIONS.length)
   assert.ok(searchSystemIcons("銀行").some(icon => icon.name === "building.columns.fill"))
   assert.ok(searchSystemIcons("ＷＡＬＬＥＴ").some(icon => icon.name === "wallet.pass.fill"))
-  assert.deepEqual(searchSystemIcons("Credit Card").map(icon => icon.name), ["creditcard.fill"])
+  assert.deepEqual(searchSystemIcons("Credit Card").map(icon => icon.name), ["creditcard.fill", "creditcard.and.123", "creditcard.trianglebadge.exclamationmark"])
   assert.equal(searchSystemIcons("wallet unknown-847291").length, 0)
   const results = searchSystemIcons("fill")
   assert.ok(results.length > 1)

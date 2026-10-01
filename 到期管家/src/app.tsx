@@ -447,6 +447,9 @@ function DueManagerApp() {
             </HStack>
           </NavigationLink>
           : null}
+        {state.settings.includeReminders ? <NavigationLink destination={<ReminderNotesList settings={state.settings} />}>
+          <Label title="查看提醒事项备注" systemImage="note.text" />
+        </NavigationLink> : null}
         {state.settings.includeReminders
           ? <Button
               title={reminderStatus.loading ? "正在更新…" : "立即更新"}
@@ -454,9 +457,6 @@ function DueManagerApp() {
               action={() => { if (!reminderStatus.loading) void refreshReminders() }}
             />
           : null}
-        {state.settings.includeReminders ? <NavigationLink destination={<ReminderNotesList settings={state.settings} />}>
-          <Label title="查看提醒事项备注" systemImage="note.text" />
-        </NavigationLink> : null}
         {state.settings.includeReminders
           ? <ReminderStatusRow status={reminderStatus} />
           : null}

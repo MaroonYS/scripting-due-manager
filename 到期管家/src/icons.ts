@@ -241,6 +241,18 @@ export const DUE_ICON_OPTIONS: DueIconDefinition[] = [
   { name: "mouth.fill", label: "牙科口腔", color: "systemPink", group: "健康运动" },
   { name: "doc.text.image.fill", label: "护照签证", color: "systemIndigo", group: "出行旅行" },
   { name: "wrench.adjustable.fill", label: "车辆保养", color: "systemOrange", group: "出行旅行" },
+  { name: "creditcard.and.123", label: "卡片管理", color: "systemOrange", group: "财务" },
+  { name: "creditcard.trianglebadge.exclamationmark", label: "卡片检查", color: "systemOrange", group: "财务" },
+  { name: "dollarsign.arrow.circlepath", label: "自动扣款", color: "systemTeal", group: "财务" },
+  { name: "dollarsign.square.fill", label: "储蓄存款", color: "systemGreen", group: "财务" },
+  { name: "chart.xyaxis.line", label: "基金净值", color: "systemBlue", group: "财务" },
+  { name: "chart.line.downtrend.xyaxis", label: "行情波动", color: "systemIndigo", group: "财务" },
+  { name: "chart.bar.xaxis", label: "资产配置", color: "systemPurple", group: "财务" },
+  { name: "building.columns.circle.fill", label: "金融机构", color: "systemIndigo", group: "财务" },
+  { name: "checkmark.rectangle.stack.fill", label: "账目核对", color: "systemTeal", group: "财务" },
+  { name: "plus.forwardslash.minus", label: "利息计算", color: "systemPink", group: "财务" },
+  { name: "doc.plaintext.fill", label: "发票凭证", color: "systemBlue", group: "财务" },
+  { name: "tray.and.arrow.down.fill", label: "结算到账", color: "systemGreen", group: "财务" },
 ]
 
 export type DueIconLabelLanguage = "en" | "zh-Hans" | "zh-Hant"
@@ -306,6 +318,18 @@ const ENGLISH_ICON_LABELS: Record<string, string> = {
   "mouth.fill": "Dental & Oral Care",
   "doc.text.image.fill": "Passports & Travel Visas",
   "wrench.adjustable.fill": "Vehicle Maintenance",
+  "creditcard.and.123": "Card Management",
+  "creditcard.trianglebadge.exclamationmark": "Card Review",
+  "dollarsign.arrow.circlepath": "Automatic Payments",
+  "dollarsign.square.fill": "Savings & Deposits",
+  "chart.xyaxis.line": "Fund Values",
+  "chart.line.downtrend.xyaxis": "Market Movements",
+  "chart.bar.xaxis": "Asset Allocation",
+  "building.columns.circle.fill": "Financial Institutions",
+  "checkmark.rectangle.stack.fill": "Account Reconciliation",
+  "plus.forwardslash.minus": "Interest Calculations",
+  "doc.plaintext.fill": "Invoices & Receipts",
+  "tray.and.arrow.down.fill": "Settlement & Deposits",
   "creditcard.fill": "Credit Card",
   "building.columns.fill": "Banking",
   "banknote.fill": "Payments",
@@ -445,6 +469,10 @@ const TRADITIONAL_ICON_PHRASES: Array<[string, string]> = [
   ["电台", "電臺"],
   ["账单", "帳單"],
   ["账务", "帳務"],
+  ["账目", "帳目"],
+  ["到账", "到帳"],
+  ["资产配置", "資產配置"],
+  ["金融机构", "金融機構"],
   ["影片制作", "影片製作"],
   ["制图", "製圖"],
 ]
@@ -474,6 +502,7 @@ const TRADITIONAL_ICON_CHARACTERS: Record<string, string> = {
   "拨": "撥", "访": "訪", "风": "風", "调": "調", "锁": "鎖", "灯": "燈", "温": "溫",
   "篮": "籃", "闹": "鬧", "钟": "鐘", "杂": "雜", "志": "誌", "驾": "駕", "业": "業",
   "贷": "貸", "检": "檢", "养": "養", "续": "續", "复": "復",
+  "净": "淨", "对": "對", "凭": "憑", "结": "結",
 }
 
 type IconRule = {
@@ -1466,6 +1495,23 @@ let systemIconSearchIndex: { icon: DueIconDefinition; text: string }[] | null = 
 // Search vocabulary is intentionally separate from inference. A short query
 // such as “合同 / license / AI” is useful when browsing, but must not turn every
 // unrelated title or private note containing that word into a category match.
+// Institution/network names below are browsing aliases, not branded artwork or
+// evidence of an account's issuer, balance, verification or financial status.
+const BANK_SEARCH_ALIASES = [
+  "bank", "banking", "银行", "銀行", "hsbc", "汇丰", "匯豐", "滙豐",
+  "boc", "bank of china", "中银", "中銀", "中国银行", "中國銀行",
+  "icbc", "工商银行", "工商銀行", "工行", "ccb", "建设银行", "建設銀行", "建行",
+  "abc bank", "agricultural bank of china", "农业银行", "農業銀行", "农行", "農行",
+  "cmb", "china merchants bank", "招商银行", "招商銀行", "招商", "招行",
+  "standard chartered", "渣打", "hang seng", "恒生", "恆生",
+] as const
+
+const BROKER_SEARCH_ALIASES = [
+  "broker", "brokerage", "证券", "證券", "券商", "futu", "moomoo", "富途",
+  "tiger brokers", "tiger securities", "老虎证券", "老虎證券", "老虎",
+  "ibkr", "interactive brokers", "盈透",
+] as const
+
 const SYSTEM_ICON_SEARCH_ALIASES: Record<string, readonly string[]> = {
   "house.fill": [
     "租金", "租屋", "租房", "房租", "物业", "物業", "物业管理", "物業管理", "管理费", "管理費",
@@ -1510,17 +1556,90 @@ const SYSTEM_ICON_SEARCH_ALIASES: Record<string, readonly string[]> = {
   "cross.case.fill": ["体检", "體檢", "health checkup", "health check-up", "medical examination"],
   "percent": [
     "贷款", "貸款", "借款", "还贷", "還貸", "贷款还款", "貸款還款", "分期付款", "分期还款", "分期還款",
-    "loan", "repayment", "installment", "instalment", "debt", "interest", "apr",
+    "房贷", "房貸", "按揭", "利息", "利率", "年利率", "手续费", "手續費",
+    "loan", "mortgage", "repayment", "installment", "instalment", "debt", "interest", "apr", "annual percentage rate",
   ],
   "banknote.fill": [
     "贷款还款", "貸款還款", "还贷", "還貸", "还款", "還款", "loan payment", "repayment", "installment payment",
+    "房贷还款", "房貸還款", "按揭还款", "按揭還款", "mortgage payment", "分期", "现金", "現金", "cash",
   ],
   "figure.yoga": [
     "瑜伽", "拉伸", "伸展", "瑜珈", "yoga", "stretch", "stretching", "flexibility",
   ],
   "figure.pool.swim": ["游泳", "泳池", "泳课", "泳課", "swim", "swimming", "pool", "swimming lessons"],
   "desktopcomputer": ["软件许可证", "軟件許可證", "软件授权", "軟件授權", "license", "licence", "software license", "software licence"],
-  "building.columns.fill": ["汇丰", "滙豐", "匯豐", "hsbc"],
+  "building.columns.fill": [...BANK_SEARCH_ALIASES, "存款", "银行账户", "銀行賬戶", "bank account", "deposit"],
+  "building.columns.circle.fill": [...BANK_SEARCH_ALIASES, ...BROKER_SEARCH_ALIASES, "金融机构", "金融機構", "financial institution"],
+  "creditcard.fill": [
+    "卡片", "银行卡", "銀行卡", "信用卡年费", "信用卡年費", "年费", "年費", "卡费", "卡費", "卡账单", "卡賬單", "信用卡账单", "信用卡賬單",
+    "信用卡还款", "信用卡還款", "还款", "還款", "分期", "信用卡分期", "银行卡到期", "銀行卡到期",
+    "annual fee", "card fee", "card statement", "credit card statement", "card repayment", "credit card repayment", "installment", "instalment", "card expiry",
+    "visa", "mastercard", "master card", "amex", "american express", "银联", "銀聯", "unionpay",
+  ],
+  "creditcard.and.123": [
+    ...BANK_SEARCH_ALIASES, "信用卡", "银行卡", "銀行卡", "借记卡", "借記卡", "卡号", "卡號", "卡片到期", "年费", "年費", "卡账单", "卡賬單", "账单日", "賬單日",
+    "还款", "還款", "还款日", "還款日", "分期", "credit card", "debit card", "card number", "card expiry", "annual fee", "card statement", "statement date", "repayment", "installment", "instalment",
+    "visa", "mastercard", "master card", "amex", "american express", "银联", "銀聯", "unionpay",
+  ],
+  "creditcard.trianglebadge.exclamationmark": [
+    "信用卡", "银行卡", "銀行卡", "卡片检查", "卡片檢查", "卡片核对", "卡片核對", "账单检查", "賬單檢查", "年费检查", "年費檢查", "卡片到期", "信用额度", "信用額度",
+    "credit card", "card review", "card check", "statement review", "annual fee review", "card expiry", "credit limit", "visa", "mastercard", "amex",
+  ],
+  "dollarsign.arrow.circlepath": [
+    "自动扣款", "自動扣款", "自动还款", "自動還款", "自动转账", "自動轉賬", "自动缴费", "自動繳費", "定期扣款", "扣账", "扣賬", "扣款", "代扣", "直接扣款", "定投",
+    "autopay", "auto pay", "automatic payment", "automatic repayment", "automatic transfer", "automatic debit", "direct debit", "recurring payment", "standing order", "recurring investment",
+  ],
+  "dollarsign.square.fill": [
+    ...BANK_SEARCH_ALIASES, "储蓄", "儲蓄", "存款", "定期", "定存", "定期存款", "活期", "活期存款", "存款到期", "定存到期", "储蓄账户", "儲蓄賬戶", "利息到账", "利息到賬", "利息到帳",
+    "savings", "deposit", "time deposit", "term deposit", "fixed deposit", "current account", "savings account", "deposit maturity", "interest payment",
+  ],
+  "chart.xyaxis.line": [
+    ...BROKER_SEARCH_ALIASES, "基金", "基金净值", "基金淨值", "净值", "淨值", "基金分红", "基金分紅", "分红", "分紅", "股息", "派息", "债券", "債券", "定投", "赎回", "贖回",
+    "fund", "fund value", "net asset value", "nav", "etf", "dividend", "bond", "recurring investment", "redemption",
+  ],
+  "chart.line.uptrend.xyaxis": [
+    ...BROKER_SEARCH_ALIASES, "股票", "股息", "派息", "分红", "分紅", "债券", "債券", "基金", "证券账户", "證券賬戶",
+    "stock", "equity", "dividend", "bond", "fund", "securities account", "investment",
+  ],
+  "chart.line.downtrend.xyaxis": [
+    ...BROKER_SEARCH_ALIASES, "股票", "基金", "债券", "債券", "行情", "波动", "波動", "市场", "市場", "走势", "走勢", "涨跌", "漲跌", "回撤",
+    "stock", "fund", "bond", "market", "volatility", "price movement", "market movement", "drawdown",
+  ],
+  "chart.bar.xaxis": [
+    ...BROKER_SEARCH_ALIASES, "资产", "資產", "资产配置", "資產配置", "投资组合", "投資組合", "持仓", "持倉", "再平衡", "股票", "基金", "债券", "債券",
+    "asset", "asset allocation", "portfolio", "holdings", "rebalance", "rebalancing", "stock", "fund", "bond",
+  ],
+  "chart.pie.fill": ["资产配置", "資產配置", "预算", "預算", "理财", "理財", "investment portfolio", "asset allocation", "budget"],
+  "chart.bar.fill": ["收支", "报表", "報表", "流水", "记账", "記賬", "记帳", "financial report", "income expense", "cash flow", "bookkeeping"],
+  "checkmark.rectangle.stack.fill": [
+    "对账", "對賬", "對帳", "账目核对", "賬目核對", "帳目核對", "账单", "賬單", "帐单", "帳單", "银行对账", "銀行對賬", "银行流水", "銀行流水", "账单核对", "賬單核對", "收支核对", "收支核對", "记账", "記賬", "記帳",
+    "reconciliation", "account reconciliation", "bank reconciliation", "statement", "bank statement", "statement review", "bookkeeping", "income expense",
+  ],
+  "plus.forwardslash.minus": [
+    "利息", "利率", "年利率", "贷款", "貸款", "借款", "房贷", "房貸", "按揭", "分期", "利息计算", "利息計算", "贷款利息", "貸款利息", "等额本息", "等額本息", "本金", "手续费", "手續費",
+    "interest", "interest calculation", "interest rate", "apr", "loan", "mortgage", "installment", "instalment", "principal", "amortization", "fee calculation",
+  ],
+  "doc.plaintext.fill": [
+    "发票", "發票", "凭证", "憑證", "报销", "報銷", "收据", "收據", "电子发票", "電子發票", "税单", "稅單", "报销凭证", "報銷憑證",
+    "invoice", "receipt", "voucher", "reimbursement", "expense claim", "tax invoice", "e invoice", "e-invoice",
+  ],
+  "tray.and.arrow.down.fill": [
+    "结算", "結算", "到账", "到賬", "到帳", "入账", "入賬", "入帳", "工资", "工資", "薪资", "薪資", "薪水", "报销", "報銷", "退款", "退税", "退稅", "股息", "派息", "分红", "分紅", "收款",
+    "settlement", "deposit", "income", "salary", "payroll", "wages", "reimbursement", "refund", "tax refund", "dividend", "payout", "payment received",
+  ],
+  "arrow.down.circle.fill": [
+    "工资", "工資", "薪资", "薪資", "薪水", "报销", "報銷", "退款", "退税", "退稅", "股息", "派息", "分红", "分紅", "到账", "到賬", "到帳", "收款", "入账", "入賬", "入帳",
+    "salary", "payroll", "wages", "reimbursement", "refund", "tax refund", "dividend", "income", "payment received",
+  ],
+  "arrow.up.circle.fill": ["付款", "缴费", "繳費", "汇款", "匯款", "remittance", "outgoing payment", "bill payment"],
+  "arrow.left.arrow.right.circle.fill": [
+    "汇款", "匯款", "转账", "轉賬", "轉帳", "换汇", "換匯", "外汇", "外匯", "结汇", "結匯", "结算", "結算", "汇率", "匯率", "跨境", "收款", "支付宝", "支付寶", "微信支付",
+    "remittance", "transfer", "foreign exchange", "fx", "exchange rate", "settlement", "cross border payment", "alipay", "wechat pay", "paypal", "wise", "revolut",
+  ],
+  "wallet.pass.fill": ["电子钱包", "電子錢包", "支付钱包", "支付錢包", "payment wallet", "digital wallet", "支付宝", "支付寶", "微信支付", "alipay", "wechat pay", "paypal", "wise", "revolut"],
+  "doc.text.magnifyingglass": ["税款", "稅款", "税单", "稅單", "报税", "報稅", "缴税", "繳稅", "所得税", "所得稅", "tax payment", "tax return", "income tax", "tax assessment"],
+  "dollarsign.circle.fill": ["税款", "稅款", "缴税", "繳稅", "税费", "稅費", "手续费", "手續費", "服务费", "服務費", "tax payment", "tax fee", "service fee"],
+  "shield.fill": ["保费", "保費", "保险费", "保險費", "保险续费", "保險續費", "insurance premium", "premium payment", "insurance renewal"],
 }
 
 export function normalizeIconOverride(value: unknown): string | null {

@@ -169,6 +169,26 @@ test("main refresh still synchronizes reminders, and loading disables both refre
   assert.deepEqual(busy.events, [], "the reminder refresh callback ignores taps during an ongoing sync")
 })
 
+test("reminder update follows notes directly, with status below and all three hidden when disabled", () => {
+  for (const loading of [false, true]) {
+    const env = settings(true, loading)
+    const section = env.elements.find(node => node.type === "Section" && node.props.header && text(node.props.header) === "系统提醒事项")!
+    assert.ok(section)
+    const notesIndex = section.children.findIndex((node: Node) => node.type === "NavigationLink" && text(node) === "查看提醒事项备注")
+    assert.ok(notesIndex > 0)
+    assert.equal(section.children[notesIndex + 1].type, "Button")
+    assert.equal(section.children[notesIndex + 1].props.title, loading ? "正在更新…" : "立即更新")
+    assert.equal(section.children[notesIndex + 1].props.systemImage, "arrow.clockwise")
+    assert.equal(section.children[notesIndex + 2].type, "ReminderStatusRow")
+    assert.equal(section.children[notesIndex].props.destination.type, "ReminderNotesList")
+    assert.equal(section.children[notesIndex].props.destination.props.settings, env.state.settings)
+  }
+  const hidden = settings(false)
+  assert.ok(!hidden.elements.some(node => node.type === "NavigationLink" && text(node) === "查看提醒事项备注"))
+  assert.ok(!hidden.elements.some(node => node.type === "Button" && ["立即更新", "正在更新…"].includes(node.props.title)))
+  assert.ok(!hidden.elements.some(node => node.type === "ReminderStatusRow"))
+})
+
 test("reminder list navigation retains selection and remains hidden when integration is disabled", () => {
   const visible = settings(true)
   const link = visible.elements.find(node => node.type === "NavigationLink" && text(node).includes("提醒事项列表"))!
