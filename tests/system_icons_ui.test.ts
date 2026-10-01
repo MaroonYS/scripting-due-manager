@@ -26,16 +26,28 @@ function compiledFunction(file: string, name: string, extra: Record<string, any>
 }
 
 function harness(file: string, name: string, extra: Record<string, any> = {}) {
-  const slots: any[] = []
+  const slots: any[] = [], pending: (() => void)[] = [], writes: number[] = []
   let cursor = 0
   const component = compiledFunction(file, name, { ...extra,
     useState: (initial: any) => {
       const index = cursor++
       if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial
-      return [slots[index], (next: any) => { slots[index] = typeof next === "function" ? next(slots[index]) : next }]
+      return [slots[index], (next: any) => { writes.push(index); slots[index] = typeof next === "function" ? next(slots[index]) : next }]
+    },
+    useEffect: (effect: () => (() => void) | void, deps: any[]) => {
+      const index = cursor++, previous = slots[index]
+      if (!previous || deps.some((value, position) => value !== previous.deps[position])) {
+        slots[index] = { deps }
+        pending.push(() => { previous?.cleanup?.(); slots[index].cleanup = effect() })
+      }
     },
   })
-  return (props: any) => { cursor = 0; return component(props) }
+  return Object.assign((props: any) => {
+    cursor = 0
+    const root = component(props)
+    while (pending.length) pending.shift()!()
+    return root
+  }, { writes, dispose: () => { for (const slot of slots) slot?.cleanup?.() } })
 }
 
 const iconNames = (root: any) => nodes(root).filter(node => node.type === "Button" && node.props.key).map(node => node.props.key)
@@ -96,8 +108,8 @@ test("recommendations stay stable while previewing and empty searches never choo
 
 function pickerEnvironment(options: { fail?: boolean; deferred?: boolean } = {}) {
   const events: any[] = [], automatic = icons.resolveReminderIcon("续订服务", "Work", "Spotify Premium")
-  let finish: (() => void) | undefined
-  const pending = new Promise<void>(resolve => { finish = resolve })
+  let finish: (() => void) | undefined, reject: ((error: Error) => void) | undefined
+  const pending = new Promise<void>((resolve, fail) => { finish = resolve; reject = fail })
   const render = harness("system_icon_picker.tsx", "SystemIconPicker", {
     Navigation: { useDismiss: () => () => events.push("dismiss") },
     Dialog: { alert: async (value: any) => events.push(["alert", value.title]) },
@@ -109,7 +121,8 @@ function pickerEnvironment(options: { fail?: boolean; deferred?: boolean } = {})
       if (options.deferred) await pending
     },
   }
-  return { events, automatic, render: () => render(props), finish: () => finish!() }
+  return { events, automatic, render: () => render(props), finish: () => finish!(),
+    reject: () => reject!(Error("save failed")), dispose: render.dispose, writes: render.writes }
 }
 
 test("a shared picker draft never invokes the parent callback and Cancel discards it", () => {
@@ -162,8 +175,42 @@ test("a failed confirmation leaves the selected draft open for retry", async () 
   assert.equal(nodes(root).find(node => node.type === "SystemIconThemes")!.props.value, "wallet.pass.fill")
 })
 
-function itemEditorEnvironment(source: "manual" | "reminder", options: { fail?: boolean; override?: boolean; refreshFail?: boolean } = {}) {
+test("leaving a picker suppresses late success, failure and retained confirmation actions", async () => {
+  for (const fail of [false, true]) {
+    const env = pickerEnvironment({ deferred: true }), root = env.render()
+    root.props.toolbar.confirmationAction.props.action(); await flush()
+    env.dispose()
+    const writesAtExit = env.writes.length
+    root.props.toolbar.confirmationAction.props.action()
+    choose(root, "wallet.pass.fill")
+    automaticButton(root).props.action()
+    root.props.toolbar.cancellationAction.props.action()
+    if (fail) env.reject(); else env.finish()
+    await flush()
+    assert.deepEqual(env.events, [["confirm", "creditcard.fill"]], "accepted work finishes without touching the exited UI")
+    assert.equal(env.writes.length, writesAtExit)
+    root.props.toolbar.confirmationAction.props.action(); await flush()
+    assert.deepEqual(env.events, [["confirm", "creditcard.fill"]])
+  }
+})
+
+test("cancelled picker actions cannot confirm or dismiss a later screen", async () => {
+  const env = pickerEnvironment(), root = env.render()
+  root.props.toolbar.cancellationAction.props.action()
+  const writesAtCancel = env.writes.length
+  choose(root, "wallet.pass.fill")
+  automaticButton(root).props.action()
+  root.props.toolbar.confirmationAction.props.action()
+  root.props.toolbar.cancellationAction.props.action()
+  await flush()
+  assert.deepEqual(env.events, ["dismiss"])
+  assert.equal(env.writes.length, writesAtCancel)
+})
+
+function itemEditorEnvironment(source: "manual" | "reminder", options: { fail?: boolean; override?: boolean; refreshFail?: boolean; refreshDeferred?: boolean } = {}) {
   const state = defaultState(), events: any[] = []
+  let finish!: () => void, reject!: (error: Error) => void
+  const pending = new Promise<void>((resolve, fail) => { finish = resolve; reject = fail })
   const manual: ManualDueItem = { id: "same-id", title: "Monthly", kind: "subscription", iconName: "car.fill",
     dueDate: "2026-09-30", includesTime: false, hour: 9, minute: 0, remindBeforeDays: 3,
     recurrence: null, amount: "25", note: "Keep", enabled: true, createdAt: 1, updatedAt: 2 }
@@ -176,14 +223,19 @@ function itemEditorEnvironment(source: "manual" | "reminder", options: { fail?: 
     Navigation: { useDismiss: () => () => events.push("dismiss") },
     updateItemIconChoice: (...args: any[]) => { events.push(["reminder-save", ...args]); if (options.fail) throw Error("storage failed"); return state },
     updateManualItemIcon: (...args: any[]) => { events.push(["manual-save", ...args]); if (options.fail) throw Error("storage failed"); return state },
-    reloadWidgetsAfterStorageWrite: async () => { events.push("reload"); if (options.refreshFail) throw Error("reload failed") },
+    reloadWidgetsAfterStorageWrite: async () => {
+      events.push("reload")
+      if (options.refreshFail) throw Error("reload failed")
+      if (options.refreshDeferred) await pending
+    },
     Dialog: { alert: async (value: any) => events.push(["alert", value.title]) },
   }
   const editor = harness("icon_library_view.tsx", "ItemIconEditor", globals)
   const picker = harness("system_icon_picker.tsx", "SystemIconPicker", globals)
   const props = { row, onChanged: (next: any) => { assert.deepEqual(next, state); events.push("changed") } }
   const wrapper = () => editor(props)
-  return { state, row, events, wrapper, render: () => picker(wrapper().props) }
+  return { state, row, events, wrapper, render: () => picker(wrapper().props),
+    dispose: () => { editor.dispose(); picker.dispose() }, finish, reject }
 }
 
 test("read-only reminders use an exact source-aware local CAS only after Save", async () => {
@@ -237,6 +289,26 @@ test("a persisted icon refresh failure reports saved status without retrying the
   env.render().props.toolbar.confirmationAction.props.action(); await flush()
   assert.deepEqual(env.events.map(event => Array.isArray(event) ? event[0] : event), ["reminder-save", "changed", "reload", "alert", "dismiss"])
   assert.deepEqual(env.events.at(-2), ["alert", "图标已保存"])
+})
+
+test("saved icons still finish refreshing after exit without late alerts or dismissals", async () => {
+  for (const fail of [false, true]) {
+    const env = itemEditorEnvironment("reminder", { refreshDeferred: true })
+    choose(env.render(), "wallet.pass.fill")
+    env.render().props.toolbar.confirmationAction.props.action(); await flush()
+    env.dispose()
+    if (fail) env.reject(Error("late reload failure")); else env.finish()
+    await flush()
+    assert.deepEqual(env.events.map(event => Array.isArray(event) ? event[0] : event), ["reminder-save", "changed", "reload"])
+    assert.equal(env.events.filter(event => Array.isArray(event) && event[0] === "reminder-save").length, 1)
+  }
+})
+
+test("an exited item editor rejects retained save callbacks without writing", async () => {
+  const env = itemEditorEnvironment("manual"), wrapper = env.wrapper()
+  env.dispose()
+  await wrapper.props.onConfirm("wallet.pass.fill")
+  assert.deepEqual(env.events, [])
 })
 
 test("library rows identify legacy manual choices and retain automatic symbol colors", () => {

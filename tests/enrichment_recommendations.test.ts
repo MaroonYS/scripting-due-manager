@@ -129,6 +129,7 @@ function harness(file: string, componentName: string) {
   let cursor = 0
   const bindings = { h, ...primitives, ...icons, recommendedSystemIcons,
     Navigation: { useDismiss: () => () => assert.fail("preview must not dismiss") },
+    useEffect: () => {},
     useState: (initial: any) => {
       const index = cursor++
       if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial

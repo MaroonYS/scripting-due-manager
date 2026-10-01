@@ -61,7 +61,11 @@ test("indexed icon search preserves multilingual normalization, AND terms and ca
   assert.equal(searchSystemIcons("").length, DUE_ICON_OPTIONS.length)
   assert.ok(searchSystemIcons("銀行").some(icon => icon.name === "building.columns.fill"))
   assert.ok(searchSystemIcons("ＷＡＬＬＥＴ").some(icon => icon.name === "wallet.pass.fill"))
-  assert.deepEqual(searchSystemIcons("Credit Card").map(icon => icon.name), ["creditcard.fill", "creditcard.and.123", "creditcard.trianglebadge.exclamationmark"])
+  const creditCards = searchSystemIcons("Credit Card")
+  for (const name of ["creditcard.fill", "creditcard.and.123", "creditcard.trianglebadge.exclamationmark"]) {
+    assert.ok(creditCards.some(icon => icon.name === name), `Credit Card: existing ${name} stays discoverable`)
+  }
+  assert.deepEqual(creditCards, DUE_ICON_OPTIONS.filter(icon => creditCards.includes(icon)), "card scene aliases retain catalog order")
   assert.equal(searchSystemIcons("wallet unknown-847291").length, 0)
   const results = searchSystemIcons("fill")
   assert.ok(results.length > 1)
@@ -110,8 +114,11 @@ test("two-letter Latin abbreviations require boundaries while longer and one-let
   for (const query of ["AI", "ai", "　ＡＩ　", "AI 数字服务"]) {
     assert.deepEqual(searchSystemIcons(query).map(icon => icon.name), ["sparkles"], query)
   }
-  assert.deepEqual(searchSystemIcons("ID card").map(icon => icon.name), ["person.text.rectangle.fill"])
-  assert.deepEqual(searchSystemIcons("ＩＤ card").map(icon => icon.name), ["person.text.rectangle.fill"])
+  const identityCards = searchSystemIcons("ID card")
+  assert.ok(identityCards.some(icon => icon.name === "person.text.rectangle.fill"), "the original identity card remains discoverable")
+  assert.ok(identityCards.every(icon => icon.group !== "财务"), "identity card terms must not match payment card scenes")
+  assert.deepEqual(identityCards, DUE_ICON_OPTIONS.filter(icon => identityCards.includes(icon)), "identity aliases retain catalog order")
+  assert.deepEqual(searchSystemIcons("ＩＤ card"), identityCards)
   assert.equal(searchSystemIcons("AI 财务").length, 0)
   assert.equal(searchSystemIcons("ID unknown-847291").length, 0)
   for (const query of ["TV", "ＴＶ"]) {

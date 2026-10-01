@@ -39,6 +39,7 @@ function editorHarness(options: { brand?: string; icon?: string; fail?: boolean;
       if (!(index in values)) values[index] = typeof initial === "function" ? initial() : initial
       return [values[index], (next: any) => { values[index] = typeof next === "function" ? next(values[index]) : next }]
     },
+    useEffect: () => undefined,
     recurrenceIntervalUnitLabel: () => "个月",
     loadState: () => structuredClone(state),
     upsertItem: (...args: any[]) => { events.push(["save",...args]); if (options.fail) throw Error("save failed"); return state },

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
-import { Button, HStack, Image, List, Navigation, Section, Spacer, Text, VStack, useState } from "scripting"
+import { Button, HStack, Image, List, Navigation, Section, Spacer, Text, VStack, useEffect, useState } from "scripting"
 import { resolveDueIcon } from "./icons"
 import type { ResolvedDueIcon } from "./icons"
 import { SystemIconThemes } from "./system_icon_themes"
@@ -16,18 +16,20 @@ export function SystemIconPicker({ title, kind, automatic, value, onConfirm, con
   const dismiss = Navigation.useDismiss()
   const [selected, setSelected] = useState(value)
   const [busy, setBusy] = useState(false)
-  const [gate] = useState(() => ({ busy: false }))
+  const [gate] = useState(() => ({ busy: false, active: true }))
+  useEffect(() => { gate.active = true; return () => { gate.active = false } }, [gate])
+  const select = (next: string | null) => { if (gate.active && !gate.busy) setSelected(next) }
   const preview = selected == null ? automatic : resolveDueIcon("", "custom", selected)
   const confirm = async () => {
-    if (gate.busy) return
+    if (gate.busy || !gate.active) return
     gate.busy = true; setBusy(true)
-    try { await onConfirm(selected); dismiss() }
-    catch (error) { await Dialog.alert({ title: "图标未保存", message: String(error) }) }
-    finally { gate.busy = false; setBusy(false) }
+    try { await onConfirm(selected); if (gate.active) { gate.active = false; dismiss() } }
+    catch (error) { if (gate.active) await Dialog.alert({ title: "图标未保存", message: String(error) }) }
+    finally { gate.busy = false; if (gate.active) setBusy(false) }
   }
   return <List listStyle="insetGroup" navigationTitle="选择事项图标" navigationBarTitleDisplayMode="inline" disabled={busy}
     toolbar={{
-      cancellationAction: <Button title="取消" disabled={busy} action={() => dismiss()} />,
+      cancellationAction: <Button title="取消" disabled={busy} action={() => { if (gate.active && !gate.busy) { gate.active = false; dismiss() } }} />,
       confirmationAction: <Button title={busy ? "正在保存…" : confirmLabel} disabled={busy} action={() => { void confirm() }} />,
     }}>
     <Section header={<Text>预览</Text>} footer={<Text>{footer}</Text>}>
@@ -38,7 +40,7 @@ export function SystemIconPicker({ title, kind, automatic, value, onConfirm, con
           <Text font="subheadline" foregroundStyle="secondaryLabel">{`${selected == null ? "自动匹配" : "手动指定"} · ${preview.label}`}</Text>
         </VStack>
       </HStack>
-      <Button buttonStyle="plain" action={() => setSelected(null)}>
+      <Button buttonStyle="plain" action={() => select(null)}>
         <HStack spacing={12} frame={{ minHeight: 44 }} contentShape="rect">
           <Image systemName={automatic.name} foregroundStyle={automatic.color} frame={{ width: 26 }} />
           <VStack alignment="leading" spacing={3}>
@@ -50,6 +52,6 @@ export function SystemIconPicker({ title, kind, automatic, value, onConfirm, con
         </HStack>
       </Button>
     </Section>
-    <SystemIconThemes value={selected} automaticName={automatic.name} title={title} kind={kind} onChanged={setSelected} />
+    <SystemIconThemes value={selected} automaticName={automatic.name} title={title} kind={kind} onChanged={select} />
   </List>
 }

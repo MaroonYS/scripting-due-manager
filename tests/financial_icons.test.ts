@@ -37,9 +37,9 @@ const includes = (query: string, expected: readonly string[]) => {
 }
 
 test("financial enrichment appends twelve native symbols and preserves every original catalog definition", () => {
-  assert.equal(DUE_ICON_OPTIONS.length, 200)
-  assert.equal(new Set(DUE_ICON_OPTIONS.map(icon => icon.name)).size, 200)
-  assert.deepEqual(DUE_ICON_OPTIONS.slice(188).map(icon => icon.name), FINANCIAL_ICONS.map(([name]) => name))
+  assert.equal(DUE_ICON_OPTIONS.length, 216)
+  assert.equal(new Set(DUE_ICON_OPTIONS.map(icon => icon.name)).size, 216)
+  assert.deepEqual(DUE_ICON_OPTIONS.slice(188, 200).map(icon => icon.name), FINANCIAL_ICONS.map(([name]) => name))
   assert.equal(createHash("sha256").update(JSON.stringify(DUE_ICON_OPTIONS.slice(0, 188))).digest("hex"),
     "d13888470bbd8d164fd66a288e2de34a5517bac68e5bde9c0d34dd854b64e65d", "the existing 188 names, labels, colors and order are unchanged")
 })

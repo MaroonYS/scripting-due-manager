@@ -9,6 +9,22 @@ export type IconSource = "manual" | "reminder"
 export interface ItemIconChoice { source: IconSource; itemID: string; iconID: string }
 export interface ItemIconEdit { iconID: string | null; expectedIconID: string | null }
 export const MAX_ITEM_ICON_CHOICES = 2000
+export type ItemIconChoiceIndex = ReadonlyMap<IconSource, ReadonlyMap<string, string>>
+
+/** Source-scoped Maps keep arbitrary IDs safe and preserve first-match semantics. */
+export function indexItemIconChoices(settings: { itemIconChoices?: ItemIconChoice[] } | undefined): ItemIconChoiceIndex {
+  const index = new Map<IconSource, Map<string, string>>()
+  for (const choice of settings?.itemIconChoices ?? []) {
+    let source = index.get(choice.source)
+    if (!source) { source = new Map(); index.set(choice.source, source) }
+    if (!source.has(choice.itemID)) source.set(choice.itemID, choice.iconID)
+  }
+  return index
+}
+
+export function indexedItemIconID(index: ItemIconChoiceIndex, source: IconSource, itemID: string): string | null {
+  return index.get(source)?.get(itemID) ?? null
+}
 
 export function validStoredIconID(value: unknown): value is string {
   return typeof value === "string" && /^sf:[a-z0-9.]{1,100}$/.test(value)
@@ -41,14 +57,9 @@ export function isKnownIconChoice(id: string | null) { return id == null || symb
 
 /** Display-only override: source identity, dates and permissions stay untouched. */
 export function withItemIconChoices(items: readonly DisplayDueItem[], settings: AppSettings): DisplayDueItem[] {
-  const choices = new Map<string, string>()
-  for (const choice of settings.itemIconChoices ?? []) {
-    const key = JSON.stringify([choice.source, choice.itemID])
-    // Keep the same first-match behavior as itemIconID, even for unnormalized input.
-    if (!choices.has(key)) choices.set(key, choice.iconID)
-  }
+  const choices = indexItemIconChoices(settings)
   return items.map(item => {
-    const symbol = symbolChoice(choices.get(JSON.stringify([item.source, item.id])))
+    const symbol = symbolChoice(indexedItemIconID(choices, item.source, item.id))
     return symbol ? { ...item, iconName: symbol.name, iconColor: symbol.color, iconIsExplicit: true } : item
   })
 }

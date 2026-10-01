@@ -3,7 +3,7 @@
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
 import { Button, HStack, Image, List, NavigationLink, Picker, Section, Spacer, Text, TextField, Toggle, VStack, useEffect, useState } from "scripting"
-import { itemIconID, symbolChoice } from "./icon_preferences"
+import { indexItemIconChoices, indexedItemIconID, itemIconID, symbolChoice } from "./icon_preferences"
 import type { IconSource } from "./icon_preferences"
 import { resolveDueIcon } from "./icons"
 import { SystemIconPicker } from "./system_icon_picker"
@@ -13,6 +13,37 @@ import { reloadWidgetsAfterStorageWrite } from "./widget_refresh"
 import type { AppSettings, AppState, DisplayDueItem, ManualDueItem } from "./types"
 
 type IconRow = { source: "manual"; item: ManualDueItem } | { source: "reminder"; item: DisplayDueItem }
+type SearchEntry = { row: IconRow; title?: string; note?: string; text?: string }
+export interface IconRowSearchIndex {
+  items: readonly ManualDueItem[]; reminders: readonly DisplayDueItem[]; includeReminders: boolean
+  entries: SearchEntry[]
+}
+
+/** Per-view, lazy text index. It is never persisted or shared between users/views. */
+export function createIconRowSearchIndex(state: AppState, reminders: DisplayDueItem[]): IconRowSearchIndex {
+  return { items: state.items, reminders, includeReminders: state.settings.includeReminders, entries: [
+    ...state.items.map(item => ({ row: { source: "manual" as const, item } })),
+    ...(state.settings.includeReminders ? reminders.map(item => ({ row: { source: "reminder" as const, item } })) : []),
+  ] }
+}
+
+function currentSearchIndex(index: IconRowSearchIndex, state: AppState, reminders: DisplayDueItem[]) {
+  return index.items === state.items && index.reminders === reminders
+    && index.includeReminders === state.settings.includeReminders
+    && index.entries.length === state.items.length + (state.settings.includeReminders ? reminders.length : 0)
+    && index.entries.every((entry, position) => entry.row.item === (position < state.items.length
+      ? state.items[position] : reminders[position - state.items.length]))
+}
+
+function searchableText(entry: SearchEntry) {
+  // Retain correctness even if an owning item is edited in place.
+  const { title, note } = entry.row.item
+  if (entry.text == null || entry.title !== title || entry.note !== note) {
+    entry.title = title; entry.note = note
+    entry.text = `${title} ${note}`.normalize("NFKC").toLowerCase()
+  }
+  return entry.text
+}
 
 function automaticIcon(row: IconRow) {
   return row.source === "manual" ? resolveDueIcon(row.item.title, row.item.kind)
@@ -28,16 +59,19 @@ export function iconRowAppearance(row: IconRow, settings: AppSettings) {
 }
 
 export function filterIconRows(state: AppState, reminders: DisplayDueItem[], query: string,
-  source: IconSource | "all", mode: "all" | "automatic" | "explicit", showHidden: boolean): IconRow[] {
+  source: IconSource | "all", mode: "all" | "automatic" | "explicit", showHidden: boolean,
+  prepared?: IconRowSearchIndex): IconRow[] {
   const term = query.normalize("NFKC").toLowerCase().trim()
-  const rows: IconRow[] = [
-    ...state.items.map(item => ({ source: "manual" as const, item })),
-    ...(state.settings.includeReminders ? reminders.map(item => ({ source: "reminder" as const, item })) : []),
-  ]
-  return rows.filter(row => (source === "all" || row.source === source)
+  const search = prepared && currentSearchIndex(prepared, state, reminders) ? prepared : createIconRowSearchIndex(state, reminders)
+  const choices = mode === "all" ? null : indexItemIconChoices(state.settings)
+  return search.entries.filter(entry => {
+    const row = entry.row
+    return (source === "all" || row.source === source)
     && (row.source !== "manual" || showHidden || row.item.enabled)
-    && `${row.item.title} ${row.item.note}`.normalize("NFKC").toLowerCase().includes(term)
-    && (mode === "all" || iconRowAppearance(row, state.settings).explicit === (mode === "explicit")))
+    && (!term || searchableText(entry).includes(term))
+    && (choices == null || (indexedItemIconID(choices, row.source, row.item.id) != null
+      || (row.source === "manual" && row.item.iconName != null)) === (mode === "explicit"))
+  }).map(entry => entry.row)
 }
 
 export function IconLibraryView({ state, onChanged }: { state: AppState; onChanged: (state?: AppState) => void }) {
@@ -51,8 +85,11 @@ export function IconLibraryView({ state, onChanged }: { state: AppState; onChang
   const [mode, setMode] = useState<"all" | "automatic" | "explicit">("all")
   const [showHidden, setShowHidden] = useState(false)
   const [page, setPage] = useState(0)
+  const [searchCache] = useState(() => ({ index: createIconRowSearchIndex(current, reminders) }))
+  const [lifecycle] = useState(() => ({ active: true }))
+  useEffect(() => { lifecycle.active = true; return () => { lifecycle.active = false } }, [lifecycle])
   useEffect(() => { setCurrent(state) }, [state])
-  const changed = (next?: AppState) => { const latest = next ?? loadState(); setCurrent(latest); onChanged(latest) }
+  const changed = (next?: AppState) => { if (!lifecycle.active) return; const latest = next ?? loadState(); setCurrent(latest); onChanged(latest) }
   const scope = JSON.stringify([current.settings.includeReminders, current.settings.reminderHorizonDays, current.settings.reminderCalendarIDs])
   useEffect(() => {
     let active = true
@@ -66,7 +103,8 @@ export function IconLibraryView({ state, onChanged }: { state: AppState; onChang
     }).catch(error => { if (active) { setLoading(false); setMessage(String(error)) } })
     return () => { active = false }
   }, [scope, attempt])
-  const rows = filterIconRows(current, reminders, query, source, mode, showHidden)
+  if (!currentSearchIndex(searchCache.index, current, reminders)) searchCache.index = createIconRowSearchIndex(current, reminders)
+  const rows = filterIconRows(current, reminders, query, source, mode, showHidden, searchCache.index)
   const pages = Math.max(1, Math.ceil(rows.length / 40)), currentPage = Math.min(page, pages - 1)
   const visible = rows.slice(currentPage * 40, (currentPage + 1) * 40)
   const emptyMessage = loading && source !== "manual" ? "正在读取提醒事项…"
@@ -115,6 +153,8 @@ function ItemIconLibraryRow({ row, settings }: { row: IconRow; settings: AppSett
 }
 
 export function ItemIconEditor({ row, onChanged }: { row: IconRow; onChanged: (state?: AppState) => void }) {
+  const [lifecycle] = useState(() => ({ active: true }))
+  useEffect(() => { lifecycle.active = true; return () => { lifecycle.active = false } }, [lifecycle])
   const [initial] = useState(() => {
     const state = loadState()
     const item = row.source === "manual" ? state.items.find(item => item.id === row.item.id) : row.item
@@ -125,13 +165,14 @@ export function ItemIconEditor({ row, onChanged }: { row: IconRow; onChanged: (s
       value: symbolChoice(iconID)?.name ?? (row.source === "manual" ? (item as ManualDueItem).iconName : null) }
   })
   const save = async (value: string | null) => {
+    if (!lifecycle.active) return
     if (!initial) throw Error("事项已被移除，请返回后重新打开。")
     if (value === initial.value && (initial.iconID == null || symbolChoice(initial.iconID) != null)) { onChanged(loadState()); return }
     const next = row.source === "manual"
       ? updateManualItemIcon(row.item.id, value, initial.expectedUpdatedAt!, initial.iconID)
       : updateItemIconChoice("reminder", row.item.id, { iconID: value == null ? null : `sf:${value}`, expectedIconID: initial.iconID })
     try { onChanged(next); await reloadWidgetsAfterStorageWrite() }
-    catch (error) { await Dialog.alert({ title: "图标已保存", message: `组件刷新请求未完成，可在首页重试。\n${String(error)}` }) }
+    catch (error) { if (lifecycle.active) await Dialog.alert({ title: "图标已保存", message: `组件刷新请求未完成，可在首页重试。\n${String(error)}` }) }
   }
   return <SystemIconPicker title={initial?.item.title ?? row.item.title} kind={row.source === "manual" ? (initial?.item as ManualDueItem | undefined)?.kind ?? row.item.kind : "reminder"}
     automatic={initial?.automatic ?? automaticIcon(row)} value={initial?.value ?? null}

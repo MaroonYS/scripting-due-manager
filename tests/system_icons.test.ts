@@ -90,13 +90,13 @@ test("unknown or malformed non-retired choices remain validation errors, not sil
   for (const raw of [[{ ...choice, iconID: "https://example.com/image.png" }], [choice, choice], [{ ...choice, source: "other" }], [null]]) assert.throws(() => normalizeItemIconChoices(raw))
 })
 
-test("the expanded SF collection preserves original names, has 200 unique symbols and searchable themes", () => {
-  assert.equal(DUE_ICON_OPTIONS.length, 200)
-  assert.equal(new Set(DUE_ICON_OPTIONS.map(icon => icon.name)).size, 200)
+test("the expanded SF collection preserves original names, has 216 unique symbols and searchable themes", () => {
+  assert.equal(DUE_ICON_OPTIONS.length, 216)
+  assert.equal(new Set(DUE_ICON_OPTIONS.map(icon => icon.name)).size, 216)
   assert.deepEqual(DUE_ICON_OPTIONS.slice(182, 188).map(icon => icon.name), [
     "person.text.rectangle.fill", "checkmark.seal.fill", "figure.pool.swim", "mouth.fill", "doc.text.image.fill", "wrench.adjustable.fill",
   ])
-  assert.deepEqual(DUE_ICON_OPTIONS.slice(188).map(icon => icon.name), [
+  assert.deepEqual(DUE_ICON_OPTIONS.slice(188, 200).map(icon => icon.name), [
     "creditcard.and.123", "creditcard.trianglebadge.exclamationmark", "dollarsign.arrow.circlepath", "dollarsign.square.fill",
     "chart.xyaxis.line", "chart.line.downtrend.xyaxis", "chart.bar.xaxis", "building.columns.circle.fill",
     "checkmark.rectangle.stack.fill", "plus.forwardslash.minus", "doc.plaintext.fill", "tray.and.arrow.down.fill",

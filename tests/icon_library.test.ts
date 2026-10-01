@@ -6,7 +6,7 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
 import { resolveDueIcon } from "../到期管家/src/icons.ts"
-import { itemIconID, symbolChoice } from "../到期管家/src/icon_preferences.ts"
+import { indexItemIconChoices, indexedItemIconID, itemIconID, symbolChoice } from "../到期管家/src/icon_preferences.ts"
 import { defaultState } from "../到期管家/src/storage.ts"
 import type { AppState, DisplayDueItem, ManualDueItem } from "../到期管家/src/types.ts"
 
@@ -38,7 +38,7 @@ function harness(initial: AppState = defaultState(), extra: Record<string, any> 
   const requests: ReturnType<typeof deferred<any>>[] = []
   let cursor = 0
   const bindings = {
-    h, resolveDueIcon, itemIconID, symbolChoice,
+    h, resolveDueIcon, indexItemIconChoices, indexedItemIconID, itemIconID, symbolChoice,
     ...Object.fromEntries(["Button", "HStack", "Image", "List", "NavigationLink", "Picker", "Section", "Spacer", "Text", "TextField", "Toggle", "VStack", "SystemIconPicker"].map(name => [name, name])),
     useState: (value: any) => {
       const index = cursor++
@@ -64,7 +64,7 @@ function harness(initial: AppState = defaultState(), extra: Record<string, any> 
   const source = readFileSync(new URL("../到期管家/src/icon_library_view.tsx", import.meta.url), "utf8")
     .replace(/^import .*$/gm, "").replace(/^export /gm, "")
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(source)
-  const components = new Function(...Object.keys(bindings), `${compiled}\nreturn { IconLibraryView, ItemIconEditor, filterIconRows, iconRowAppearance }`)(...Object.values(bindings))
+  const components = new Function(...Object.keys(bindings), `${compiled}\nreturn { IconLibraryView, ItemIconEditor, filterIconRows, iconRowAppearance, createIconRowSearchIndex }`)(...Object.values(bindings))
   return {
     ...components, reads, requests, changed, writes,
     render: (state = initial) => {
@@ -75,7 +75,9 @@ function harness(initial: AppState = defaultState(), extra: Record<string, any> 
     },
     renderEditor: (row: any, onChanged: (next: AppState) => void) => {
       cursor = 0
-      return components.ItemIconEditor({ row, onChanged }) as Node
+      const result = components.ItemIconEditor({ row, onChanged }) as Node
+      while (pending.length) pending.shift()!()
+      return result
     },
     dispose: () => { for (const slot of slots) slot?.cleanup?.() },
   }
@@ -191,6 +193,16 @@ test("leaving the icon library prevents late read results from updating its stat
   const writesAtExit = env.writes.length
   env.requests[0].resolve({ items: [reminder("late")], error: null, fromCache: false }); await flush()
   assert.equal(env.writes.length, writesAtExit)
+})
+
+test("leaving the icon library ignores a retained child change callback", () => {
+  const state = { ...defaultState(), items: [manual("child")] }, env = harness(state)
+  const root = env.render(), link = nodes(root).find(node => node.type === "NavigationLink")!
+  env.dispose()
+  const writesAtExit = env.writes.length
+  link.props.destination.props.onChanged(state)
+  assert.equal(env.writes.length, writesAtExit)
+  assert.deepEqual(env.changed, [])
 })
 
 test("icon library paginates 85 items, resets after filters and clamps when available rows shrink", () => {

@@ -3,6 +3,7 @@
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
 import { ITEM_KIND_DEFINITIONS } from "./item_kinds"
+import { travelCardScene } from "./travel_card_scenes"
 import type { ItemKind, ReminderNoteIconConfidence } from "./types"
 
 export type DueIconGroup =
@@ -253,6 +254,22 @@ export const DUE_ICON_OPTIONS: DueIconDefinition[] = [
   { name: "plus.forwardslash.minus", label: "利息计算", color: "systemPink", group: "财务" },
   { name: "doc.plaintext.fill", label: "发票凭证", color: "systemBlue", group: "财务" },
   { name: "tray.and.arrow.down.fill", label: "结算到账", color: "systemGreen", group: "财务" },
+  { name: "bed.double.circle.fill", label: "酒店住宿", color: "systemIndigo", group: "出行旅行" },
+  { name: "building.2.crop.circle.fill", label: "酒店大楼", color: "systemIndigo", group: "出行旅行" },
+  { name: "key.horizontal.fill", label: "房卡门钥", color: "systemOrange", group: "出行旅行" },
+  { name: "suitcase.cart.fill", label: "行李托运", color: "systemTeal", group: "出行旅行" },
+  { name: "airplane.departure", label: "出发登机", color: "systemBlue", group: "出行旅行" },
+  { name: "airplane.arrival", label: "抵达接机", color: "systemTeal", group: "出行旅行" },
+  { name: "airplane.circle.fill", label: "航空里程", color: "systemBlue", group: "出行旅行" },
+  { name: "binoculars.fill", label: "景点观光", color: "systemGreen", group: "出行旅行" },
+  { name: "figure.seated.seatbelt", label: "机舱座位", color: "systemIndigo", group: "出行旅行" },
+  { name: "fork.knife.circle.fill", label: "酒店餐饮", color: "systemOrange", group: "出行旅行" },
+  { name: "lanyardcard.fill", label: "证件挂卡", color: "systemIndigo", group: "工作效率" },
+  { name: "person.crop.circle.badge.checkmark", label: "身份核验", color: "systemGreen", group: "工作效率" },
+  { name: "person.crop.square.filled.and.at.rectangle", label: "会员证卡", color: "systemPurple", group: "工作效率" },
+  { name: "tram.circle.fill", label: "铁路通勤", color: "systemOrange", group: "出行旅行" },
+  { name: "globe.europe.africa.fill", label: "欧洲旅行", color: "systemTeal", group: "出行旅行" },
+  { name: "globe.americas.fill", label: "美洲旅行", color: "systemTeal", group: "出行旅行" },
 ]
 
 export type DueIconLabelLanguage = "en" | "zh-Hans" | "zh-Hant"
@@ -330,6 +347,22 @@ const ENGLISH_ICON_LABELS: Record<string, string> = {
   "plus.forwardslash.minus": "Interest Calculations",
   "doc.plaintext.fill": "Invoices & Receipts",
   "tray.and.arrow.down.fill": "Settlement & Deposits",
+  "bed.double.circle.fill": "Hotel Stays",
+  "building.2.crop.circle.fill": "Hotels & Resorts",
+  "key.horizontal.fill": "Room Keys",
+  "suitcase.cart.fill": "Checked Baggage",
+  "airplane.departure": "Departures & Boarding",
+  "airplane.arrival": "Arrivals & Pickup",
+  "airplane.circle.fill": "Airline Miles",
+  "binoculars.fill": "Sightseeing",
+  "figure.seated.seatbelt": "Cabin & Seats",
+  "fork.knife.circle.fill": "Hotel Dining",
+  "lanyardcard.fill": "ID Badges",
+  "person.crop.circle.badge.checkmark": "Identity Checks",
+  "person.crop.square.filled.and.at.rectangle": "Membership Cards",
+  "tram.circle.fill": "Rail & Commuting",
+  "globe.europe.africa.fill": "Europe & Africa Travel",
+  "globe.americas.fill": "Americas Travel",
   "creditcard.fill": "Credit Card",
   "building.columns.fill": "Banking",
   "banknote.fill": "Payments",
@@ -503,6 +536,7 @@ const TRADITIONAL_ICON_CHARACTERS: Record<string, string> = {
   "篮": "籃", "闹": "鬧", "钟": "鐘", "杂": "雜", "志": "誌", "驾": "駕", "业": "業",
   "贷": "貸", "检": "檢", "养": "養", "续": "續", "复": "復",
   "净": "淨", "对": "對", "凭": "憑", "结": "結",
+  "楼": "樓", "钥": "鑰", "达": "達", "点": "點", "观": "觀", "舱": "艙", "挂": "掛", "验": "驗",
 }
 
 type IconRule = {
@@ -1512,6 +1546,54 @@ const BROKER_SEARCH_ALIASES = [
   "ibkr", "interactive brokers", "盈透",
 ] as const
 
+// These scene/brand words only help users browse native, unbranded SF Symbols.
+// They do not prove a booking, card issuer, loyalty tier or entitlement, and are
+// deliberately never fed into title, Reminder-note or list inference rules.
+const HOTEL_SEARCH_ALIASES = [
+  "hotel", "hotels", "resort", "酒店", "饭店", "飯店", "旅馆", "旅館", "度假村",
+  "hilton", "希尔顿", "希爾頓", "marriott", "万豪", "萬豪", "bonvoy", "万豪旅享家", "萬豪旅享家",
+  "hyatt", "凯悦", "凱悅", "ihg", "intercontinental", "洲际", "洲際", "accor", "雅高",
+  "wyndham", "温德姆", "溫德姆", "choice hotels", "choice", "精选酒店", "精選酒店",
+] as const
+
+const AIRLINE_SEARCH_ALIASES = [
+  "airline", "airlines", "flight", "航班", "航空", "航司", "飞机", "飛機",
+  "cathay", "cathay pacific", "国泰", "國泰", "asia miles", "asiamiles", "亚洲万里通", "亞洲萬里通",
+  "avios", "british airways", "ba", "英国航空", "英國航空", "英航", "iberia", "伊比利亚", "伊比利亞",
+  "delta", "skymiles", "达美", "達美", "united", "mileageplus", "美联航", "美聯航", "联合航空", "聯合航空",
+  "ana", "全日空", "jal", "japan airlines", "日航", "日本航空",
+  "sq", "singapore airlines", "krisflyer", "新航", "新加坡航空",
+  "emirates", "skywards", "阿联酋航空", "阿聯酋航空", "qantas", "澳航", "澳洲航空",
+  "aeroplan", "air canada", "加拿大航空", "加航", "qatar airways", "卡塔尔航空", "卡塔爾航空",
+] as const
+
+const HOTEL_CARD_SEARCH_ALIASES = [
+  ...HOTEL_SEARCH_ALIASES, "酒店信用卡", "酒店类信用卡", "酒店類信用卡", "酒店联名卡", "酒店聯名卡", "酒店卡",
+  "旅享家信用卡", "酒店积分", "酒店積分", "房晚", "免费房晚", "免費房晚", "住宿权益", "住宿權益",
+  "hotel credit card", "hotel card", "hotel co branded card", "hotel co-branded card", "hotel points", "free night", "award night", "hotel rewards",
+] as const
+
+const AIRLINE_CARD_SEARCH_ALIASES = [
+  ...AIRLINE_SEARCH_ALIASES, "航空信用卡", "航班信用卡", "航班类信用卡", "航班類信用卡", "航空类信用卡", "航空類信用卡",
+  "航空联名卡", "航空聯名卡", "航空卡", "航班卡", "里程卡", "航空里程", "飞行里程", "飛行里程", "里数", "里數",
+  "airline credit card", "flight credit card", "airline card", "airline co branded card", "airline co-branded card", "miles", "air miles", "frequent flyer", "frequent flier", "mileage", "loyalty points",
+] as const
+
+const TRAVEL_CARD_SEARCH_ALIASES = [
+  "旅行信用卡", "旅游信用卡", "旅遊信用卡", "旅行卡", "旅行类信用卡", "旅行類信用卡", "旅游卡", "旅遊卡", "旅行联名卡", "旅行聯名卡",
+  "travel credit card", "travel card", "travel rewards", "travel points", "travel benefits", "机场贵宾室", "機場貴賓室", "机场休息室", "機場休息室", "airport lounge", "priority pass", "龙腾", "龍騰", "loungekey",
+] as const
+
+const REWARD_CARD_SEARCH_ALIASES = [
+  "返现卡", "返現卡", "现金回赠", "現金回贈", "现金返还", "現金返還", "奖励卡", "獎勵卡", "积分卡", "積分卡", "卡片积分", "卡片積分", "信用卡积分", "信用卡積分",
+  "cashback card", "cash back card", "cashback", "cash back", "reward card", "rewards card", "reward points", "card points",
+] as const
+
+const RAIL_CARD_SEARCH_ALIASES = [
+  "铁路卡", "鐵路卡", "铁路信用卡", "鐵路信用卡", "铁路联名卡", "鐵路聯名卡", "火车卡", "火車卡", "通勤卡", "交通卡",
+  "railcard", "rail card", "rail credit card", "railway card", "train card", "commuter card", "transit card",
+] as const
+
 const SYSTEM_ICON_SEARCH_ALIASES: Record<string, readonly string[]> = {
   "house.fill": [
     "租金", "租屋", "租房", "房租", "物业", "物業", "物业管理", "物業管理", "管理费", "管理費",
@@ -1520,6 +1602,7 @@ const SYSTEM_ICON_SEARCH_ALIASES: Record<string, readonly string[]> = {
   ],
   "person.crop.rectangle.fill": [
     "身份证明", "身份證明", "证件", "證件", "identification", "identity documents",
+    "居留证", "居留證", "居留卡", "居民证", "居民證", "residence permit", "residency card", "resident card", "identity card", "id card",
   ],
   "person.text.rectangle.fill": [
     "驾照", "駕照", "驾驶证", "駕駛證", "身份证", "身份證", "证件", "證件",
@@ -1527,6 +1610,7 @@ const SYSTEM_ICON_SEARCH_ALIASES: Record<string, readonly string[]> = {
   ],
   "doc.text.image.fill": [
     "护照", "護照", "签证", "簽證", "旅行签证", "旅行簽證", "出境", "证件", "證件", "passport", "visa", "travel visa", "immigration",
+    "通行证", "通行證", "旅行证件", "旅行證件", "出入境", "entry permit", "travel document", "travel documents",
   ],
   "checkmark.seal.fill": [
     "证书", "證書", "资格", "資格", "资格证", "資格證", "执照", "執照", "资格认证", "資格認證", "certificate", "certification", "qualification", "professional license",
@@ -1571,12 +1655,14 @@ const SYSTEM_ICON_SEARCH_ALIASES: Record<string, readonly string[]> = {
   "building.columns.fill": [...BANK_SEARCH_ALIASES, "存款", "银行账户", "銀行賬戶", "bank account", "deposit"],
   "building.columns.circle.fill": [...BANK_SEARCH_ALIASES, ...BROKER_SEARCH_ALIASES, "金融机构", "金融機構", "financial institution"],
   "creditcard.fill": [
+    ...HOTEL_CARD_SEARCH_ALIASES, ...AIRLINE_CARD_SEARCH_ALIASES, ...TRAVEL_CARD_SEARCH_ALIASES, ...REWARD_CARD_SEARCH_ALIASES, ...RAIL_CARD_SEARCH_ALIASES,
     "卡片", "银行卡", "銀行卡", "信用卡年费", "信用卡年費", "年费", "年費", "卡费", "卡費", "卡账单", "卡賬單", "信用卡账单", "信用卡賬單",
     "信用卡还款", "信用卡還款", "还款", "還款", "分期", "信用卡分期", "银行卡到期", "銀行卡到期",
     "annual fee", "card fee", "card statement", "credit card statement", "card repayment", "credit card repayment", "installment", "instalment", "card expiry",
     "visa", "mastercard", "master card", "amex", "american express", "银联", "銀聯", "unionpay",
   ],
   "creditcard.and.123": [
+    ...HOTEL_CARD_SEARCH_ALIASES, ...AIRLINE_CARD_SEARCH_ALIASES, ...TRAVEL_CARD_SEARCH_ALIASES, ...REWARD_CARD_SEARCH_ALIASES, ...RAIL_CARD_SEARCH_ALIASES,
     ...BANK_SEARCH_ALIASES, "信用卡", "银行卡", "銀行卡", "借记卡", "借記卡", "卡号", "卡號", "卡片到期", "年费", "年費", "卡账单", "卡賬單", "账单日", "賬單日",
     "还款", "還款", "还款日", "還款日", "分期", "credit card", "debit card", "card number", "card expiry", "annual fee", "card statement", "statement date", "repayment", "installment", "instalment",
     "visa", "mastercard", "master card", "amex", "american express", "银联", "銀聯", "unionpay",
@@ -1636,10 +1722,70 @@ const SYSTEM_ICON_SEARCH_ALIASES: Record<string, readonly string[]> = {
     "汇款", "匯款", "转账", "轉賬", "轉帳", "换汇", "換匯", "外汇", "外匯", "结汇", "結匯", "结算", "結算", "汇率", "匯率", "跨境", "收款", "支付宝", "支付寶", "微信支付",
     "remittance", "transfer", "foreign exchange", "fx", "exchange rate", "settlement", "cross border payment", "alipay", "wechat pay", "paypal", "wise", "revolut",
   ],
-  "wallet.pass.fill": ["电子钱包", "電子錢包", "支付钱包", "支付錢包", "payment wallet", "digital wallet", "支付宝", "支付寶", "微信支付", "alipay", "wechat pay", "paypal", "wise", "revolut"],
+  "wallet.pass.fill": [
+    ...HOTEL_CARD_SEARCH_ALIASES, ...AIRLINE_CARD_SEARCH_ALIASES, ...TRAVEL_CARD_SEARCH_ALIASES, ...RAIL_CARD_SEARCH_ALIASES,
+    "电子钱包", "電子錢包", "支付钱包", "支付錢包", "payment wallet", "digital wallet", "支付宝", "支付寶", "微信支付", "alipay", "wechat pay", "paypal", "wise", "revolut",
+    "登机牌", "登機牌", "电子机票", "電子機票", "房卡", "会员卡", "會員卡", "boarding pass", "digital ticket", "room card", "membership card",
+  ],
   "doc.text.magnifyingglass": ["税款", "稅款", "税单", "稅單", "报税", "報稅", "缴税", "繳稅", "所得税", "所得稅", "tax payment", "tax return", "income tax", "tax assessment"],
   "dollarsign.circle.fill": ["税款", "稅款", "缴税", "繳稅", "税费", "稅費", "手续费", "手續費", "服务费", "服務費", "tax payment", "tax fee", "service fee"],
-  "shield.fill": ["保费", "保費", "保险费", "保險費", "保险续费", "保險續費", "insurance premium", "premium payment", "insurance renewal"],
+  "shield.fill": [
+    "保费", "保費", "保险费", "保險費", "保险续费", "保險續費", "insurance premium", "premium payment", "insurance renewal",
+    "旅行保险", "旅行保險", "旅游保险", "旅遊保險", "航班延误", "航班延誤", "旅行保障", "租车保险", "租車保險", "travel insurance", "trip insurance", "flight delay", "rental insurance",
+  ],
+  "bed.double.circle.fill": [
+    ...HOTEL_CARD_SEARCH_ALIASES, "住宿", "订房", "訂房", "酒店预订", "酒店預訂", "预订酒店", "預訂酒店", "订酒店", "訂酒店", "入住", "退房", "房晚", "住宿券", "免费住宿", "免費住宿",
+    "accommodation", "hotel booking", "book hotel", "hotel reservation", "checkin", "check-in", "check in", "checkout", "check-out", "check out", "hotel stay", "free stay", "night certificate",
+  ],
+  "building.2.crop.circle.fill": [
+    ...HOTEL_CARD_SEARCH_ALIASES, "住宿", "酒店预订", "酒店預訂", "入住", "退房", "客房", "度假酒店", "宾馆", "賓館", "酒店集团", "酒店集團",
+    "accommodation", "hotel booking", "checkin", "check-in", "check in", "checkout", "check-out", "check out", "guest room", "hotel chain",
+  ],
+  "key.horizontal.fill": [
+    "房卡", "门卡", "門卡", "门钥", "門鑰", "酒店房卡", "酒店钥匙", "酒店鑰匙", "入住", "退房", "room key", "room card", "hotel key", "hotel check in", "hotel check out", "check-in", "check-out",
+  ],
+  "suitcase.cart.fill": [
+    "行李", "托运", "托運", "行李托运", "行李托運", "行李额", "行李額", "行李领取", "行李領取", "机场行李", "機場行李", "登机行李", "登機行李",
+    "baggage", "luggage", "checked baggage", "baggage allowance", "baggage claim", "airport luggage", "carry on", "carry-on",
+  ],
+  "suitcase.rolling.fill": [...HOTEL_SEARCH_ALIASES, "行李", "行李箱", "baggage", "luggage", "travel packing", "旅行打包"],
+  "airplane": [...AIRLINE_CARD_SEARCH_ALIASES, ...TRAVEL_CARD_SEARCH_ALIASES, "机场", "機場", "机票", "機票", "航旅", "airport", "air ticket", "flight ticket", "boarding pass"],
+  "airplane.departure": [
+    "航班", "机场", "機場", "出发", "出發", "登机", "登機", "登机牌", "登機牌", "登机口", "登機口", "起飞", "起飛", "departure", "departures", "boarding", "boarding pass", "boarding gate", "takeoff", "airport check in", "flight departure",
+  ],
+  "airplane.arrival": [
+    "航班", "机场", "機場", "抵达", "抵達", "到达", "到達", "接机", "接機", "航班落地", "到港", "arrival", "arrivals", "airport pickup", "airport pick up", "airport transfer", "flight landing",
+  ],
+  "airplane.circle.fill": [...AIRLINE_CARD_SEARCH_ALIASES, ...TRAVEL_CARD_SEARCH_ALIASES, "航空会员", "航空會員", "里程兑换", "里程兌換", "航空积分", "航空積分", "award flight", "miles redemption", "airline loyalty", "airline membership"],
+  "binoculars.fill": ["景点", "景點", "观光", "觀光", "游览", "遊覽", "旅行观光", "旅行觀光", "景区", "景區", "门票", "門票", "sightseeing", "attraction", "tour", "tourism", "travel excursion"],
+  "figure.seated.seatbelt": [
+    "座位", "选座", "選座", "机舱", "機艙", "升舱", "升艙", "商务舱", "商務艙", "头等舱", "頭等艙", "经济舱", "經濟艙", "机场休息室", "機場休息室", "机场贵宾室", "機場貴賓室",
+    "seat", "seat selection", "cabin", "upgrade", "business class", "first class", "economy class", "airport lounge", "priority pass", "loungekey",
+  ],
+  "fork.knife.circle.fill": [
+    ...HOTEL_SEARCH_ALIASES, "酒店餐饮", "酒店餐飲", "酒店早餐", "早餐权益", "早餐權益", "免费早餐", "免費早餐", "行政酒廊", "餐饮权益", "餐飲權益", "酒店餐券", "餐饮券", "餐飲券",
+    "hotel dining", "hotel breakfast", "breakfast benefit", "free breakfast", "executive lounge", "dining benefit", "dining voucher", "food credit",
+  ],
+  "lanyardcard.fill": [
+    "证件", "證件", "工牌", "员工卡", "員工卡", "工作证", "工作證", "门禁卡", "門禁卡", "访客卡", "訪客卡", "通行证", "通行證", "证件挂卡", "證件掛卡", "id badge", "id card", "staff card", "employee badge", "access card", "visitor pass", "lanyard",
+  ],
+  "person.crop.circle.badge.checkmark": [
+    "身份", "身份核验", "身份核驗", "身份认证", "身份認證", "实名认证", "實名認證", "证件核验", "證件核驗", "身份证", "身份證", "居留证", "居留證", "居留卡", "identity", "identity verification", "identity check", "identification", "id card", "resident card", "residence permit",
+  ],
+  "person.crop.square.filled.and.at.rectangle": [
+    ...HOTEL_SEARCH_ALIASES, ...AIRLINE_SEARCH_ALIASES, "会员", "會員", "会员卡", "會員卡", "会员证", "會員證", "会员资格", "會員資格", "会籍", "會籍", "忠诚计划", "忠誠計劃", "酒店会员卡", "酒店會員卡", "航空会员卡", "航空會員卡",
+    "membership", "member card", "membership card", "loyalty card", "loyalty program", "elite status", "hotel loyalty", "airline loyalty",
+  ],
+  "tram.circle.fill": [...RAIL_CARD_SEARCH_ALIASES, "铁路", "鐵路", "火车", "火車", "通勤", "地铁", "地鐵", "高铁", "高鐵", "铁路通票", "鐵路通票", "railway", "rail", "train", "commuting", "metro", "rail pass", "interrail", "eurail", "jr pass"],
+  "tram.fill": [...RAIL_CARD_SEARCH_ALIASES, "地铁", "地鐵", "metro", "subway", "transit pass"],
+  "train.side.front.car": [...RAIL_CARD_SEARCH_ALIASES, "高铁", "高鐵", "铁路通票", "鐵路通票", "rail pass", "interrail", "eurail", "jr pass"],
+  "ferry.fill": ["邮轮", "郵輪", "渡轮", "渡輪", "轮渡", "輪渡", "船票", "cruise", "ferry", "ferry ticket", "cruise booking"],
+  "car.side.fill": ["租车", "租車", "自驾", "自駕", "租车预订", "租車預訂", "租车权益", "租車權益", "car rental", "rental car", "rent a car", "rental booking", "rental benefits", "hertz", "avis", "enterprise", "sixt"],
+  "globe.asia.australia.fill": ["亚太旅行", "亞太旅行", "亚洲旅行", "亞洲旅行", "澳洲旅行", "亚太", "亞太", "asia travel", "asia pacific", "australia travel", "oceania"],
+  "globe.europe.africa.fill": ["欧洲", "歐洲", "非洲", "欧洲旅行", "歐洲旅行", "非洲旅行", "europe", "africa", "europe travel", "africa travel"],
+  "globe.americas.fill": ["美洲", "北美", "南美", "美洲旅行", "美国旅行", "美國旅行", "america", "americas", "north america", "south america", "us travel"],
+  "crown.fill": [...HOTEL_SEARCH_ALIASES, ...AIRLINE_SEARCH_ALIASES, "会籍", "會籍", "会员等级", "會員等級", "酒店会员", "酒店會員", "航空会员", "航空會員", "loyalty status", "elite status", "hotel membership", "airline membership"],
+  "gift.fill": [...REWARD_CARD_SEARCH_ALIASES, "积分奖励", "積分獎勵", "奖励兑换", "獎勵兌換", "酒店房晚", "hotel free night", "rewards redemption"],
 }
 
 export function normalizeIconOverride(value: unknown): string | null {
@@ -1705,7 +1851,7 @@ export function resolveDueIcon(
 ): ResolvedDueIcon {
   const normalizedOverride = normalizeIconOverride(override)
   const inferredName = normalizedOverride
-    ?? bestMatchingIcon(title)
+    ?? bestMatchingIcon(title, kind)
     ?? (kind === "reminder" ? "checklist" : KIND_FALLBACKS.get(kind))
     ?? DEFAULT_ICON.name
   return resolvedIcon(inferredName)
@@ -1823,8 +1969,17 @@ type NormalizedTitle = {
   words: string
 }
 
-function bestMatchingIcon(title: string): string | null {
-  return bestMatchingIconFromRules(title, COMPILED_ICON_RULES)
+function bestMatchingIcon(title: string, kind?: ItemKind | "reminder"): string | null {
+  const existing = bestMatchingIconFromRules(title, COMPILED_ICON_RULES)
+  if (!travelCardScene(title, kind)) return existing
+  const existingGroup = existing ? ICON_OPTIONS_BY_NAME.get(existing)?.group : null
+  // A payment method mentioned beside a specific service does not turn that
+  // service into a card. Only neutral, financial and travel identities refine.
+  if (existing && existingGroup !== "财务" && existingGroup !== "出行旅行"
+    && !["calendar.badge.clock", "calendar", "checklist", "checkmark.circle.fill", "repeat.circle.fill", "doc.text.fill"].includes(existing)) {
+    return existing
+  }
+  return "creditcard.fill"
 }
 
 function bestMatchingReminderTextIcon(text: string): string | null {
