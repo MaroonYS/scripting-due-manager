@@ -65,22 +65,40 @@ function StartupScreen() {
   </NavigationStack>
 }
 
-async function run() {
+let notesRequestGeneration = 0
+async function presentReminderNotes(parameters: Record<string, any>) {
+  const request = ++notesRequestGeneration
   try {
+    const { ReminderNotesView } = await import("./src/reminder_notes_view")
+    if (request !== notesRequestGeneration) return
+    await Navigation.present({ element: <NavigationStack>
+      <ReminderNotesView id={parameters.id} standalone />
+    </NavigationStack> })
+  } catch (error) {
+    await Dialog.alert({ title: "无法打开提醒事项备注", message: String(error) })
+  }
+}
+
+async function run() {
+  let stopResume: (() => void) | undefined
+  let running = true
+  try {
+    try {
+      if (typeof Script.onResume === "function") stopResume = Script.onResume((details: any) => {
+        if (!running) return
+        const parameters = details?.queryParameters
+        if (parameters?.action === "reminder-notes" || parameters?.action === "open-reminder") {
+          void presentReminderNotes(parameters)
+        }
+      })
+    } catch { /* The initial route remains available on older hosts. */ }
     if (Script.queryParameters?.action === "reminder-notes" || Script.queryParameters?.action === "open-reminder") {
-      try {
-        const { ReminderNotesView } = await import("./src/reminder_notes_view")
-        await Navigation.present({ element: <NavigationStack>
-          <ReminderNotesView id={Script.queryParameters.id} standalone />
-        </NavigationStack> })
-      } catch (error) {
-        await Dialog.alert({ title: "无法打开提醒事项备注", message: String(error) })
-      }
+      await presentReminderNotes(Script.queryParameters)
       return
     }
     await Navigation.present({ element: <StartupScreen /> })
   }
   catch (error) { await Dialog.alert({ title: "启动界面未能打开", message: String(error) }) }
-  finally { Script.exit() }
+  finally { running = false; notesRequestGeneration++; try { stopResume?.() } catch { /* Already detached. */ } Script.exit() }
 }
 void run()

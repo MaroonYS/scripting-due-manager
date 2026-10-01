@@ -52,6 +52,7 @@ import { recurrenceLabel } from "./presentation"
 import {
   clearReminderSnapshot,
   loadReminderItems,
+  nextWidgetRefresh,
   sortDueItems,
 } from "./reminders"
 import {
@@ -74,10 +75,8 @@ import type {
   ManualDueItem,
   RecurrenceUnit,
 } from "./types"
-import {
-  reloadUserWidgets,
-  reloadWidgetsAfterStorageWrite,
-} from "./widget_refresh"
+import { reloadWidgetsAfterStorageWrite } from "./widget_refresh"
+import { observeApplicationRefresh } from "./app_refresh"
 import { refreshAfterDataChange } from "./maintenance"
 import { reconcileNotifications } from "./notifications"
 import { NotificationView } from "./notification_view"
@@ -144,7 +143,7 @@ function DueManagerApp() {
   const [newItem, setNewItem] = useState<ManualDueItem>(() => createDraftItem())
   const [reminderStatus, setReminderStatus] = useState<ReminderStatus>(EMPTY_REMINDER_STATUS)
   // A stable request token prevents an older refresh from replacing newer scope/status.
-  const [reminderRequests] = useState(() => ({ generation: 0 }))
+  const [reminderRequests] = useState(() => ({ generation: 0, refreshing: false, settingsBusy: false, queued: false, active: true, foreground: true }))
 
   const refreshState = (nextState?: AppState) => {
     setState(nextState ?? loadState())
@@ -156,22 +155,41 @@ function DueManagerApp() {
   }
 
   const refreshReminders = async () => {
+    if (reminderRequests.refreshing || reminderRequests.settingsBusy) { reminderRequests.queued = true; return }
+    reminderRequests.refreshing = true
     const request = ++reminderRequests.generation
     try {
       const current = loadState()
+      setState(current)
       if (!current.settings.includeReminders) {
         setReminderStatus(EMPTY_REMINDER_STATUS)
+        await refreshWidgetsWithWarning("数据已读取")
         return
       }
       setReminderStatus(status => ({ ...status, loading: true }))
       const result = await loadReminderItems(current.settings.reminderHorizonDays, current.settings.reminderCalendarIDs)
-      if (request !== reminderRequests.generation) return
+      if (!reminderRequests.active || request !== reminderRequests.generation) return
+      const fresh = loadState()
+      setState(fresh)
+      const scope = (value: AppState) => JSON.stringify([value.settings.includeReminders,
+        value.settings.reminderHorizonDays, value.settings.reminderCalendarIDs])
+      if (scope(fresh) !== scope(current)) {
+        reminderRequests.queued = true
+        setReminderStatus(EMPTY_REMINDER_STATUS)
+        return
+      }
       setReminderStatus({ loading: false, count: result.items.length, fetchedAt: result.fetchedAt,
         live: result.live, fromCache: result.fromCache, error: result.error })
       await refreshWidgetsWithWarning("提醒数据已读取")
     } catch (error) {
-      if (request === reminderRequests.generation) {
+      if (reminderRequests.active && request === reminderRequests.generation) {
         setReminderStatus(status => ({ ...status, loading: false, error: String(error) }))
+      }
+    } finally {
+      reminderRequests.refreshing = false
+      if (reminderRequests.queued && reminderRequests.active && !reminderRequests.settingsBusy && reminderRequests.foreground) {
+        reminderRequests.queued = false
+        void refreshReminders()
       }
     }
   }
@@ -185,55 +203,123 @@ function DueManagerApp() {
   }
 
   useEffect(() => {
-    if (state.settings.includeReminders) void refreshReminders()
-    else void refreshWidgetsWithWarning("数据已读取")
+    reminderRequests.active = true
+    void refreshReminders()
+    const stop = observeApplicationRefresh(() => { void refreshReminders() }, foreground => { reminderRequests.foreground = foreground })
+    return () => { reminderRequests.active = false; reminderRequests.generation++; stop() }
   }, [])
 
-  const setReminderIntegration = async (enabled: boolean) => {
-    const request = ++reminderRequests.generation
-    if (!enabled) {
-      try {
-        const next = updateSettings({ includeReminders: false })
-        refreshState(next)
-        setReminderStatus(EMPTY_REMINDER_STATUS)
-        try { clearReminderSnapshot() }
-        catch (error) {
-          console.error("Reminders disabled but cache cleanup failed", error)
-          await Dialog.alert({ title: "提醒事项显示已关闭", message: "旧缓存清理失败，但不会继续用于当前组件。请稍后重新运行脚本清理。" })
-        }
-        await refreshWidgetsWithWarning()
-      } catch (error) {
-        await Dialog.alert({ title: "无法关闭提醒事项", message: String(error) })
-      }
-      return
-    }
+  // Keep a visible, long-lived main screen current at known date/time changes.
+  useEffect(() => {
+    const next = nextWidgetRefresh(manualItemsForDisplay(state), new Date(), state.settings.includeReminders)
+    const timer = setTimeout(() => { if (reminderRequests.active && reminderRequests.foreground) void refreshReminders() }, Math.max(1000, next.getTime() - Date.now()))
+    return () => clearTimeout(timer)
+  }, [state])
 
-    setReminderStatus(status => ({ ...status, loading: true }))
+  const finishReminderSettings = () => {
+    reminderRequests.settingsBusy = false
+    if (reminderRequests.queued && reminderRequests.active && reminderRequests.foreground) {
+      reminderRequests.queued = false
+      void refreshReminders()
+    }
+  }
+
+  const setReminderIntegration = async (enabled: boolean) => {
+    if (reminderRequests.settingsBusy) return
+    reminderRequests.settingsBusy = true
     try {
-      const needsCalendarAccess = loadState().settings.reminderCalendarIDs.length > 0
-      const granted = needsCalendarAccess
-        ? await Script.requestAccess(["calendar", "reminders"])
-        : await Script.requestAccess(["reminders"])
-      if (request !== reminderRequests.generation) return
-      const missingReminderAccess = !granted.includes("reminders")
-      const missingCalendarAccess = needsCalendarAccess && !granted.includes("calendar")
-      if (missingReminderAccess || missingCalendarAccess) {
-        const permissionName = needsCalendarAccess ? "日历与提醒事项" : "提醒事项"
-        setReminderStatus({ ...EMPTY_REMINDER_STATUS, error: `未授予${permissionName}权限` })
-        await Dialog.alert({
-          title: `需要${permissionName}权限`,
-          message: needsCalendarAccess
-            ? "已选择具体提醒事项列表。请允许该脚本访问日历与提醒事项，才能按列表读取。"
-            : "请允许该脚本读取提醒事项，再重试此开关。",
-        })
+      const request = ++reminderRequests.generation
+      if (!enabled) {
+        try {
+          const next = updateSettings({ includeReminders: false })
+          refreshState(next)
+          setReminderStatus(EMPTY_REMINDER_STATUS)
+          try { clearReminderSnapshot() }
+          catch (error) {
+            console.error("Reminders disabled but cache cleanup failed", error)
+            await Dialog.alert({ title: "提醒事项显示已关闭", message: "旧缓存清理失败，但不会继续用于当前组件。请稍后重新运行脚本清理。" })
+          }
+          await refreshWidgetsWithWarning()
+        } catch (error) {
+          await Dialog.alert({ title: "无法关闭提醒事项", message: String(error) })
+        }
         return
       }
 
-      const next = updateSettings({ includeReminders: true })
-      refreshState(next)
+      setReminderStatus(status => ({ ...status, loading: true }))
+      try {
+        const needsCalendarAccess = loadState().settings.reminderCalendarIDs.length > 0
+        const granted = needsCalendarAccess
+          ? await Script.requestAccess(["calendar", "reminders"])
+          : await Script.requestAccess(["reminders"])
+        if (request !== reminderRequests.generation) return
+        const missingReminderAccess = !granted.includes("reminders")
+        const missingCalendarAccess = needsCalendarAccess && !granted.includes("calendar")
+        if (missingReminderAccess || missingCalendarAccess) {
+          const permissionName = needsCalendarAccess ? "日历与提醒事项" : "提醒事项"
+          setReminderStatus({ ...EMPTY_REMINDER_STATUS, error: `未授予${permissionName}权限` })
+          await Dialog.alert({
+            title: `需要${permissionName}权限`,
+            message: needsCalendarAccess
+              ? "已选择具体提醒事项列表。请允许该脚本访问日历与提醒事项，才能按列表读取。"
+              : "请允许该脚本读取提醒事项，再重试此开关。",
+          })
+          return
+        }
+
+        const next = updateSettings({ includeReminders: true })
+        refreshState(next)
+        const result = await loadReminderItems(
+          next.settings.reminderHorizonDays,
+          next.settings.reminderCalendarIDs,
+        )
+        if (request !== reminderRequests.generation) return
+        setReminderStatus({
+          loading: false,
+          count: result.items.length,
+          fetchedAt: result.fetchedAt,
+          live: result.live,
+          fromCache: result.fromCache,
+          error: result.error,
+        })
+        if (!result.live && !result.fromCache) {
+          await Dialog.alert({
+            title: "无法读取提醒事项",
+            message: `请在 iOS 设置中检查 Scripting 的${needsCalendarAccess ? "日历与提醒事项" : "提醒事项"}权限。\n\n${result.error}`,
+          })
+        } else if (result.live && result.error) {
+          await Dialog.alert({
+            title: "提醒事项已读取，但缓存失败",
+            message: result.error,
+          })
+        }
+        await refreshWidgetsWithWarning()
+      } catch (error) {
+        if (request !== reminderRequests.generation) return
+        setReminderStatus({ ...EMPTY_REMINDER_STATUS, error: String(error) })
+        await Dialog.alert({ title: "授权失败", message: String(error) })
+      }
+    } finally { finishReminderSettings() }
+  }
+
+  const setReminderCalendarSelection = async (calendarIDs: string[]) => {
+    if (reminderRequests.settingsBusy) throw new Error("提醒事项设置正在更新，请稍后再保存列表。")
+    reminderRequests.settingsBusy = true
+    try {
+      const request = ++reminderRequests.generation
+      const current = loadState()
+
+      if (!current.settings.includeReminders) {
+        const next = updateSettings({ reminderCalendarIDs: calendarIDs })
+        refreshState(next)
+        await refreshWidgetsWithWarning()
+        return
+      }
+
+      setReminderStatus(status => ({ ...status, loading: true }))
       const result = await loadReminderItems(
-        next.settings.reminderHorizonDays,
-        next.settings.reminderCalendarIDs,
+        current.settings.reminderHorizonDays,
+        calendarIDs,
       )
       if (request !== reminderRequests.generation) return
       setReminderStatus({
@@ -245,63 +331,20 @@ function DueManagerApp() {
         error: result.error,
       })
       if (!result.live && !result.fromCache) {
-        await Dialog.alert({
-          title: "无法读取提醒事项",
-          message: `请在 iOS 设置中检查 Scripting 的${needsCalendarAccess ? "日历与提醒事项" : "提醒事项"}权限。\n\n${result.error}`,
-        })
-      } else if (result.live && result.error) {
-        await Dialog.alert({
-          title: "提醒事项已读取，但缓存失败",
-          message: result.error,
-        })
+        try { await reloadWidgetsAfterStorageWrite() } catch (error) { console.error("Widget refresh failed", error) }
+        throw new Error(result.error ?? "无法读取所选提醒事项列表")
       }
-      await refreshWidgetsWithWarning()
-    } catch (error) {
-      if (request !== reminderRequests.generation) return
-      setReminderStatus({ ...EMPTY_REMINDER_STATUS, error: String(error) })
-      await Dialog.alert({ title: "授权失败", message: String(error) })
-    }
-  }
 
-  const setReminderCalendarSelection = async (calendarIDs: string[]) => {
-    const request = ++reminderRequests.generation
-    const current = loadState()
-
-    if (!current.settings.includeReminders) {
       const next = updateSettings({ reminderCalendarIDs: calendarIDs })
       refreshState(next)
       await refreshWidgetsWithWarning()
-      return
-    }
-
-    setReminderStatus(status => ({ ...status, loading: true }))
-    const result = await loadReminderItems(
-      current.settings.reminderHorizonDays,
-      calendarIDs,
-    )
-    if (request !== reminderRequests.generation) return
-    setReminderStatus({
-      loading: false,
-      count: result.items.length,
-      fetchedAt: result.fetchedAt,
-      live: result.live,
-      fromCache: result.fromCache,
-      error: result.error,
-    })
-    if (!result.live && !result.fromCache) {
-      try { await reloadWidgetsAfterStorageWrite() } catch (error) { console.error("Widget refresh failed", error) }
-      throw new Error(result.error ?? "无法读取所选提醒事项列表")
-    }
-
-    const next = updateSettings({ reminderCalendarIDs: calendarIDs })
-    refreshState(next)
-    await refreshWidgetsWithWarning()
-    if (result.live && result.error) {
-      await Dialog.alert({
-        title: "列表已保存，但缓存失败",
-        message: result.error,
-      })
-    }
+      if (result.live && result.error) {
+        await Dialog.alert({
+          title: "列表已保存，但缓存失败",
+          message: result.error,
+        })
+      }
+    } finally { finishReminderSettings() }
   }
 
   const setShowAmounts = async (showAmounts: boolean) => {
@@ -463,8 +506,9 @@ function DueManagerApp() {
         <Button
           title="刷新桌面组件"
           systemImage="arrow.triangle.2.circlepath"
+          disabled={reminderStatus.loading}
           action={async () => {
-            try { await reloadUserWidgets() }
+            try { await refreshReminders() }
             catch (error) { await Dialog.alert({ title: "组件刷新失败", message: String(error) }) }
           }}
         />

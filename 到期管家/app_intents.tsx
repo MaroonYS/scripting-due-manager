@@ -7,6 +7,7 @@ import { configureWidgetLocale } from "./src/widget_localization"
 import {
   completeReminderOccurrence,
   findReminderDisplayItemForCompletion,
+  loadReminderItems,
 } from "./src/reminders"
 import {
   clearWidgetActionError,
@@ -17,11 +18,8 @@ import {
   findManualDisplayItemForCompletion,
   writeWidgetCompletionFeedback,
 } from "./src/widget_completion"
-import {
-  reloadUserWidgets,
-  reloadWidgetsAfterStorageWrite,
-} from "./src/widget_refresh"
-import { reconcileNotifications } from "./src/notifications"
+import { reloadWidgetsAfterStorageWrite } from "./src/widget_refresh"
+import { maintainNotificationsWithBudget } from "./src/notification_maintenance"
 import { loadState } from "./src/storage"
 
 configureWidgetLocale(Device)
@@ -38,7 +36,12 @@ export const RefreshDueItemsIntent = AppIntentManager.register({
   name: "RefreshDueItems",
   protocol: AppIntentProtocol.AppIntent,
   perform: async (_params: undefined) => {
-    await reloadUserWidgets()
+    try {
+      const state = loadState()
+      if (state.settings.includeReminders) {
+        await loadReminderItems(state.settings.reminderHorizonDays, state.settings.reminderCalendarIDs, new Date(), { timeoutMs: 4000 })
+      }
+    } finally { await reloadWidgetsAfterStorageWrite() }
   },
 })
 
@@ -50,7 +53,11 @@ export const CompleteDueItemIntent = AppIntentManager.register<CompleteDueItemPa
       .catch(() => undefined)
       .then(() => performCompleteDueItem(params))
     completionIntentQueue = operation.catch(() => undefined)
-    return operation
+    // Optional notification work must never serialize the next completion.
+    return operation.then(async () => {
+      try { await maintainNotificationsWithBudget({ loadItems: () => loadState().items, maxNewRequests: 3, leaseWaitMs: 0 }) }
+      catch (error) { console.error("Notification reconciliation deferred", error) }
+    })
   },
 })
 
@@ -106,12 +113,6 @@ async function performCompleteDueItem(params: CompleteDueItemParams): Promise<vo
       console.error("Widget refresh request failed", error)
       writeActionWarningSafely("数据操作已结束，但组件刷新请求失败，请打开主脚本刷新")
     }
-    // Show completion feedback before optional notification maintenance. Keep
-    // cancellation/de-duplication complete, but don't wait for another worker
-    // or fill the entire notification horizon during an interactive intent.
-    try {
-      await reconcileNotifications([], { loadItems: () => loadState().items, maxNewRequests: 3, leaseWaitMs: 0 })
-    } catch (error) { console.error("Notification reconciliation failed", error) }
   }
 }
 

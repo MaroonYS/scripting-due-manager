@@ -8,16 +8,18 @@ import { Widget } from "scripting"
 export async function reloadUserWidgets(): Promise<void> {
   const reload = (Widget as any).reloadUserWidgets
   if (typeof reload === "function") {
-    await reload.call(Widget)
-    return
+    try {
+      await reload.call(Widget)
+      return
+    } catch { /* An older host may expose an unavailable scoped reload. */ }
   }
   await Widget.reloadAll()
 }
 
 /**
  * Storage.set reports acceptance before its background persistence finishes.
- * Waiting briefly prevents a newly requested widget timeline from reading the
- * previous snapshot and then remaining stale until the widget is re-added.
+ * A brief compatibility delay reduces old-snapshot reads; it is not an atomic
+ * persistence acknowledgement or a guarantee about WidgetKit scheduling.
  */
 export async function reloadWidgetsAfterStorageWrite(delayMs = 250): Promise<void> {
   await new Promise<void>(resolve => setTimeout(resolve, delayMs))

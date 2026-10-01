@@ -111,6 +111,8 @@ export interface ReminderSnapshot {
   fetchedAt: number
   /** Orders successful overlapping queries; absent in older compatible caches. */
   queryStartedAt?: number
+  /** Shared request identity distinguishes independent runs started in the same millisecond. */
+  queryToken?: string
   queryHorizonDays?: number
   /** Query scope for this snapshot. Empty means every reminders list. */
   calendarFilterIDs: string[]

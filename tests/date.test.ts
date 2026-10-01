@@ -1633,7 +1633,7 @@ test("widget refresh targets both timed early-action and real-due transitions", 
   assert.equal(dueRefresh.getTime(), due.getTime())
 })
 
-test("widget refresh does not request a sub-five-minute timeline", () => {
+test("a known imminent deadline is requested at its actual time without a five-minute delay", () => {
   const now = new Date(2026, 7, 30, 12, 0)
   const due = new Date(2026, 7, 30, 12, 1)
   const refresh = nextWidgetRefresh([
@@ -1645,13 +1645,16 @@ test("widget refresh does not request a sub-five-minute timeline", () => {
       dueTimestamp: due.getTime(),
     }),
   ], now)
-  assert.equal(refresh.getTime(), now.getTime() + 5 * 60 * 1000)
+  assert.equal(refresh.getTime(), due.getTime())
 })
 
-test("reminder integration requests a refresh within three hours", () => {
+test("reminder integration requests normal polling in thirty minutes and recovery in five", () => {
   const now = new Date(2026, 7, 30, 8, 0)
   const refresh = nextWidgetRefresh([], now, true)
-  assert.equal(refresh.getTime(), now.getTime() + 3 * 60 * 60 * 1000)
+  assert.equal(refresh.getTime(), now.getTime() + 30 * 60 * 1000)
+  assert.equal(nextWidgetRefresh([], now, true, true).getTime(), now.getTime() + 5 * 60 * 1000)
+  const nearMidnight = new Date(2026, 7, 30, 23, 59)
+  assert.equal(nextWidgetRefresh([], nearMidnight, true, true).getTime(), new Date(2026, 7, 31).getTime())
 })
 
 test("legacy settings default to all reminder lists and preserve a later selection", () => {
@@ -2140,6 +2143,7 @@ test("reminders from a read-only calendar cannot be completed", async () => {
   const originalReminder = (globalThis as any).Reminder
   const due = new Date(2026, 8, 5, 23, 59, 59, 999)
   let savedSnapshot: any = null
+  const store = new Map<string, unknown>()
   let saves = 0
   const reminder = {
     identifier: "shared-read-only",
@@ -2162,8 +2166,9 @@ test("reminders from a read-only calendar cannot be completed", async () => {
   }
   try {
     ;(globalThis as any).Storage = {
-      get: () => null,
+      get: (key: string) => store.get(key) ?? null,
       set: (key: string, value: unknown) => {
+        store.set(key, value)
         if (key === REMINDER_SNAPSHOT_KEY) savedSnapshot = value
         return true
       },
@@ -2598,11 +2603,12 @@ test("completion intent keeps one persisted transition and requests one widget r
   )
   const feedbackWrite = source.indexOf("writeWidgetCompletionFeedback(feedbackItem)")
   const completionWrite = source.indexOf("const result = params.source")
-  const reload = source.indexOf("await reloadWidgetsAfterStorageWrite()")
+  const completionSource = source.slice(source.indexOf("async function performCompleteDueItem"))
+  const reload = source.indexOf("await reloadWidgetsAfterStorageWrite()", source.indexOf("async function performCompleteDueItem"))
   assert.ok(feedbackWrite >= 0)
   assert.ok(completionWrite >= 0)
   assert.ok(reload > feedbackWrite)
-  assert.equal(source.match(/await reloadWidgetsAfterStorageWrite\(\)/g)?.length, 1)
+  assert.equal(completionSource.match(/await reloadWidgetsAfterStorageWrite\(\)/g)?.length, 1)
   assert.doesNotMatch(source, /clearWidgetCompletionFeedback|setTimeout/)
   assert.doesNotMatch(source, /renderedAt|renderGeneration|canRunWidgetCompletionIntent|shouldReload/)
   assert.match(source, /completionIntentQueue/)
@@ -3276,7 +3282,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "3.4.1")
+  assert.equal(manifest.version, "3.4.2")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

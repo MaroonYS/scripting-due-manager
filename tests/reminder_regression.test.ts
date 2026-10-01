@@ -417,6 +417,131 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
+const flushReads = async () => { for (let index = 0; index < 30; index++) await Promise.resolve() }
+
+async function withReadTimers(operation: (timers: Map<number, { expire: () => void; delay: number }>) => Promise<void>) {
+  const previousSet = globals.setTimeout, previousClear = globals.clearTimeout
+  const timers = new Map<number, { expire: () => void; delay: number }>()
+  let nextTimer = 0
+  globals.setTimeout = (expire: () => void, delay: number) => {
+    const timer = ++nextTimer
+    timers.set(timer, { expire, delay })
+    return timer
+  }
+  globals.clearTimeout = (timer: number) => timers.delete(timer)
+  try { await operation(timers) }
+  finally { globals.setTimeout = previousSet; globals.clearTimeout = previousClear }
+}
+
+test("a stalled Reminder query falls back on deadline and its late result cannot replace a newer cache", async () => {
+  await withRuntime(async store => {
+    await withReadTimers(async timers => {
+      const before = snapshot([cachedItem({ title: "Offline fallback" })])
+      store.set(`shared:${REMINDER_SNAPSHOT_KEY}`, before)
+      const late = deferred<any[]>()
+      globals.Reminder = { getIncompletes: () => late.promise }
+      const loading = loadReminderItems(365, [], new Date(), { timeoutMs: 500 })
+      await flushReads()
+      assert.deepEqual([...timers.values()].map(timer => timer.delay), [500])
+      timers.values().next().value!.expire()
+      const result = await loading
+      assert.equal(result.live, false)
+      assert.equal(result.fromCache, true)
+      assert.equal(result.items[0].title, "Offline fallback")
+      assert.equal(result.items[0].stale, true)
+      assert.match(result.error ?? "", /读取提醒事项超时/)
+      assert.deepEqual(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`), before)
+      globals.Reminder.getIncompletes = async () => [reminder({ title: "Fresh retry" })]
+      assert.equal((await loadReminderItems(365)).items[0].title, "Fresh retry")
+      late.resolve([reminder({ title: "Ignored late result" })])
+      await flushReads()
+      assert.equal(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`).items[0].title, "Fresh retry")
+    })
+  })
+})
+
+test("calendar resolution shares the default ten-second deadline and a late reply cannot launch Reminder reading", async () => {
+  await withRuntime(async store => {
+    await withReadTimers(async timers => {
+      const calendar = deferred<any[]>()
+      let reminderReads = 0
+      globals.Calendar = { forReminders: () => calendar.promise }
+      globals.Reminder = { getIncompletes: async () => { reminderReads += 1; return [reminder()] } }
+      const loading = loadReminderItems(365, ["work"])
+      await flushReads()
+      assert.deepEqual([...timers.values()].map(timer => timer.delay), [10000])
+      timers.values().next().value!.expire()
+      const result = await loading
+      assert.equal(result.fromCache, false)
+      assert.deepEqual(result.items, [])
+      assert.match(result.error ?? "", /读取提醒事项超时/)
+      calendar.resolve([{ identifier: "work" }])
+      await flushReads()
+      assert.equal(reminderReads, 0)
+      assert.equal(store.has(`shared:${REMINDER_SNAPSHOT_KEY}`), false)
+    })
+  })
+})
+
+test("calendar and Reminder phases consume one deadline rather than restarting it", async () => {
+  await withRuntime(async store => {
+    await withReadTimers(async timers => {
+      const calendar = deferred<any[]>(), native = deferred<any[]>()
+      let reads = 0
+      globals.Calendar = { forReminders: () => calendar.promise }
+      globals.Reminder = { getIncompletes: () => { reads += 1; return native.promise } }
+      const loading = loadReminderItems(365, ["work"], new Date(), { timeoutMs: 750 })
+      await flushReads()
+      const deadline = timers.values().next().value!
+      calendar.resolve([{ identifier: "work" }])
+      await flushReads()
+      assert.equal(reads, 1)
+      assert.deepEqual([...timers.values()], [deadline])
+      deadline.expire()
+      assert.match((await loading).error ?? "", /读取提醒事项超时/)
+      native.resolve([reminder()]); await flushReads()
+      assert.equal(store.has(`shared:${REMINDER_SNAPSHOT_KEY}`), false)
+    })
+  })
+})
+
+test("completion times out only its initial read and cannot complete a late native item", async () => {
+  await withRuntime(async store => {
+    await withReadTimers(async timers => {
+      const native = deferred<any>()
+      let saves = 0
+      const value = reminder({ save: async () => { saves += 1 } })
+      globals.Reminder = { get: () => native.promise }
+      const completion = completeReminderOccurrence("reminder-regression", "date:2026-09-04")
+      await flushReads()
+      assert.deepEqual([...timers.values()].map(timer => timer.delay), [10000])
+      timers.values().next().value!.expire()
+      await assert.rejects(completion, /读取提醒事项超时，本次没有完成事项/)
+      native.resolve(value); await flushReads()
+      assert.equal(saves, 0)
+      assert.equal(value.isCompleted, false)
+      assert.equal(store.size, 0)
+    })
+  })
+})
+
+test("a completion save remains single and awaited without a read deadline or retry", async () => {
+  await withRuntime(async () => {
+    await withReadTimers(async timers => {
+      const saved = deferred<void>()
+      let saves = 0, settled = false
+      globals.Reminder = { get: async () => reminder({ save: () => { saves += 1; return saved.promise } }) }
+      const completion = completeReminderOccurrence("reminder-regression", "date:2026-09-04").then(value => { settled = true; return value })
+      await flushReads()
+      assert.equal(saves, 1)
+      assert.equal(settled, false)
+      assert.equal(timers.size, 0, "the initial read timer must be cleared before saving")
+      saved.resolve(); assert.equal(await completion, "applied")
+      assert.equal(saves, 1)
+    })
+  })
+})
+
 test("a slower earlier sync cannot overwrite or display the newer same-list result", async () => {
   await withRuntime(async store => {
     const old = deferred<any[]>()
@@ -483,6 +608,71 @@ test("shared query start times prevent an older runtime from replacing a newer c
       assert.equal(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`).items[0].title, "New runtime result")
     } finally { Date.now = originalNow }
   })
+})
+
+test("shared query tokens prevent independent same-millisecond runs from publishing in reverse order", async () => {
+  await withRuntime(async store => {
+    const olderRuntime = await import(`${remindersModule}?race=same-millisecond-old`)
+    const newerRuntime = await import(`${remindersModule}?race=same-millisecond-new`)
+    const old = deferred<any[]>()
+    const originalNow = Date.now, now = originalNow()
+    Date.now = () => now
+    try {
+      globals.Reminder = { getIncompletes: () => old.promise }
+      const loading = olderRuntime.loadReminderItems(365)
+      globals.Reminder.getIncompletes = async () => [reminder({ title: "Same-ms new result" })]
+      assert.equal((await newerRuntime.loadReminderItems(365)).items[0].title, "Same-ms new result")
+      old.resolve([reminder({ title: "Same-ms old result" })])
+      const late = await loading
+      assert.equal(late.items[0].title, "Same-ms new result")
+      assert.equal(late.error, null)
+      assert.equal(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`).items[0].title, "Same-ms new result")
+    } finally { Date.now = originalNow }
+  })
+})
+
+test("a later query marker blocks older cache publishing even before the later query finishes", async () => {
+  await withRuntime(async store => {
+    const before = snapshot([cachedItem({ title: "Previous cache" })])
+    store.set(`shared:${REMINDER_SNAPSHOT_KEY}`, before)
+    const old = deferred<any[]>(), latest = deferred<any[]>()
+    let reads = 0
+    globals.Reminder = { getIncompletes: () => ++reads === 1 ? old.promise : latest.promise }
+    const older = loadReminderItems(365), newer = loadReminderItems(365)
+    old.resolve([reminder({ title: "Earlier read" })])
+    assert.equal((await older).items[0].title, "Earlier read")
+    assert.deepEqual(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`), before)
+    latest.resolve([reminder({ title: "Latest read" })])
+    assert.equal((await newer).items[0].title, "Latest read")
+    assert.equal(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`).items[0].title, "Latest read")
+  })
+})
+
+test("unavailable optional query-marker storage cannot hide live Reminder results or replace the cache", async () => {
+  for (const fault of ["set-false", "set-throw", "get-throw"]) {
+    await withRuntime(async store => {
+      const before = snapshot([cachedItem({ title: "Preserved cache" })])
+      store.set(`shared:${REMINDER_SNAPSHOT_KEY}`, before)
+      const originalGet = globals.Storage.get, originalSet = globals.Storage.set
+      globals.Storage.set = (key: string, ...args: any[]) => {
+        if (key === "due-manager-reminder-query-token-v1" && fault !== "get-throw") {
+          if (fault === "set-throw") throw new Error("query marker unavailable")
+          return false
+        }
+        return originalSet(key, ...args)
+      }
+      globals.Storage.get = (key: string, ...args: any[]) => {
+        if (key === "due-manager-reminder-query-token-v1" && fault === "get-throw") throw new Error("query marker unreadable")
+        return originalGet(key, ...args)
+      }
+      globals.Reminder = { getIncompletes: async () => [reminder({ title: "Usable live result" })] }
+      const result = await loadReminderItems(365)
+      assert.equal(result.live, true, fault)
+      assert.equal(result.items[0].title, "Usable live result", fault)
+      assert.match(result.error ?? "", /无法保存提醒缓存/, fault)
+      assert.deepEqual(store.get(`shared:${REMINDER_SNAPSHOT_KEY}`), before, fault)
+    })
+  }
 })
 
 test("offline fallback respects a shortened date horizon", async () => {

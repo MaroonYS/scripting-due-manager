@@ -79,7 +79,8 @@ test("new and legacy reminder links present a dedicated notes page before readin
   }
 })
 
-function intentHarness(result: string | ((id: string, key: string) => Promise<string>), feedback: any = null) {
+function intentHarness(result: string | ((id: string, key: string) => Promise<string>), feedback: any = null,
+  upkeep: () => Promise<any> = async () => {}) {
   const events: any[] = [], registered: Record<string, any> = {}
   const bindings = {
     Device: {}, configureWidgetLocale: () => {}, AppIntentProtocol: { AppIntent: "AppIntent" },
@@ -90,7 +91,8 @@ function intentHarness(result: string | ((id: string, key: string) => Promise<st
     clearWidgetActionError: () => events.push("clear"), writeWidgetActionError: (message: string) => events.push(["warning", message]),
     writeWidgetCompletionFeedback: (item: any) => { events.push(["feedback", item]); return true },
     reloadWidgetsAfterStorageWrite: async () => events.push("reload"), reloadUserWidgets: async () => {},
-    reconcileNotifications: async () => events.push("notifications"), loadState: () => ({ items: [] }),
+    maintainNotificationsWithBudget: async () => { events.push("notifications"); return upkeep() }, loadState: () => ({ items: [], settings: { includeReminders: false } }),
+    loadReminderItems: async () => {},
     console: { error: () => {} },
   }
   new Function(...Object.keys(bindings), transpile(withoutImports(read("app_intents.tsx"))))(...Object.values(bindings))
@@ -144,6 +146,19 @@ test("rapid widget taps are serialized without substituting the next occurrence"
   assert.equal(count, 2)
   assert.deepEqual(env.events.filter(event => Array.isArray(event) && event[0] === "reminder"), [["reminder", UUID, params.occurrenceKey], ["reminder", UUID, params.occurrenceKey]])
   assert.ok(env.events.some(event => Array.isArray(event) && event[0] === "warning" && event[1].includes("未完成其他期次")))
+})
+
+test("a pending optional notification update cannot block the next widget completion", async () => {
+  let release!: () => void
+  const pending = new Promise<void>(resolve => { release = resolve })
+  const env = intentHarness("applied", null, () => pending)
+  const first = env.perform({ source: "manual", id: "one", occurrenceKey: "date:2026-09-30" })
+  await flush()
+  const second = env.perform({ source: "manual", id: "two", occurrenceKey: "date:2026-09-30" })
+  await flush()
+  assert.deepEqual(env.events.filter(event => Array.isArray(event) && event[0] === "manual").map(event => event[1]), ["one", "two"])
+  assert.equal(env.events.filter(event => event === "reload").length, 2)
+  release(); await Promise.all([first, second])
 })
 
 test("widget controls use occurrence identity rather than slot position and give the label the whole hit region", () => {

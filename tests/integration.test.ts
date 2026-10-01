@@ -42,18 +42,18 @@ test("history backup and notification settings are reachable from main UI", () =
   assert.match(recovery, /隔离保全，保全失败则不恢复/)
 })
 
-test("production notification reconciliation reads fresh data and widget maintenance stays bounded", () => {
-  for (const path of ["src/app.tsx", "app_intents.tsx", "widget.tsx", "src/maintenance.ts", "src/notification_view.tsx"]) {
+test("production notification maintenance reads fresh data without blocking widget presentation", () => {
+  for (const path of ["src/app.tsx", "src/notification_view.tsx"]) {
     assert.match(source(path), /reconcileNotifications\(\[\], \{ loadItems: \(\) => loadState\(\).items/)
   }
   const widget = source("widget.tsx")
-  assert.ok(widget.indexOf("Widget.present(") < widget.indexOf("await reconcileNotifications("))
-  assert.match(widget, /maxNewRequests: 3, leaseWaitMs: 0/)
+  assert.doesNotMatch(widget, /reconcileNotifications|maintainNotificationsWithBudget/)
   const intent = source("app_intents.tsx")
-  assert.ok(intent.indexOf("await reloadWidgetsAfterStorageWrite()") < intent.indexOf("await reconcileNotifications("))
+  assert.match(intent, /operation\.then\(async \(\) =>/)
+  assert.match(intent, /maintainNotificationsWithBudget\(\{ loadItems: \(\) => loadState\(\).items/)
   assert.match(intent, /maxNewRequests: 3, leaseWaitMs: 0/)
   const maintenance = source("src/maintenance.ts")
-  assert.ok(maintenance.indexOf("await reloadWidgetsAfterStorageWrite()") < maintenance.indexOf("await reconcileNotifications("))
+  assert.ok(maintenance.indexOf("await reloadWidgetsAfterStorageWrite()") < maintenance.indexOf("await maintainNotificationsWithBudget("))
 })
 
 test("an applied completion cannot be reclassified by an auxiliary status failure", () => {

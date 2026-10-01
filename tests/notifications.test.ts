@@ -761,3 +761,73 @@ test("advance-day default time never pushes a 00:30 actual-due notification to 0
     new Date(2026, 8, 4, 9).getTime(), new Date(2026, 8, 5, 0, 30).getTime(),
   ])
 })
+
+test("a hung pending-list read expires and releases the queue and lease for the next upkeep", async () => {
+  const values = storage(), api = runtime(), previousSetTimeout = globalThis.setTimeout, previousClearTimeout = globalThis.clearTimeout
+  const timers = new Map<number, { callback: () => void; milliseconds: number }>()
+  let sequence = 0, release!: (value: unknown[]) => void, staleReads = 0
+  ;(globalThis as any).setTimeout = (callback: () => void, milliseconds: number) => {
+    const id = ++sequence; timers.set(id, { callback, milliseconds }); return id
+  }
+  ;(globalThis as any).clearTimeout = (id: number) => timers.delete(id)
+  const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve() }
+  try {
+    const hanging: NotificationRuntime = { ...api.adapter, getAllPendings: () => {
+      staleReads += 1; return new Promise(resolve => { release = resolve })
+    } }
+    const first = reconcileNotifications([], { now: NOW, runtime: hanging, settings: config(), leaseWaitMs: 0 })
+    const next = reconcileNotifications([], { now: NOW, runtime: api.adapter, settings: config(), leaseWaitMs: 0 })
+    await flush()
+    const [id, timer] = [...timers][0]
+    assert.equal(timer.milliseconds, 3000)
+    timers.delete(id); timer.callback()
+    assert.match((await first).message, /读取系统待发通知超时/)
+    assert.equal((await next).state, "ready")
+    assert.equal(values.has(NOTIFICATION_LOCK_KEY), false)
+    release([{ identifier: "late-read-only-result" }]); await flush()
+    assert.equal(staleReads, 1)
+    assert.equal(api.scheduled.length, 0)
+    assert.equal(api.cancelled.length, 0)
+    assert.equal(timers.size, 0)
+  } finally {
+    globalThis.setTimeout = previousSetTimeout; globalThis.clearTimeout = previousClearTimeout
+  }
+})
+
+test("a confirmation read timeout never retries its accepted notification write", async () => {
+  storage()
+  const api = runtime()
+  await reconcileNotifications([item()], { now: NOW, runtime: api.adapter, settings: config() })
+  const oldID = api.pending[0].identifier, changed = item({ title: "Updated once" })
+  const previousSetTimeout = globalThis.setTimeout, previousClearTimeout = globalThis.clearTimeout
+  const timers = new Map<number, { callback: () => void; milliseconds: number }>()
+  let sequence = 0, reads = 0, release!: (value: unknown[]) => void
+  ;(globalThis as any).setTimeout = (callback: () => void, milliseconds: number) => {
+    const id = ++sequence; timers.set(id, { callback, milliseconds }); return id
+  }
+  ;(globalThis as any).clearTimeout = (id: number) => timers.delete(id)
+  const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve() }
+  try {
+    const adapter: NotificationRuntime = { ...api.adapter, getAllPendings: () => ++reads === 1
+      ? api.adapter.getAllPendings() : new Promise(resolve => { release = resolve }) }
+    const updating = reconcileNotifications([changed], { now: NOW, runtime: adapter, settings: config(), leaseWaitMs: 0 })
+    await flush()
+    assert.equal(api.scheduled.length, 2, "one initial write and one replacement")
+    const [id, timer] = [...timers][0]
+    assert.equal(timer.milliseconds, 3000)
+    timers.delete(id); timer.callback()
+    assert.equal((await updating).state, "error")
+    assert.deepEqual(api.cancelled, [], "old request stays until replacement is confirmed")
+    release(api.pending); await flush()
+    assert.equal(api.scheduled.length, 2)
+    assert.deepEqual(api.cancelled, [])
+    const recovered = await reconcileNotifications([changed], { now: NOW, runtime: api.adapter, settings: config(), leaseWaitMs: 0 })
+    assert.equal(recovered.state, "ready")
+    assert.equal(api.scheduled.length, 2, "fresh pending read confirms replacement without repeating the write")
+    assert.deepEqual(api.cancelled, [oldID])
+    assert.equal(api.pending.length, 1)
+    assert.equal(timers.size, 0)
+  } finally {
+    globalThis.setTimeout = previousSetTimeout; globalThis.clearTimeout = previousClearTimeout
+  }
+})

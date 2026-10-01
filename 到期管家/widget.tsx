@@ -5,43 +5,39 @@
 import { Device, Script, Text, VStack, Widget } from "scripting"
 import { nextWidgetRefresh } from "./src/reminders"
 import { loadWidgetData } from "./src/widget_data"
-import {
-  loadState,
-  readWidgetActionError,
-} from "./src/storage"
+import { readWidgetActionError } from "./src/storage"
 import {
   readWidgetCompletionTransition,
 } from "./src/widget_completion"
 import { configureWidgetLocale, currentWidgetLocale, widgetText } from "./src/widget_localization"
 import { DueManagerWidget } from "./src/widget_view"
-import { reconcileNotifications } from "./src/notifications"
 
 configureWidgetLocale(Device)
 const WIDGET_LOCALE = currentWidgetLocale()
 
 async function main() {
   const { state, reminderResult, items } = await loadWidgetData()
-  const completionTransition = readWidgetCompletionTransition()
-  const refreshAt = nextWidgetRefresh(items, new Date(), state.settings.includeReminders)
+  let completionGeneration = 0
+  let interactionError: string | null = null
+  // Optional feedback must not replace valid item data with an error screen.
+  try { completionGeneration = readWidgetCompletionTransition().generation } catch { /* Use an unanimated timeline. */ }
+  try { interactionError = readWidgetActionError() } catch { /* The main app can inspect storage. */ }
+  const refreshAt = nextWidgetRefresh(items, new Date(), state.settings.includeReminders,
+    !reminderResult.live || reminderResult.fromCache || reminderResult.error != null)
 
   Widget.present(
     <DueManagerWidget
       items={items}
-      completionGeneration={completionTransition.generation}
+      completionGeneration={completionGeneration}
       reminderFetchedAt={reminderResult.fetchedAt}
       remindersLive={reminderResult.live}
       remindersFromCache={reminderResult.fromCache}
       remindersEnabled={state.settings.includeReminders}
       reminderError={reminderResult.error}
-      interactionError={readWidgetActionError()}
+      interactionError={interactionError}
     />,
     { policy: "after", date: refreshAt },
   )
-  // Optional bounded maintenance happens after presenting content; it cannot
-  // turn a valid timeline into a load-error placeholder.
-  try {
-    await reconcileNotifications([], { loadItems: () => loadState().items, maxNewRequests: 3, leaseWaitMs: 0 })
-  } catch (error) { console.error("Widget notification maintenance deferred", error) }
   Script.exit()
 }
 
@@ -61,6 +57,7 @@ main().catch(error => {
         </Text>
       </VStack>
     </VStack>,
+    { policy: "after", date: new Date(Date.now() + 5 * 60 * 1000) },
   )
   Script.exit()
 })

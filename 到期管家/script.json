@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.4.1",
-  "description": "Due dates and Apple Reminders with full read-only notes, precise widget links, 182 offline SF Symbols and safe recurring completion.",
+  "version": "3.4.2",
+  "description": "Due dates and Apple Reminders with bounded reads, faster refresh requests, foreground sync, full notes and 182 offline SF Symbols.",
   "localizedDescriptions": {
-    "en": "3.4.1 opens a dedicated read-only page for the exact reminder's complete notes from widget themes and content links. External Reminders navigation is now an explicit secondary action. Includes loading, empty, completed, deleted, permission and timeout states with retry. Notes stay in view memory, not caches or backups. A main-app notes browser provides an explicit fallback; old widget links remain compatible. Preserves 182 SF Symbols, collapsible themes, completion controls, recurrence and notifications. Native widget activation still requires device verification.",
-    "zh": "3.4.1 完善小组件备注入口：点击左上角主题或提醒事项内容，先在到期管家显示对应提醒的完整备注，再可选择在系统提醒事项中打开。不再把外部详情跳转作为阅读备注的前提。增加加载、空备注、已完成、删除、权限及超时提示，支持重试；备注只在本页读取，不写入缓存和备份。主界面新增查看备注入口，兼容旧组件链接。182 个系统图标、折叠主题、完成按钮、周期和通知保留。原生小组件点击仍需设备验收。",
-    "zh-Hans": "3.4.1 完善小组件备注入口：点击左上角主题或提醒事项内容，先在到期管家显示对应提醒的完整备注，再可选择在系统提醒事项中打开。不再把外部详情跳转作为阅读备注的前提。增加加载、空备注、已完成、删除、权限及超时提示，支持重试；备注只在本页读取，不写入缓存和备份。主界面新增查看备注入口，兼容旧组件链接。182 个系统图标、折叠主题、完成按钮、周期和通知保留。原生小组件点击仍需设备验收。",
-    "zh-Hant": "3.4.1 完善小元件備註入口：點選左上角主題或提醒事項內容，先在到期管家顯示對應提醒的完整備註，再可選擇在系統提醒事項中開啟。不再把外部詳情跳轉作為閱讀備註的前提。增加載入、空備註、已完成、刪除、權限及逾時提示，支援重試；備註只在本頁讀取，不寫入快取與備份。主介面新增查看備註入口，相容舊元件連結。182 個系統圖示、摺疊主題、完成按鈕、週期和通知保留。原生小元件點選仍需裝置驗收。"
+    "en": "3.4.2 improves stability and refresh: reminder reads have deadlines and ignore late replies, newer syncs protect the cache, and optional notification work no longer blocks the next completion. Requests ordinary reminder updates after 30 minutes and recovery after 5 minutes, targets known due times and midnight, and re-reads data when the app returns to the foreground or refresh is tapped. Reminder notes also open when an existing script resumes. Notes, 182 SF Symbols, items and recurrence are preserved. Actual widget updates remain scheduled by iOS.",
+    "zh": "3.4.2 改善稳定性与刷新：提醒读取超时后可重试，迟到结果不覆盖新缓存；完成操作与可选通知维护解耦。常规提醒同步请求从 3 小时缩短至 30 分钟，失败后 5 分钟请求重试，按真实到期时刻和午夜请求更新。返回前台或点刷新时重新读取最新事项，再刷新组件。已打开主界面时点击组件主题也可打开对应备注。完整备注、182 个系统图标、事项和周期保留。实际组件更新仍由 iOS 调度。",
+    "zh-Hans": "3.4.2 改善稳定性与刷新：提醒读取超时后可重试，迟到结果不覆盖新缓存；完成操作与可选通知维护解耦。常规提醒同步请求从 3 小时缩短至 30 分钟，失败后 5 分钟请求重试，按真实到期时刻和午夜请求更新。返回前台或点刷新时重新读取最新事项，再刷新组件。已打开主界面时点击组件主题也可打开对应备注。完整备注、182 个系统图标、事项和周期保留。实际组件更新仍由 iOS 调度。",
+    "zh-Hant": "3.4.2 改善穩定性與刷新：提醒讀取逾時後可重試，遲到結果不覆蓋新快取；完成操作與可選通知維護分離。一般提醒同步請求由 3 小時縮短至 30 分鐘，失敗後 5 分鐘請求重試，按實際到期時刻與午夜請求更新。返回前景或點選刷新時重新讀取最新事項，再更新元件。主介面仍開啟時點選元件主題也可開啟對應備註。完整備註、182 個系統圖示、事項與週期保留。實際元件更新仍由 iOS 排程。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

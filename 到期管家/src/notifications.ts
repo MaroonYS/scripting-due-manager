@@ -13,6 +13,7 @@ import {
 import type { ManualDueItem } from "./types"
 import { normalizeManualItemID } from "./item_ids"
 import { currentWidgetLocale, formatWidgetDate, widgetLanguage } from "./widget_localization"
+import { ReadDeadlineError, withReadDeadline } from "./async_deadline"
 
 export const NOTIFICATION_SETTINGS_KEY = "due-manager-notification-settings-v1"
 export const NOTIFICATION_STATUS_KEY = "due-manager-notification-status-v1"
@@ -304,7 +305,7 @@ async function reconcileNow(
       const currentItems = options.loadItems?.() ?? items
       if (sourceSignature !== JSON.stringify([currentSettings, currentItems, notificationEnvironment(options, clock)])) throw new SourceChangedError()
     }
-    const allPending = await runtime.getAllPendings()
+    const allPending = await readPendingNotifications(runtime)
     const pending = allPending.map(normalizePending).filter((value): value is PendingRequest => value != null)
     assertCurrentSource()
     // Lock contention and the system query may have crossed a deadline.
@@ -379,7 +380,7 @@ async function reconcileNow(
       else budget.remaining -= 1
       await runtime.schedule(notification)
       assertCurrentSource()
-      const accepted = await runtime.getAllPendings()
+      const accepted = await readPendingNotifications(runtime)
       assertCurrentSource()
       hostPendingCount = accepted.length
       const confirmed = accepted.map(normalizePending).find(request => request != null
@@ -435,7 +436,7 @@ async function reconcileNow(
         if (!selected.has(planned.identity)) break
         coveredThrough = planned.fireAt
       }
-      return finish("limited", `当前已排入 ${pendingCount} 条通知；${capacityBlocked ? "宿主待发队列没有安全余量，" : "本次新增预算已用完，"}还有 ${remainingCount} 条等待下次组件运行或打开脚本补充。${expiredNote}`, coveredThrough)
+      return finish("limited", `当前已排入 ${pendingCount} 条通知；${capacityBlocked ? "宿主待发队列没有安全余量，" : "本次新增预算已用完，"}还有 ${remainingCount} 条等待下次打开脚本或更新事项时补充。${expiredNote}`, coveredThrough)
     }
     if (contentPendingCount > 0) return finish("limited", `当前 ${pendingCount} 条有效提醒均已保留；还有 ${contentPendingCount} 条通知文案等待分批更新，不会因文案变化撤掉未轮到的提醒。${capacityBlocked ? "宿主队列暂无替换余量。" : ""}${expiredNote}`, plan.plannedThrough)
     if (plan.limited) return finish("limited", `已排入最近 ${pendingCount} 条通知；达到本脚本的安全排程上限，请定期开启脚本补充后续通知。${expiredNote}`, plan.plannedThrough)
@@ -458,6 +459,18 @@ async function reconcileNow(
 
 class SourceChangedError extends Error {
   constructor() { super("通知排程期间事项或设置发生变化，正在使用最新数据重试。") }
+}
+
+/** A pending-list read can expire; native writes are never cancelled or retried by a timer. */
+async function readPendingNotifications(runtime: NotificationRuntime): Promise<unknown[]> {
+  try {
+    return await withReadDeadline(() => runtime.getAllPendings(), 3000)
+  } catch (error) {
+    if (error instanceof ReadDeadlineError) {
+      throw new Error("读取系统待发通知超时，请稍后在「通知与提醒」重试。")
+    }
+    throw error
+  }
 }
 
 function markPendingChanges(): void {

@@ -27,8 +27,11 @@ import type {
   ReminderSnapshot,
 } from "./types"
 import { currentWidgetLocale, widgetText } from "./widget_localization"
+import { ReadDeadlineError, withReadDeadline } from "./async_deadline"
 
 const REMINDER_SYNC_TOKEN_KEY = "due-manager-reminder-sync-token-v1"
+const REMINDER_QUERY_TOKEN_KEY = "due-manager-reminder-query-token-v1"
+const REMINDER_READ_TIMEOUT_MS = 10000
 let reminderMutationToken = ""
 let reminderQuerySequence = 0
 let lastWrittenQuerySequence = 0
@@ -63,28 +66,25 @@ export async function loadReminderItems(
   horizonDays: number,
   calendarIDs: readonly string[] = [],
   now = new Date(),
+  options: { timeoutMs?: number } = {},
 ): Promise<ReminderLoadResult> {
   const calendarFilterIDs = normalizeReminderCalendarIDs(calendarIDs)
   const localMutationToken = reminderMutationToken
   const querySequence = ++reminderQuerySequence
   const queryStartedAt = Date.now()
+  const queryToken = `${queryStartedAt}-${querySequence}-${Math.random().toString(36).slice(2)}`
   let sharedMutationToken: string | null = null
   let guardReadable = false
   try {
     sharedMutationToken = readReminderMutationToken()
-    guardReadable = true
+    guardReadable = Storage.set(REMINDER_QUERY_TOKEN_KEY, queryToken, SHARED_STORAGE_OPTIONS)
   } catch { /* Live results remain usable if optional cache storage is unavailable. */ }
   const endDate = new Date(now)
   const queryHorizonDays = Number.isFinite(horizonDays)
     ? Math.max(30, Math.min(3650, Math.trunc(horizonDays))) : 730
   endDate.setDate(endDate.getDate() + queryHorizonDays)
   try {
-    const calendars = calendarFilterIDs.length > 0
-      ? await resolveReminderCalendars(calendarFilterIDs)
-      : undefined
-    const reminders = await Reminder.getIncompletes(
-      calendars ? { endDate, calendars } : { endDate },
-    )
+    const reminders = await queryReminderItems(calendarFilterIDs, endDate, options.timeoutMs)
     if (reminderMutationToken !== localMutationToken) throw new SupersededReminderSync()
     const cached = reminders
       .map(reminderToCacheItem)
@@ -95,20 +95,25 @@ export async function loadReminderItems(
       schemaVersion: 1,
       fetchedAt: Date.now(),
       queryStartedAt,
+      queryToken,
       queryHorizonDays,
       calendarFilterIDs,
       items: cached,
     }
     let snapshotError: string | null = null
     try {
-      if (!guardReadable) throw new Error("无法读取同步标记，已跳过本次缓存写入")
+      if (!guardReadable) throw new Error("无法读写同步标记，已跳过本次缓存写入")
       const existing = readSnapshot()
       if (readReminderMutationToken() !== sharedMutationToken) {
         throw new SupersededReminderSync()
       }
+      const latestQueryToken = Storage.get<unknown>(REMINDER_QUERY_TOKEN_KEY, SHARED_STORAGE_OPTIONS)
+      if (typeof latestQueryToken !== "string") throw new Error("无法读取查询标记，已跳过本次缓存写入")
+      const querySuperseded = latestQueryToken !== queryToken
       const newerQueryHasSaved = existing && !isSnapshotStale(existing.fetchedAt)
         && (querySequence < lastWrittenQuerySequence
-          || (existing.queryStartedAt != null && existing.queryStartedAt > queryStartedAt))
+          || (existing.queryStartedAt != null && existing.queryStartedAt > queryStartedAt)
+          || (querySuperseded && existing.queryToken === latestQueryToken))
       if (newerQueryHasSaved) {
         // Multiple Home Screen sizes may load together. Use the newer same-
         // scope live result without turning ordinary overlap into an error.
@@ -118,6 +123,10 @@ export async function loadReminderItems(
             .filter(item => withinReminderHorizon(item, endDate)),
             fetchedAt: existing.fetchedAt, live: true, fromCache: false, error: null }
         }
+      } else if (querySuperseded) {
+        // A later request may still be loading or may have failed. Its shared
+        // marker prevents this older request from publishing even when both
+        // started in the same millisecond; the live result remains usable.
       } else if (!Storage.set(REMINDER_SNAPSHOT_KEY, snapshot, SHARED_STORAGE_OPTIONS)) {
         snapshotError = "已读取提醒事项，但无法保存提醒缓存；小组件稍后可能无法离线显示这些事项。"
       } else lastWrittenQuerySequence = querySequence
@@ -161,6 +170,27 @@ export async function loadReminderItems(
         ? `提醒缓存已过期：${readableError(error)}`
         : readableError(error),
     }
+  }
+}
+
+async function queryReminderItems(calendarFilterIDs: string[], endDate: Date, timeoutMs?: number): Promise<any[]> {
+  let active = true
+  // Start immediately, preserving request order before the caller can launch
+  // another refresh. One deadline covers calendar resolution and EventKit.
+  const query = (async () => {
+    const calendars = calendarFilterIDs.length > 0
+      ? await resolveReminderCalendars(calendarFilterIDs)
+      : undefined
+    if (!active) throw new ReadDeadlineError()
+    return Reminder.getIncompletes(calendars ? { endDate, calendars } : { endDate })
+  })()
+  const deadline = typeof timeoutMs === "number" && Number.isFinite(timeoutMs) && timeoutMs > 0
+    ? Math.min(60000, Math.max(1, Math.trunc(timeoutMs))) : REMINDER_READ_TIMEOUT_MS
+  try { return await withReadDeadline(() => query, deadline) }
+  finally {
+    // A late calendar reply cannot launch a second native read. A late native
+    // query is ignored by withReadDeadline before any mapping or cache write.
+    active = false
   }
 }
 
@@ -241,7 +271,12 @@ export async function completeReminderOccurrence(
   id: string,
   completionKey: string,
 ): Promise<ReminderCompletionResult> {
-  const reminder = await Reminder.get(id)
+  let reminder: any
+  try { reminder = await withReadDeadline(() => Reminder.get(id), REMINDER_READ_TIMEOUT_MS) }
+  catch (error) {
+    if (error instanceof ReadDeadlineError) throw new Error("读取提醒事项超时，本次没有完成事项；请稍后重试。")
+    throw error
+  }
   if (!reminder || reminder.isCompleted === true) {
     removeReminderFromSnapshot(id)
     return "missing"
@@ -274,13 +309,15 @@ export function nextWidgetRefresh(
   items: DisplayDueItem[],
   now = new Date(),
   remindersEnabled = false,
+  remindersNeedRetry = false,
 ): Date {
-  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 1)
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0)
   let refreshAt = midnight
-  const minimum = now.getTime() + 5 * 60 * 1000
 
   if (remindersEnabled) {
-    const reminderPoll = new Date(now.getTime() + 3 * 60 * 60 * 1000)
+    // Request a shorter recovery after failed reads, without a busy reload loop.
+    // WidgetKit still chooses when to execute these requested timelines.
+    const reminderPoll = new Date(now.getTime() + (remindersNeedRetry ? 5 : 30) * 60 * 1000)
     if (reminderPoll < refreshAt) refreshAt = reminderPoll
   }
 
@@ -289,9 +326,8 @@ export function nextWidgetRefresh(
     const transitionTimes = [actionTimestamp(item), item.dueTimestamp]
     for (const transitionAt of transitionTimes) {
       if (transitionAt <= now.getTime()) continue
-      const candidate = Math.max(transitionAt, minimum)
-      if (candidate < refreshAt.getTime()) {
-        refreshAt = new Date(candidate)
+      if (transitionAt < refreshAt.getTime()) {
+        refreshAt = new Date(transitionAt)
       }
     }
   }
@@ -434,6 +470,7 @@ function readSnapshot(): ReminderSnapshot | null {
     fetchedAt: typeof raw.fetchedAt === "number" ? raw.fetchedAt : 0,
     queryStartedAt: typeof raw.queryStartedAt === "number" && Number.isFinite(raw.queryStartedAt)
       && raw.queryStartedAt <= raw.fetchedAt ? raw.queryStartedAt : undefined,
+    queryToken: typeof raw.queryToken === "string" && raw.queryToken.length <= 256 ? raw.queryToken : undefined,
     queryHorizonDays: typeof raw.queryHorizonDays === "number" && Number.isInteger(raw.queryHorizonDays)
       && raw.queryHorizonDays >= 30 && raw.queryHorizonDays <= 3650 ? raw.queryHorizonDays : undefined,
     calendarFilterIDs: normalizeReminderCalendarIDs(raw.calendarFilterIDs),
@@ -515,6 +552,7 @@ function normalizedReminderPriority(value: unknown): number {
 }
 
 function readableError(error: unknown): string {
+  if (error instanceof ReadDeadlineError) return "读取提醒事项超时，请稍后点「立即更新」重试。"
   if (error instanceof Error && error.message) return error.message
   return String(error || "无法读取提醒事项")
 }

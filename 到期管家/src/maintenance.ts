@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
-import { reconcileNotifications } from "./notifications"
+import { maintainNotificationsWithBudget } from "./notification_maintenance"
 import { loadState } from "./storage"
 import { reloadWidgetsAfterStorageWrite } from "./widget_refresh"
 
@@ -16,8 +16,9 @@ export async function refreshAfterDataChange(): Promise<string | null> {
     warnings.push("组件刷新请求失败，请返回主界面点「刷新桌面组件」。无需重复保存事项。")
   }
   try {
-    const status = await reconcileNotifications([], { loadItems: () => loadState().items })
-    if (status.state === "error" || status.state === "unavailable") warnings.push("通知安排未完成，请到「通知与提醒」检查权限并重试。")
+    const status = await maintainNotificationsWithBudget({ loadItems: () => loadState().items, maxNewRequests: 3, leaseWaitMs: 0 })
+    if (status == null) warnings.push("通知仍在更新，可在「通知与提醒」查看。")
+    else if (status.state === "error" || status.state === "unavailable") warnings.push("通知安排未完成，请到「通知与提醒」检查权限并重试。")
   } catch (error) {
     console.error("Notification reconciliation failed", error)
     warnings.push("通知安排未完成，请到「通知与提醒」重试。")

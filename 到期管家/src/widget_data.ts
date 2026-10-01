@@ -23,10 +23,12 @@ function emptyReminders(error: string | null = null): ReminderLoadResult {
 export async function loadWidgetData() {
   let state = loadState()
   let reminderResult = emptyReminders()
+  const readDeadline = Date.now() + 4000
   for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0 && Date.now() >= readDeadline) break
     const scope = reminderScope(state)
     reminderResult = state.settings.includeReminders
-      ? await loadReminderItems(state.settings.reminderHorizonDays, state.settings.reminderCalendarIDs)
+      ? await loadReminderItems(state.settings.reminderHorizonDays, state.settings.reminderCalendarIDs, new Date(), { timeoutMs: Math.max(1, readDeadline - Date.now()) })
       : emptyReminders()
     state = loadState()
     if (scope === reminderScope(state)) {
