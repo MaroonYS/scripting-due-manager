@@ -157,6 +157,26 @@ function assertKnownIconEdit(edit?: ItemIconEdit) {
   if (edit && !isKnownIconChoice(edit.iconID)) throw Error("此图标未收录在当前版本，请重新选择。")
 }
 
+/** Appearance-only manual edit; clears the old preference and legacy field together. */
+export function updateManualItemIcon(
+  itemID: string,
+  iconName: string | null,
+  expectedUpdatedAt: number,
+  expectedIconID: string | null,
+): AppState {
+  if (iconName !== null && (typeof iconName !== "string" || !isKnownIconChoice(`sf:${iconName}`))) {
+    throw Error("此图标未收录在当前版本，请重新选择。")
+  }
+  assertStateTimestamp(expectedUpdatedAt)
+  const current = loadState()
+  const index = current.items.findIndex(item => item.id === itemID)
+  assertExpectedItemRevision(current, index, expectedUpdatedAt, "保存")
+  return upsertItem({ ...current.items[index], iconName }, expectedUpdatedAt, {
+    iconID: null,
+    expectedIconID,
+  })
+}
+
 /** Local appearance only; never writes to Apple Reminders or its notes. */
 export function updateItemIconChoice(source: IconSource, itemID: string, edit: ItemIconEdit): AppState {
   assertKnownIconEdit(edit)

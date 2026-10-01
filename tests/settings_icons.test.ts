@@ -72,17 +72,24 @@ test("settings labels share icon spacing and preserve the native text and row si
 
 function settings(includeReminders: boolean, loading = false) {
   const app = read("src/app.tsx")
-  const start = app.indexOf('      <Section\n        header={<Text>系统提醒事项</Text>}')
-  const end = app.indexOf('      <Section>\n        <NavigationLink destination={<RecoveryView', start)
-  assert.ok(start > 0 && end > start)
-  const compiled = transpiler.transformSync(`function render() { return <VStack>${app.slice(start, end)}</VStack> }`)
+  const mainStart = app.indexOf("function DueManagerApp()")
+  const start = app.indexOf("  return <NavigationStack>", mainStart)
+  const end = app.indexOf("\nfunction ItemEditor(", start)
+  assert.ok(mainStart > 0 && start > mainStart && end > start)
+  // Render the real main navigation, then explicitly follow destination nodes.
+  const compiled = transpiler.transformSync(`function render() { ${app.slice(start, end)}`)
   const events: any[] = []
   const bindings = {
     h, ...primitives, ...icons,
-    ...Object.fromEntries(["Section", "Toggle", "NavigationLink", "ReminderCalendarPicker", "Spacer", "Button",
-      "ReminderStatusRow", "ReminderNotesList", "WidgetActionStatusView", "NotificationView", "Label"].map(name => [name, name])),
-    refreshState: () => {},
-    state: { settings: { includeReminders, reminderCalendarIDs: ["selected"], showAmounts: true } },
+    ...Object.fromEntries(["Section", "Toggle", "NavigationLink", "ReminderCalendarPicker", "Spacer", "Button", "List", "NavigationStack",
+      "ReminderStatusRow", "ReminderNotesList", "WidgetActionStatusView", "NotificationView", "Label", "ItemEditor", "ManualItemsSection",
+      "ManualItemRow", "IconLibraryView", "RecoveryView", "UpdateView", "OwnershipView"].map(name => [name, name])),
+    activeCount: 0, overdueItems: [], needsActionItems: [], upcomingItems: [], inactiveItems: [], newItem: { id: "draft" },
+    dismiss: () => events.push(["dismiss"]),
+    finishNewItem: () => events.push(["new-item"]),
+    refreshState: (value: any) => events.push(["changed", value]),
+    refreshRecoveredState: (value: any) => events.push(["recovered", value]),
+    state: { items: [], settings: { includeReminders, reminderCalendarIDs: ["selected"], showAmounts: true } },
     reminderStatus: { loading },
     setReminderIntegration: (value: boolean) => events.push(["reminders", value]),
     setReminderCalendarSelection: (value: string[]) => events.push(["lists", value]),
@@ -93,26 +100,73 @@ function settings(includeReminders: boolean, loading = false) {
     Dialog: { alert: () => { throw new Error("unexpected alert") } },
   }
   const view = new Function(...Object.keys(bindings), `${compiled}\nreturn render()`)(...Object.values(bindings))
-  return { elements: nodes(view), events }
+  const elements = nodes(view)
+  const destination = (title: string): Node => {
+    const link = elements.find(node => node.type === "NavigationLink" && text(node) === title)
+    assert.ok(link, `${title} must be reachable from the main screen`)
+    assert.ok(link.props.destination, `${title} must have a real destination`)
+    return link.props.destination
+  }
+  return { elements, events, destination, state: bindings.state }
 }
 
 test("custom icon labels retain each toggle value, disabled state and exact preview action", () => {
-  const { elements, events } = settings(true, true)
+  const { elements, events, destination } = settings(true, true)
   const reminder = elements.find(node => node.type === "Toggle" && text(node) === "显示 Apple 提醒事项")!
   assert.equal(reminder.props.value, true)
   assert.equal(reminder.props.disabled, true)
   assert.equal(reminder.props.title, undefined, "custom labels must not also supply title")
   reminder.props.onChanged(false)
-  const amount = elements.find(node => node.type === "Toggle" && text(node) === "在组件显示金额")!
+  const components = destination("组件与显示")
+  assert.equal(components.type, "List")
+  assert.equal(components.props.navigationTitle, "组件与显示")
+  const componentElements = nodes(components)
+  assert.ok(!elements.some(node => node.type === "Toggle" && text(node) === "在组件显示金额"), "secondary display controls live in their destination")
+  const amount = componentElements.find(node => node.type === "Toggle" && text(node) === "在组件显示金额")!
   assert.equal(amount.props.value, true)
   amount.props.onChanged(false)
   for (const title of ["小号组件预览", "中号组件预览", "大号组件预览"]) {
-    const button = elements.find(node => node.type === "Button" && text(node) === title)!
+    const button = componentElements.find(node => node.type === "Button" && text(node) === title)!
     assert.ok(button)
     button.props.action()
   }
   assert.deepEqual(events, [["reminders", false], ["amount", false],
     ["preview", "systemSmall"], ["preview", "systemMedium"], ["preview", "systemLarge"]])
+})
+
+test("compact main settings retain icon, component, notification and recovery destinations", () => {
+  const env = settings(true)
+  const icons = env.destination("事项图标")
+  assert.equal(icons.type, "IconLibraryView")
+  assert.equal(icons.props.state, env.state)
+  icons.props.onChanged({ changed: true })
+  assert.equal(env.destination("通知与提醒").type, "NotificationView")
+  const recovery = env.destination("记录与数据安全")
+  assert.equal(recovery.type, "RecoveryView")
+  recovery.props.onChanged({ restored: true })
+  const components = env.destination("组件与显示")
+  const status = nodes(components).find(node => node.type === "NavigationLink" && text(node) === "上次组件操作")!
+  assert.ok(status)
+  assert.equal(status.props.destination.type, "WidgetActionStatusView")
+  assert.ok(!env.elements.some(node => node.type === "NavigationLink" && text(node) === "上次组件操作"), "component diagnostics remain inside the component page")
+  assert.deepEqual(env.events, [["changed", { changed: true }], ["recovered", { restored: true }]])
+})
+
+test("main refresh still synchronizes reminders, and loading disables both refresh actions", async () => {
+  const env = settings(true)
+  const rootRefresh = env.elements.find(node => node.type === "Button" && node.props.title === "刷新桌面组件")!
+  assert.ok(rootRefresh)
+  assert.equal(rootRefresh.props.disabled, false)
+  await rootRefresh.props.action()
+  const reminderRefresh = env.elements.find(node => node.type === "Button" && node.props.title === "立即更新")!
+  assert.ok(reminderRefresh)
+  reminderRefresh.props.action()
+  assert.deepEqual(env.events, [["sync"], ["sync"]], "root refresh must synchronize data, not just reload an old widget snapshot")
+  const busy = settings(true, true)
+  assert.equal(busy.elements.find(node => node.type === "Button" && node.props.title === "刷新桌面组件")!.props.disabled, true)
+  const updating = busy.elements.find(node => node.type === "Button" && node.props.title === "正在更新…")!
+  updating.props.action()
+  assert.deepEqual(busy.events, [], "the reminder refresh callback ignores taps during an ongoing sync")
 })
 
 test("reminder list navigation retains selection and remains hidden when integration is disabled", () => {
@@ -131,8 +185,9 @@ test("standalone version row is removed while update metadata and widget code st
   const start = app.indexOf("function DueManagerApp(")
   const main = app.slice(start, app.indexOf("function ItemEditor(", start))
   assert.doesNotMatch(main, /<Text>版本<\/Text>|Script\.metadata\.version/)
-  assert.ok(main.includes('destination={<UpdateView />}'))
-  assert.ok(main.includes('destination={<OwnershipView />}'))
+  const env = settings(true)
+  assert.equal(env.destination("检查并更新版本").type, "UpdateView")
+  assert.equal(env.destination("版权与官方来源").type, "OwnershipView")
   assert.ok(read("src/update_view.tsx").includes('title="当前版本"'))
   assert.ok(read("src/update_view.tsx").includes('title="最新版本"'))
   for (const path of ["widget.tsx", "src/widget_view.tsx", "app_intents.tsx"]) {

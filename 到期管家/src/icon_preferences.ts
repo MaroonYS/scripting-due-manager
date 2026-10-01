@@ -41,8 +41,14 @@ export function isKnownIconChoice(id: string | null) { return id == null || symb
 
 /** Display-only override: source identity, dates and permissions stay untouched. */
 export function withItemIconChoices(items: readonly DisplayDueItem[], settings: AppSettings): DisplayDueItem[] {
+  const choices = new Map<string, string>()
+  for (const choice of settings.itemIconChoices ?? []) {
+    const key = JSON.stringify([choice.source, choice.itemID])
+    // Keep the same first-match behavior as itemIconID, even for unnormalized input.
+    if (!choices.has(key)) choices.set(key, choice.iconID)
+  }
   return items.map(item => {
-    const symbol = symbolChoice(itemIconID(settings, item.source, item.id))
+    const symbol = symbolChoice(choices.get(JSON.stringify([item.source, item.id])))
     return symbol ? { ...item, iconName: symbol.name, iconColor: symbol.color, iconIsExplicit: true } : item
   })
 }

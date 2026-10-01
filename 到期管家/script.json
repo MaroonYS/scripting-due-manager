@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.4.2",
-  "description": "Due dates and Apple Reminders with bounded reads, faster refresh requests, foreground sync, full notes and 182 offline SF Symbols.",
+  "version": "3.5.0",
+  "description": "Due dates and Apple Reminders with a unified preview-and-confirm icon picker, 182 offline SF Symbols, full notes and bounded foreground sync.",
   "localizedDescriptions": {
-    "en": "3.4.2 improves stability and refresh: reminder reads have deadlines and ignore late replies, newer syncs protect the cache, and optional notification work no longer blocks the next completion. Requests ordinary reminder updates after 30 minutes and recovery after 5 minutes, targets known due times and midnight, and re-reads data when the app returns to the foreground or refresh is tapped. Reminder notes also open when an existing script resumes. Notes, 182 SF Symbols, items and recurrence are preserved. Actual widget updates remain scheduled by iOS.",
-    "zh": "3.4.2 改善稳定性与刷新：提醒读取超时后可重试，迟到结果不覆盖新缓存；完成操作与可选通知维护解耦。常规提醒同步请求从 3 小时缩短至 30 分钟，失败后 5 分钟请求重试，按真实到期时刻和午夜请求更新。返回前台或点刷新时重新读取最新事项，再刷新组件。已打开主界面时点击组件主题也可打开对应备注。完整备注、182 个系统图标、事项和周期保留。实际组件更新仍由 iOS 调度。",
-    "zh-Hans": "3.4.2 改善稳定性与刷新：提醒读取超时后可重试，迟到结果不覆盖新缓存；完成操作与可选通知维护解耦。常规提醒同步请求从 3 小时缩短至 30 分钟，失败后 5 分钟请求重试，按真实到期时刻和午夜请求更新。返回前台或点刷新时重新读取最新事项，再刷新组件。已打开主界面时点击组件主题也可打开对应备注。完整备注、182 个系统图标、事项和周期保留。实际组件更新仍由 iOS 调度。",
-    "zh-Hant": "3.4.2 改善穩定性與刷新：提醒讀取逾時後可重試，遲到結果不覆蓋新快取；完成操作與可選通知維護分離。一般提醒同步請求由 3 小時縮短至 30 分鐘，失敗後 5 分鐘請求重試，按實際到期時刻與午夜請求更新。返回前景或點選刷新時重新讀取最新事項，再更新元件。主介面仍開啟時點選元件主題也可開啟對應備註。完整備註、182 個系統圖示、事項與週期保留。實際元件更新仍由 iOS 排程。"
+    "en": "3.5.0 unifies icon selection: preview before confirming, cancel without applying, start with eight recommended symbols, browse one category or search all 182 offline SF Symbols. Item icons can be filtered by source, automatic/manual mode and hidden items. The central icon page saves appearance only; choosing Automatic clears old per-item overrides. Widget display controls move to a separate page, and catalog search, batch icon lookup and item grouping avoid repeated work. Full Reminder notes, bounded reads, foreground sync, recurrence and data safeguards are preserved. Actual widget updates remain scheduled by iOS.",
+    "zh": "3.5.0 统一选图流程：先预览、再确认，取消不应用；默认显示 8 个推荐图标，可按分类浏览或搜索全部 182 个本机 SF Symbols。事项图标支持来源、自动／手动方式及已隐藏事项筛选；集中入口只保存图标，选择自动匹配会清除该项旧覆盖。组件显示设置移入独立页面，优化搜索索引、批量图标查找与事项分组，单独改图不再维护通知。完整提醒备注、读取截止、前台同步、周期及数据保护保留。实际组件更新仍由 iOS 调度。",
+    "zh-Hans": "3.5.0 统一选图流程：先预览、再确认，取消不应用；默认显示 8 个推荐图标，可按分类浏览或搜索全部 182 个本机 SF Symbols。事项图标支持来源、自动／手动方式及已隐藏事项筛选；集中入口只保存图标，选择自动匹配会清除该项旧覆盖。组件显示设置移入独立页面，优化搜索索引、批量图标查找与事项分组，单独改图不再维护通知。完整提醒备注、读取截止、前台同步、周期及数据保护保留。实际组件更新仍由 iOS 调度。",
+    "zh-Hant": "3.5.0 統一選圖流程：先預覽、再確認，取消不套用；預設顯示 8 個推薦圖示，可按分類瀏覽或搜尋全部 182 個本機 SF Symbols。事項圖示支援來源、自動／手動方式及已隱藏事項篩選；集中入口只儲存圖示，選擇自動匹配會清除該項舊覆蓋。元件顯示設定移入獨立頁面，優化搜尋索引、批次圖示查找與事項分組，單獨改圖不再維護通知。完整提醒備註、讀取截止、前景同步、週期及資料保護保留。實際元件更新仍由 iOS 排程。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

@@ -2,104 +2,138 @@
 // SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
-import { Button, HStack, Image, List, Navigation, NavigationLink, Section, Spacer, Text, TextField, VStack, useEffect, useState } from "scripting"
+import { Button, HStack, Image, List, NavigationLink, Picker, Section, Spacer, Text, TextField, Toggle, VStack, useEffect, useState } from "scripting"
 import { itemIconID, symbolChoice } from "./icon_preferences"
+import type { IconSource } from "./icon_preferences"
 import { resolveDueIcon } from "./icons"
-import { SystemIconThemes } from "./system_icon_themes"
+import { SystemIconPicker } from "./system_icon_picker"
 import { loadReminderItems } from "./reminders"
-import { loadState, updateItemIconChoice } from "./storage"
-import { refreshAfterDataChange } from "./maintenance"
-import type { AppState, DisplayDueItem, ManualDueItem } from "./types"
+import { loadState, updateItemIconChoice, updateManualItemIcon } from "./storage"
+import { reloadWidgetsAfterStorageWrite } from "./widget_refresh"
+import type { AppSettings, AppState, DisplayDueItem, ManualDueItem } from "./types"
 
-export function IconLibraryView({ state, onChanged, manualDestination }: {
-  state: AppState; onChanged: (state?: AppState) => void; manualDestination: (item: ManualDueItem) => JSX.Element
-}) {
+type IconRow = { source: "manual"; item: ManualDueItem } | { source: "reminder"; item: DisplayDueItem }
+
+function automaticIcon(row: IconRow) {
+  return row.source === "manual" ? resolveDueIcon(row.item.title, row.item.kind)
+    : resolveDueIcon("", "reminder", row.item.iconName)
+}
+
+export function iconRowAppearance(row: IconRow, settings: AppSettings) {
+  const iconID = itemIconID(settings, row.source, row.item.id)
+  const choice = symbolChoice(iconID)
+  const legacy = row.source === "manual" ? row.item.iconName : null
+  return { icon: choice ?? (legacy ? resolveDueIcon(row.item.title, row.item.kind, legacy) : automaticIcon(row)),
+    explicit: iconID != null || legacy != null, unavailable: iconID != null && choice == null }
+}
+
+export function filterIconRows(state: AppState, reminders: DisplayDueItem[], query: string,
+  source: IconSource | "all", mode: "all" | "automatic" | "explicit", showHidden: boolean): IconRow[] {
+  const term = query.normalize("NFKC").toLowerCase().trim()
+  const rows: IconRow[] = [
+    ...state.items.map(item => ({ source: "manual" as const, item })),
+    ...(state.settings.includeReminders ? reminders.map(item => ({ source: "reminder" as const, item })) : []),
+  ]
+  return rows.filter(row => (source === "all" || row.source === source)
+    && (row.source !== "manual" || showHidden || row.item.enabled)
+    && `${row.item.title} ${row.item.note}`.normalize("NFKC").toLowerCase().includes(term)
+    && (mode === "all" || iconRowAppearance(row, state.settings).explicit === (mode === "explicit")))
+}
+
+export function IconLibraryView({ state, onChanged }: { state: AppState; onChanged: (state?: AppState) => void }) {
+  const [current, setCurrent] = useState(state)
   const [reminders, setReminders] = useState<DisplayDueItem[]>([])
   const [message, setMessage] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [query, setQuery] = useState("")
+  const [source, setSource] = useState<IconSource | "all">("all")
+  const [mode, setMode] = useState<"all" | "automatic" | "explicit">("all")
+  const [showHidden, setShowHidden] = useState(false)
   const [page, setPage] = useState(0)
-  const scope = JSON.stringify([state.settings.includeReminders, state.settings.reminderHorizonDays, state.settings.reminderCalendarIDs])
+  useEffect(() => { setCurrent(state) }, [state])
+  const changed = (next?: AppState) => { const latest = next ?? loadState(); setCurrent(latest); onChanged(latest) }
+  const scope = JSON.stringify([current.settings.includeReminders, current.settings.reminderHorizonDays, current.settings.reminderCalendarIDs])
   useEffect(() => {
     let active = true
     setReminders([])
-    if (!state.settings.includeReminders) { setMessage("尚未开启 Apple 提醒事项显示。"); return }
-    setMessage("正在读取提醒事项…")
-    void loadReminderItems(state.settings.reminderHorizonDays, state.settings.reminderCalendarIDs).then(result => {
-      if (active) { setReminders(result.items); setMessage(result.error) }
-    }).catch(error => { if (active) setMessage(String(error)) })
+    if (!current.settings.includeReminders) { setLoading(false); setMessage(null); return }
+    setLoading(true); setMessage(null)
+    void loadReminderItems(current.settings.reminderHorizonDays, current.settings.reminderCalendarIDs).then(result => {
+      if (!active) return
+      setReminders(result.items); setLoading(false)
+      setMessage(result.error ?? (result.fromCache ? "当前提醒事项来自本机缓存，可重新读取。" : null))
+    }).catch(error => { if (active) { setLoading(false); setMessage(String(error)) } })
     return () => { active = false }
-  }, [scope])
-  const term = query.normalize("NFKC").toLowerCase().trim()
-  const rows = [
-    ...state.items.map(item => ({ source: "manual" as const, item })),
-    ...(state.settings.includeReminders ? reminders.map(item => ({ source: "reminder" as const, item })) : []),
-  ].filter(row => row.item.title.normalize("NFKC").toLowerCase().includes(term))
+  }, [scope, attempt])
+  const rows = filterIconRows(current, reminders, query, source, mode, showHidden)
   const pages = Math.max(1, Math.ceil(rows.length / 40)), currentPage = Math.min(page, pages - 1)
   const visible = rows.slice(currentPage * 40, (currentPage + 1) * 40)
-  return <List listStyle="insetGroup" navigationTitle="事项系统图标" navigationBarTitleDisplayMode="inline">
-    <Section>
-      <Text font="caption" foregroundStyle="secondaryLabel">仅使用本机 SF Symbols，不加载外部图库。提醒事项根据标题和备注自动匹配；逐项手动选择优先。</Text>
+  const emptyMessage = loading && source !== "manual" ? "正在读取提醒事项…"
+    : !current.settings.includeReminders && source === "reminder" ? "请先在首页开启 Apple 提醒事项。"
+    : query.trim() || mode !== "all" || source !== "all" ? "没有匹配的事项，请调整搜索或筛选条件。"
+    : "暂无显示中的事项，可新增事项或开启已隐藏事项。"
+  return <List listStyle="insetGroup" navigationTitle="事项图标" navigationBarTitleDisplayMode="inline">
+    <Section footer={<Text>选择事项后只修改图标，不改日期或备注。自动匹配会跟随内容变化；手动指定会固定为所选图标。仅使用本机 SF Symbols。</Text>}>
+      <TextField title="查找事项" value={query} prompt="事项名称或列表名称" onChanged={(value: string) => { setQuery(value); setPage(0) }} />
+      <Picker title="事项来源" value={source} pickerStyle="segmented" onChanged={(value: IconSource | "all") => { setSource(value); setPage(0) }}>
+        <Text tag="all">全部</Text><Text tag="manual">手动</Text><Text tag="reminder">提醒事项</Text>
+      </Picker>
+      <Picker title="图标方式" value={mode} pickerStyle="menu" onChanged={(value: "all" | "automatic" | "explicit") => { setMode(value); setPage(0) }}>
+        <Text tag="all">全部方式</Text><Text tag="automatic">自动匹配</Text><Text tag="explicit">手动指定</Text>
+      </Picker>
+      <Toggle title="包含已完成或隐藏事项" value={showHidden} onChanged={(value: boolean) => { setShowHidden(value); setPage(0) }} />
     </Section>
-    <Section header={<Text>选择要设置的事项</Text>} footer={<Text>手动事项进入编辑页，保存后生效；Apple 提醒事项的图标选择只保存在到期管家，不修改系统事项或备注。</Text>}>
-      <TextField title="查找事项" value={query} prompt="输入事项名称" onChanged={(value: string) => { setQuery(value); setPage(0) }} />
+    <Section header={<Text>{`选择事项 · ${rows.length}`}</Text>}>
       {visible.map(row => <NavigationLink key={JSON.stringify([row.source, row.item.id])}
-        destination={row.source === "manual" ? manualDestination(row.item as ManualDueItem)
-          : <ReminderIconEditor item={row.item as DisplayDueItem} onChanged={onChanged} />}>
-        <ItemIconLibraryRow title={row.item.title} source={row.source}
-          iconID={itemIconID(state.settings, row.source, row.item.id)}
-          fallback={row.source === "manual" ? resolveDueIcon(row.item.title, (row.item as ManualDueItem).kind, (row.item as ManualDueItem).iconName).name : (row.item as DisplayDueItem).iconName} />
+        destination={<ItemIconEditor row={row} onChanged={changed} />}>
+        <ItemIconLibraryRow row={row} settings={current.settings} />
       </NavigationLink>)}
-      {!rows.length ? <Text foregroundStyle="secondaryLabel">没有找到事项。新增后可在此设置。</Text> : null}
+      {!rows.length ? <Text foregroundStyle="secondaryLabel">{emptyMessage}</Text> : null}
     </Section>
     {pages > 1 ? <Section><HStack>
       <Button title="上一页" disabled={currentPage === 0} action={() => setPage(currentPage - 1)} />
       <Spacer /><Text>{currentPage + 1} / {pages}</Text><Spacer />
       <Button title="下一页" disabled={currentPage + 1 === pages} action={() => setPage(currentPage + 1)} />
     </HStack></Section> : null}
-    {message ? <Section header={<Text>系统提醒事项状态</Text>}><Text font="caption" foregroundStyle="secondaryLabel">{message}</Text></Section> : null}
+    {current.settings.includeReminders ? <Section header={<Text>提醒事项同步</Text>}>
+      <Button title={loading ? "正在读取…" : "重新读取提醒事项"} disabled={loading} action={() => setAttempt(value => value + 1)} />
+      {message ? <Text font="caption" foregroundStyle="secondaryLabel">{message}</Text> : null}
+    </Section> : null}
   </List>
 }
 
-function ItemIconLibraryRow({ title, source, iconID, fallback }: { title: string; source: string; iconID: string | null; fallback: string }) {
-  const symbol = symbolChoice(iconID)
+function ItemIconLibraryRow({ row, settings }: { row: IconRow; settings: AppSettings }) {
+  const { icon, explicit, unavailable } = iconRowAppearance(row, settings)
   return <HStack spacing={12}>
-    <Image systemName={symbol?.name ?? fallback} foregroundStyle={symbol?.color ?? "systemBlue"} frame={{ width: 24 }} />
+    <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 26 }} />
     <VStack alignment="leading" spacing={3}>
-      <Text lineLimit={1}>{title}</Text>
-      <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={1}>{source === "manual" ? "手动事项" : "Apple 提醒事项"} · {symbol?.label ?? "自动匹配"}</Text>
+      <Text lineLimit={2}>{row.item.title}</Text>
+      <Text font="caption" foregroundStyle="secondaryLabel">{`${row.source === "manual" ? "手动事项" : "Apple 提醒事项"}${row.source === "manual" && !row.item.enabled ? " · 已隐藏" : ""} · ${explicit ? "手动指定" : "自动匹配"} · ${unavailable ? "旧图标不可用" : icon.label}`}</Text>
     </VStack>
   </HStack>
 }
 
-export function ReminderIconEditor({ item, onChanged }: { item: DisplayDueItem; onChanged: (state?: AppState) => void }) {
-  const dismiss = Navigation.useDismiss()
-  const [initialID] = useState(() => itemIconID(loadState().settings, "reminder", item.id))
-  const [selectedID, setSelectedID] = useState(initialID)
-  const [busy, setBusy] = useState(false)
-  const [gate] = useState(() => ({ busy: false }))
-  const save = async () => {
-    if (gate.busy) return
-    gate.busy = true; setBusy(true)
-    let saved = false
-    try {
-      const next = selectedID === initialID ? loadState() : updateItemIconChoice("reminder", item.id, { iconID: selectedID, expectedIconID: initialID })
-      saved = true
-      onChanged(next)
-      const warning = await refreshAfterDataChange()
-      if (warning) await Dialog.alert({ title: "图标已保存", message: warning })
-      dismiss()
-    } catch (error) {
-      await Dialog.alert({ title: saved ? "图标已保存，刷新未完成" : "保存图标失败", message: String(error) })
-      if (saved) dismiss()
-    } finally { gate.busy = false; setBusy(false) }
+export function ItemIconEditor({ row, onChanged }: { row: IconRow; onChanged: (state?: AppState) => void }) {
+  const [initial] = useState(() => {
+    const state = loadState()
+    const item = row.source === "manual" ? state.items.find(item => item.id === row.item.id) : row.item
+    if (!item) return null
+    const iconID = itemIconID(state.settings, row.source, item.id)
+    return { iconID, item, expectedUpdatedAt: row.source === "manual" ? (item as ManualDueItem).updatedAt : undefined,
+      automatic: row.source === "manual" ? resolveDueIcon(item.title, (item as ManualDueItem).kind) : automaticIcon(row),
+      value: symbolChoice(iconID)?.name ?? (row.source === "manual" ? (item as ManualDueItem).iconName : null) }
+  })
+  const save = async (value: string | null) => {
+    if (!initial) throw Error("事项已被移除，请返回后重新打开。")
+    if (value === initial.value && (initial.iconID == null || symbolChoice(initial.iconID) != null)) { onChanged(loadState()); return }
+    const next = row.source === "manual"
+      ? updateManualItemIcon(row.item.id, value, initial.expectedUpdatedAt!, initial.iconID)
+      : updateItemIconChoice("reminder", row.item.id, { iconID: value == null ? null : `sf:${value}`, expectedIconID: initial.iconID })
+    try { onChanged(next); await reloadWidgetsAfterStorageWrite() }
+    catch (error) { await Dialog.alert({ title: "图标已保存", message: `组件刷新请求未完成，可在首页重试。\n${String(error)}` }) }
   }
-  return <List listStyle="insetGroup" navigationTitle="提醒事项图标" navigationBarTitleDisplayMode="inline" disabled={busy}
-    toolbar={{ confirmationAction: <Button title={busy ? "正在保存…" : "保存"} disabled={busy} action={() => { void save() }} /> }}>
-    <Section footer={<Text>仅影响到期管家的显示；返回不保存即可取消。不会修改 Apple 提醒事项的名称、备注或到期日。</Text>}>
-      <Text font="headline">{item.title}</Text>
-      <ItemIconLibraryRow title="当前图标" source="reminder" iconID={selectedID} fallback={item.iconName} />
-      <Button title={selectedID == null ? "✓ 自动匹配系统图标" : "自动匹配系统图标"} action={() => setSelectedID(null)} />
-    </Section>
-    <SystemIconThemes value={symbolChoice(selectedID)?.name ?? null} onChanged={name => setSelectedID(`sf:${name}`)} />
-  </List>
+  return <SystemIconPicker title={initial?.item.title ?? row.item.title} automatic={initial?.automatic ?? automaticIcon(row)} value={initial?.value ?? null}
+    confirmLabel="保存图标" onConfirm={save}
+    footer={`${initial?.iconID && !symbolChoice(initial.iconID) ? "旧图标不在当前图标库中，预览使用自动图标；确认自动匹配会清除旧选择。" : ""}确认后仅保存此事项的本地图标，并请求刷新组件；不会修改 Apple 提醒事项。取消或返回均不保存。`} />
 }

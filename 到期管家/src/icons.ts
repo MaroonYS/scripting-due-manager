@@ -1364,6 +1364,8 @@ const COMPILED_REMINDER_CONTENT_RULES = compileIconRules(REMINDER_CONTENT_RULES)
 const COMPILED_STRONG_REMINDER_CONTENT_RULES = COMPILED_REMINDER_CONTENT_RULES
   .filter(rule => rule.noteConfidence === "strong")
 const REMINDER_LIST_ICONS_BY_TITLE = buildReminderListIconMap(REMINDER_LIST_ICON_RULES)
+// Build only when search is used; widget-only runs do not need the search catalog.
+let systemIconSearchIndex: { icon: DueIconDefinition; text: string }[] | null = null
 
 export function normalizeIconOverride(value: unknown): string | null {
   if (typeof value !== "string") return null
@@ -1373,10 +1375,12 @@ export function normalizeIconOverride(value: unknown): string | null {
 /** Bounded in-memory search, without any external catalog or network request. */
 export function searchSystemIcons(query: string): DueIconDefinition[] {
   const terms = query.normalize("NFKC").toLowerCase().trim().split(/\s+/).filter(Boolean)
-  return DUE_ICON_OPTIONS.filter(icon => {
-    const text = `${icon.name} ${icon.label} ${icon.group} ${dueIconLabel(icon.name, "en")} ${dueIconLabel(icon.name, "zh-Hant")}`.normalize("NFKC").toLowerCase()
-    return terms.every(term => text.includes(term))
-  })
+  if (!terms.length) return [...DUE_ICON_OPTIONS]
+  if (!systemIconSearchIndex) systemIconSearchIndex = DUE_ICON_OPTIONS.map(icon => ({
+    icon,
+    text: `${icon.name} ${icon.label} ${icon.group} ${dueIconLabel(icon.name, "en")} ${dueIconLabel(icon.name, "zh-Hant")}`.normalize("NFKC").toLowerCase(),
+  }))
+  return systemIconSearchIndex.filter(entry => terms.every(term => entry.text.includes(term))).map(entry => entry.icon)
 }
 
 /** Human-readable catalog label for a resolved SF Symbol used by widgets. */

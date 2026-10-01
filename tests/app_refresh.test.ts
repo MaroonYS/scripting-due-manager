@@ -186,7 +186,7 @@ function application(initial = state(), options: {
   }
   const source = read("src/app.tsx")
   const constants = source.slice(source.indexOf("const EMPTY_REMINDER_STATUS"), source.indexOf("function recurrenceIntervalUnitLabel"))
-  const start = source.indexOf("function DueManagerApp()"), end = source.indexOf("  const sortedIDs =", start)
+  const start = source.indexOf("function DueManagerApp()"), end = source.indexOf("  const { overdueItems, needsActionItems, upcomingItems, inactiveItems } = groupManualItems(state)", start)
   assert.ok(start > 0 && end > start)
   // Keep every real callback and effect; omit only the unrelated rendered rows.
   const callbacks = source.slice(start, end) + "\nreturn { refreshReminders, setReminderIntegration, setReminderCalendarSelection, reminderRequests }; }"

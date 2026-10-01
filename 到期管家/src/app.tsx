@@ -53,7 +53,6 @@ import {
   clearReminderSnapshot,
   loadReminderItems,
   nextWidgetRefresh,
-  sortDueItems,
 } from "./reminders"
 import {
   createDraftItem,
@@ -89,7 +88,8 @@ import { WidgetActionStatusView } from "./widget_action_view"
 import { itemIconID, symbolChoice } from "./icon_preferences"
 import type { ItemIconEdit } from "./icon_preferences"
 import { IconLibraryView } from "./icon_library_view"
-import { SystemIconThemes } from "./system_icon_themes"
+import { SystemIconPicker } from "./system_icon_picker"
+import { groupManualItems } from "./manual_item_groups"
 import { cleanupRetiredIcons } from "./icon_cleanup"
 import { ReminderNotesList } from "./reminder_notes_list"
 
@@ -365,20 +365,8 @@ function DueManagerApp() {
     }
   }
 
-  const sortedIDs = sortDueItems(manualItemsForDisplay(state)).map(item => item.id)
-  const activeItems = sortedIDs
-    .map(id => state.items.find(item => item.id === id))
-    .filter((item): item is ManualDueItem => item != null)
-  const overdueItems = activeItems.filter(item => dueStatus(item).overdue)
-  const needsActionItems = activeItems.filter(item => {
-    const status = dueStatus(item)
-    return !status.overdue && status.needsAction
-  })
-  const upcomingItems = activeItems.filter(item => {
-    const status = dueStatus(item)
-    return !status.overdue && !status.needsAction
-  })
-  const inactiveItems = state.items.filter(item => !item.enabled)
+  const { overdueItems, needsActionItems, upcomingItems, inactiveItems } = groupManualItems(state)
+  const activeCount = overdueItems.length + needsActionItems.length + upcomingItems.length
 
   return <NavigationStack>
     <List
@@ -402,7 +390,7 @@ function DueManagerApp() {
           <Label title="新增到期事项" systemImage="plus.circle.fill" />
         </NavigationLink>
 
-        {activeItems.length === 0
+        {activeCount === 0
           ? <VStack alignment="leading" spacing={3} padding={{ vertical: 4 }}>
             <Text foregroundStyle="secondaryLabel">还没有手动事项</Text>
             <Text font="caption" foregroundStyle="tertiaryLabel">添加账单、订阅、还款、保险或其他到期事项。</Text>
@@ -426,13 +414,6 @@ function DueManagerApp() {
           ))}
         </Section>
         : null}
-
-      <Section header={<Text>系统图标</Text>} footer={<Text>只使用本机 SF Symbols。提醒事项按标题和备注自动匹配，也可单独指定图标。</Text>}>
-        <NavigationLink destination={<IconLibraryView state={state} onChanged={refreshState}
-          manualDestination={item => <ItemEditor item={item} onChanged={refreshState} />} />}>
-          <Label title="逐项设置系统图标" systemImage="square.grid.2x2.fill" />
-        </NavigationLink>
-      </Section>
 
       <Section
         header={<Text>系统提醒事项</Text>}
@@ -481,28 +462,31 @@ function DueManagerApp() {
           : null}
       </Section>
 
-      <Section header={<Text>显示与组件</Text>}>
-        <NavigationLink destination={<WidgetActionStatusView />}>
-          <Label title="上次组件操作" systemImage="exclamationmark.bubble" />
+      <Section header={<Text>设置与管理</Text>}>
+        <NavigationLink destination={<IconLibraryView state={state} onChanged={refreshState} />}>
+          <Label title="事项图标" systemImage="square.grid.2x2" />
+        </NavigationLink>
+        <NavigationLink destination={<List listStyle="insetGroup" navigationTitle="组件与显示" navigationBarTitleDisplayMode="inline">
+          <Section header={<Text>显示与组件</Text>}>
+            <Toggle value={state.settings.showAmounts} onChanged={(value: boolean) => { void setShowAmounts(value) }}>
+              <SettingsRowLabel title="在组件显示金额" kind="amount" />
+            </Toggle>
+            <Button action={() => { void preview("systemSmall") }}><SettingsRowLabel title="小号组件预览" kind="small" /></Button>
+            <Button action={() => { void preview("systemMedium") }}><SettingsRowLabel title="中号组件预览" kind="medium" /></Button>
+            <Button action={() => { void preview("systemLarge") }}><SettingsRowLabel title="大号组件预览" kind="large" /></Button>
+            <NavigationLink destination={<WidgetActionStatusView />}>
+              <Label title="上次组件操作" systemImage="exclamationmark.bubble" />
+            </NavigationLink>
+          </Section>
+        </List>}>
+          <Label title="组件与显示" systemImage="rectangle.on.rectangle" />
         </NavigationLink>
         <NavigationLink destination={<NotificationView />}>
           <Label title="通知与提醒" systemImage="bell.badge" />
         </NavigationLink>
-        <Toggle
-          value={state.settings.showAmounts}
-          onChanged={(value: boolean) => { void setShowAmounts(value) }}
-        >
-          <SettingsRowLabel title="在组件显示金额" kind="amount" />
-        </Toggle>
-        <Button action={() => { void preview("systemSmall") }}>
-          <SettingsRowLabel title="小号组件预览" kind="small" />
-        </Button>
-        <Button action={() => { void preview("systemMedium") }}>
-          <SettingsRowLabel title="中号组件预览" kind="medium" />
-        </Button>
-        <Button action={() => { void preview("systemLarge") }}>
-          <SettingsRowLabel title="大号组件预览" kind="large" />
-        </Button>
+        <NavigationLink destination={<RecoveryView onChanged={refreshRecoveredState} />}>
+          <Label title="记录与数据安全" systemImage="clock.arrow.circlepath" />
+        </NavigationLink>
         <Button
           title="刷新桌面组件"
           systemImage="arrow.triangle.2.circlepath"
@@ -512,12 +496,6 @@ function DueManagerApp() {
             catch (error) { await Dialog.alert({ title: "组件刷新失败", message: String(error) }) }
           }}
         />
-      </Section>
-
-      <Section>
-        <NavigationLink destination={<RecoveryView onChanged={refreshRecoveredState} />}>
-          <Label title="记录与数据安全" systemImage="clock.arrow.circlepath" />
-        </NavigationLink>
       </Section>
 
       <Section footer={<Text>旧版私有数据会在首次运行时自动迁移；以后更新脚本不需要重新录入事项。数据仍只保存在本机 Scripting 中。</Text>}>
@@ -1063,60 +1041,9 @@ function IconPicker({
   value: string | null
   onChanged: (value: string | null) => void
 }) {
-  const dismiss = Navigation.useDismiss()
   const automatic = resolveDueIcon(title, kind)
-
-  const choose = (next: string | null) => {
-    onChanged(next)
-    dismiss()
-  }
-
-  return <List
-    listStyle="insetGroup"
-    navigationTitle="选择图标"
-    navigationBarTitleDisplayMode="inline"
-  >
-    <Section footer={<Text>在本机按名称和类型匹配系统图标，不会上传事项名称。也可为本事项单独选择符号，保存事项后生效。</Text>}>
-      <Button buttonStyle="plain" action={() => choose(null)}>
-        <IconChoiceRow
-          name={automatic.name}
-          color={automatic.color}
-          title="自动匹配系统图标"
-          detail={`当前：${automatic.label}`}
-          selected={value == null}
-        />
-      </Button>
-    </Section>
-    <SystemIconThemes value={value} onChanged={choose} />
-  </List>
-}
-
-function IconChoiceRow({
-  name,
-  color,
-  title,
-  detail,
-  selected,
-}: {
-  name: string
-  color: string
-  title: string
-  detail?: string
-  selected: boolean
-}) {
-  return <HStack spacing={12}>
-    <Image systemName={name} foregroundStyle={color} frame={{ width: 26 }} />
-    <VStack alignment="leading" spacing={1}>
-      <Text foregroundStyle="label">{title}</Text>
-      {detail
-        ? <Text font="caption" foregroundStyle="secondaryLabel">{detail}</Text>
-        : null}
-    </VStack>
-    <Spacer />
-    {selected
-      ? <Image systemName="checkmark" foregroundStyle="systemBlue" fontWeight="semibold" />
-      : null}
-  </HStack>
+  return <SystemIconPicker title={title} automatic={automatic} value={value} onConfirm={next => { if (next !== value) onChanged(next) }}
+    footer="此处确认会将图标带回编辑页；保存事项后生效。取消或返回不改变选择。自动匹配根据名称和类型在本机完成。" />
 }
 
 function ReminderCalendarPicker({
