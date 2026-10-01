@@ -90,9 +90,12 @@ test("unknown or malformed non-retired choices remain validation errors, not sil
   for (const raw of [[{ ...choice, iconID: "https://example.com/image.png" }], [choice, choice], [{ ...choice, source: "other" }], [null]]) assert.throws(() => normalizeItemIconChoices(raw))
 })
 
-test("the expanded SF collection preserves original names, has 182 unique symbols and searchable themes", () => {
-  assert.equal(DUE_ICON_OPTIONS.length, 182)
-  assert.equal(new Set(DUE_ICON_OPTIONS.map(icon => icon.name)).size, 182)
+test("the expanded SF collection preserves original names, has 188 unique symbols and searchable themes", () => {
+  assert.equal(DUE_ICON_OPTIONS.length, 188)
+  assert.equal(new Set(DUE_ICON_OPTIONS.map(icon => icon.name)).size, 188)
+  assert.deepEqual(DUE_ICON_OPTIONS.slice(-6).map(icon => icon.name), [
+    "person.text.rectangle.fill", "checkmark.seal.fill", "figure.pool.swim", "mouth.fill", "doc.text.image.fill", "wrench.adjustable.fill",
+  ])
   assert.ok(searchSystemIcons("钱包").some(icon => icon.name === "wallet.pass.fill"))
   assert.ok(searchSystemIcons("wallet").some(icon => icon.name === "wallet.pass.fill"))
   assert.ok(searchSystemIcons("銀行").some(icon => icon.name === "building.columns.fill"))

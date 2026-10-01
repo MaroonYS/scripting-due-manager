@@ -4,33 +4,23 @@
 
 import { Button, Image, LazyVGrid, Picker, Section, Text, TextField, VStack, useState } from "scripting"
 import { DUE_ICON_GROUPS, DUE_ICON_OPTIONS, searchSystemIcons } from "./icons"
-
-/** A small visible starting set, not another hidden catalog of 182 rows. */
-export function recommendedSystemIcons(automaticName?: string, selectedName?: string | null) {
-  const automatic = DUE_ICON_OPTIONS.find(icon => icon.name === automaticName)
-  const names = [automaticName, selectedName,
-    ...DUE_ICON_OPTIONS.filter(icon => icon.group === automatic?.group).map(icon => icon.name),
-    "calendar.badge.clock", "repeat.circle.fill", "creditcard.fill", "checklist", "bell.fill", "tag.fill", "gift.fill", "heart.fill"]
-  return [...new Set(names)].flatMap(name => {
-    const icon = DUE_ICON_OPTIONS.find(candidate => candidate.name === name)
-    return icon ? [icon] : []
-  }).slice(0, 8)
-}
+import { recommendedSystemIcons } from "./system_icon_recommendations"
+import type { ItemKind } from "./types"
 
 /** Both entry points use the same searchable, single-category grid. */
-export function SystemIconThemes({ value, automaticName, onChanged }: {
-  value: string | null; automaticName?: string; onChanged: (name: string) => void
+export function SystemIconThemes({ value, automaticName, title, kind, onChanged }: {
+  value: string | null; automaticName?: string; title?: string; kind?: ItemKind | "reminder"; onChanged: (name: string) => void
 }) {
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("推荐")
   const [initialValue] = useState(value)
   const searching = query.normalize("NFKC").trim().length > 0
   const choices = searching ? searchSystemIcons(query)
-    : category === "推荐" ? recommendedSystemIcons(automaticName, initialValue)
+    : category === "推荐" ? recommendedSystemIcons(automaticName, initialValue, { title, kind })
     : DUE_ICON_OPTIONS.filter(icon => icon.group === category)
   return <Section header={<Text>{searching ? `搜索结果 · ${choices.length}` : category === "推荐" ? "为此事项推荐" : `${category} · ${choices.length}`}</Text>}
-    footer={<Text>{`点图标预览，再点右上角确认。搜索覆盖全部 ${DUE_ICON_OPTIONS.length} 个图标，支持中文、英文及 SF Symbol 名称；所有匹配均在本机完成。`}</Text>}>
-    <TextField title="搜索图标" prompt="银行、钱包、music…" value={query} onChanged={setQuery} />
+    footer={<Text>{`点图标预览，再点右上角确认。搜索覆盖全部 ${DUE_ICON_OPTIONS.length} 个图标，支持场景、品牌、中文、英文及 SF Symbol 名称；所有匹配均在本机完成。`}</Text>}>
+    <TextField title="搜索图标" prompt="房租、护照、年检、ChatGPT…" value={query} onChanged={setQuery} />
     {!searching ? <Picker title="浏览分类" value={category} onChanged={setCategory} pickerStyle="menu">
       <Text tag="推荐">为此事项推荐</Text>
       {DUE_ICON_GROUPS.map(group => <Text key={group} tag={group}>{group}</Text>)}

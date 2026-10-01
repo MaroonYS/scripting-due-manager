@@ -6,6 +6,7 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
 import * as icons from "../到期管家/src/icons.ts"
+import { recommendedSystemIcons } from "../到期管家/src/system_icon_recommendations.ts"
 import { itemIconID, symbolChoice } from "../到期管家/src/icon_preferences.ts"
 import { defaultState } from "../到期管家/src/storage.ts"
 import type { ManualDueItem } from "../到期管家/src/types.ts"
@@ -18,7 +19,7 @@ const flush = async () => { for (let n = 0; n < 20; n++) await Promise.resolve()
 const primitives = Object.fromEntries(["Button", "DisclosureGroup", "HStack", "Image", "LazyVGrid", "List", "NavigationLink", "Picker", "Section", "Spacer", "SystemIconPicker", "SystemIconThemes", "Text", "TextField", "Toggle", "VStack"].map(name => [name, name]))
 
 function compiledFunction(file: string, name: string, extra: Record<string, any> = {}) {
-  const bindings = { h, ...primitives, ...icons, itemIconID, symbolChoice, ...extra }
+  const bindings = { h, ...primitives, ...icons, recommendedSystemIcons, itemIconID, symbolChoice, ...extra }
   const source = read(file).replace(/^import .*$/gm, "").replace(/^export /gm, "")
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(source)
   return new Function(...Object.keys(bindings), `${compiled}\nreturn ${name}`)(...Object.values(bindings))
@@ -53,7 +54,10 @@ test("the first screen exposes eight relevant symbols without expanding a catalo
   const category = nodes(root).find(node => node.type === "Picker")!
   assert.equal(category.props.value, "推荐")
   assert.equal(category.children.length, icons.DUE_ICON_GROUPS.length + 1)
-  assert.ok(nodes(root).some(node => node.type === "TextField" && node.props.title === "搜索图标"))
+  const search = nodes(root).find(node => node.type === "TextField" && node.props.title === "搜索图标")!
+  assert.ok(search)
+  assert.equal(search.props.prompt, "房租、护照、年检、ChatGPT…")
+  assert.ok(JSON.stringify(root.props.footer).includes("场景、品牌"))
   assert.ok(nodes(root).filter(node => node.type === "Button").every(node => JSON.stringify(node).includes("minHeight")))
 })
 

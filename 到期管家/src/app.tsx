@@ -1042,7 +1042,7 @@ function IconPicker({
   onChanged: (value: string | null) => void
 }) {
   const automatic = resolveDueIcon(title, kind)
-  return <SystemIconPicker title={title} automatic={automatic} value={value} onConfirm={next => { if (next !== value) onChanged(next) }}
+  return <SystemIconPicker title={title} kind={kind} automatic={automatic} value={value} onConfirm={next => { if (next !== value) onChanged(next) }}
     footer="此处确认会将图标带回编辑页；保存事项后生效。取消或返回不改变选择。自动匹配根据名称和类型在本机完成。" />
 }
 

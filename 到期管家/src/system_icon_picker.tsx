@@ -6,10 +6,11 @@ import { Button, HStack, Image, List, Navigation, Section, Spacer, Text, VStack,
 import { resolveDueIcon } from "./icons"
 import type { ResolvedDueIcon } from "./icons"
 import { SystemIconThemes } from "./system_icon_themes"
+import type { ItemKind } from "./types"
 
 /** Selection is a draft until confirmed, whether it belongs to a form or a saved item. */
-export function SystemIconPicker({ title, automatic, value, onConfirm, confirmLabel = "使用此图标", footer }: {
-  title: string; automatic: ResolvedDueIcon; value: string | null
+export function SystemIconPicker({ title, kind, automatic, value, onConfirm, confirmLabel = "使用此图标", footer }: {
+  title: string; kind?: ItemKind | "reminder"; automatic: ResolvedDueIcon; value: string | null
   onConfirm: (value: string | null) => void | Promise<void>; confirmLabel?: string; footer: string
 }) {
   const dismiss = Navigation.useDismiss()
@@ -49,6 +50,6 @@ export function SystemIconPicker({ title, automatic, value, onConfirm, confirmLa
         </HStack>
       </Button>
     </Section>
-    <SystemIconThemes value={selected} automaticName={automatic.name} onChanged={setSelected} />
+    <SystemIconThemes value={selected} automaticName={automatic.name} title={title} kind={kind} onChanged={setSelected} />
   </List>
 }

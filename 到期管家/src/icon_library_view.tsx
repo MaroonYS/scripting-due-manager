@@ -133,7 +133,8 @@ export function ItemIconEditor({ row, onChanged }: { row: IconRow; onChanged: (s
     try { onChanged(next); await reloadWidgetsAfterStorageWrite() }
     catch (error) { await Dialog.alert({ title: "图标已保存", message: `组件刷新请求未完成，可在首页重试。\n${String(error)}` }) }
   }
-  return <SystemIconPicker title={initial?.item.title ?? row.item.title} automatic={initial?.automatic ?? automaticIcon(row)} value={initial?.value ?? null}
+  return <SystemIconPicker title={initial?.item.title ?? row.item.title} kind={row.source === "manual" ? (initial?.item as ManualDueItem | undefined)?.kind ?? row.item.kind : "reminder"}
+    automatic={initial?.automatic ?? automaticIcon(row)} value={initial?.value ?? null}
     confirmLabel="保存图标" onConfirm={save}
     footer={`${initial?.iconID && !symbolChoice(initial.iconID) ? "旧图标不在当前图标库中，预览使用自动图标；确认自动匹配会清除旧选择。" : ""}确认后仅保存此事项的本地图标，并请求刷新组件；不会修改 Apple 提醒事项。取消或返回均不保存。`} />
 }

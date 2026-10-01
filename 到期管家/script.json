@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.5.0",
-  "description": "Due dates and Apple Reminders with a unified preview-and-confirm icon picker, 182 offline SF Symbols, full notes and bounded foreground sync.",
+  "version": "3.5.1",
+  "description": "Due dates and Apple Reminders with 188 offline SF Symbols, richer scene search and eight related icon recommendations, full notes and bounded foreground sync.",
   "localizedDescriptions": {
-    "en": "3.5.0 unifies icon selection: preview before confirming, cancel without applying, start with eight recommended symbols, browse one category or search all 182 offline SF Symbols. Item icons can be filtered by source, automatic/manual mode and hidden items. The central icon page saves appearance only; choosing Automatic clears old per-item overrides. Widget display controls move to a separate page, and catalog search, batch icon lookup and item grouping avoid repeated work. Full Reminder notes, bounded reads, foreground sync, recurrence and data safeguards are preserved. Actual widget updates remain scheduled by iOS.",
-    "zh": "3.5.0 统一选图流程：先预览、再确认，取消不应用；默认显示 8 个推荐图标，可按分类浏览或搜索全部 182 个本机 SF Symbols。事项图标支持来源、自动／手动方式及已隐藏事项筛选；集中入口只保存图标，选择自动匹配会清除该项旧覆盖。组件显示设置移入独立页面，优化搜索索引、批量图标查找与事项分组，单独改图不再维护通知。完整提醒备注、读取截止、前台同步、周期及数据保护保留。实际组件更新仍由 iOS 调度。",
-    "zh-Hans": "3.5.0 统一选图流程：先预览、再确认，取消不应用；默认显示 8 个推荐图标，可按分类浏览或搜索全部 182 个本机 SF Symbols。事项图标支持来源、自动／手动方式及已隐藏事项筛选；集中入口只保存图标，选择自动匹配会清除该项旧覆盖。组件显示设置移入独立页面，优化搜索索引、批量图标查找与事项分组，单独改图不再维护通知。完整提醒备注、读取截止、前台同步、周期及数据保护保留。实际组件更新仍由 iOS 调度。",
-    "zh-Hant": "3.5.0 統一選圖流程：先預覽、再確認，取消不套用；預設顯示 8 個推薦圖示，可按分類瀏覽或搜尋全部 182 個本機 SF Symbols。事項圖示支援來源、自動／手動方式及已隱藏事項篩選；集中入口只儲存圖示，選擇自動匹配會清除該項舊覆蓋。元件顯示設定移入獨立頁面，優化搜尋索引、批次圖示查找與事項分組，單獨改圖不再維護通知。完整提醒備註、讀取截止、前景同步、週期及資料保護保留。實際元件更新仍由 iOS 排程。"
+    "en": "3.5.1 adds six iOS-17-compatible symbols for identity and driving licenses, passports and visas, certificates, dental and oral care, swimming, and vehicle maintenance, bringing the offline catalog to 188 while retaining all previous choices. Search now understands rent, property fees, contracts, vehicle inspections, medical follow-ups, loans, yoga, existing product names and related aliases. Eight recommendations combine the automatic and current icons with related scenes such as vehicles, VPN security, documents, housing and health. Search aliases do not broaden automatic inference; manual choices still take priority. Preview, confirmation, cancellation, full Reminder notes, dates, recurrence, completion, data safeguards and fixed updates remain unchanged. Actual widget updates remain scheduled by iOS.",
+    "zh": "3.5.1 定向新增身份驾照、护照签证、证书资格、牙科口腔、游泳泳课及车辆保养 6 个兼容 iOS 17 的符号，目录增至 188 个，原有选择保留。搜索补充房租、物业、合同、年检、复诊、贷款、瑜伽及已有产品名称等别名；8 个推荐结合自动图标、当前选择与车辆、VPN 安全、证件、居家、健康等关联场景。搜索别名不扩大自动匹配，手选始终优先。预览确认、取消、完整提醒备注、日期、周期、完成、数据保护与固定更新地址不变。实际组件更新仍由 iOS 调度。",
+    "zh-Hans": "3.5.1 定向新增身份驾照、护照签证、证书资格、牙科口腔、游泳泳课及车辆保养 6 个兼容 iOS 17 的符号，目录增至 188 个，原有选择保留。搜索补充房租、物业、合同、年检、复诊、贷款、瑜伽及已有产品名称等别名；8 个推荐结合自动图标、当前选择与车辆、VPN 安全、证件、居家、健康等关联场景。搜索别名不扩大自动匹配，手选始终优先。预览确认、取消、完整提醒备注、日期、周期、完成、数据保护与固定更新地址不变。实际组件更新仍由 iOS 调度。",
+    "zh-Hant": "3.5.1 定向新增身份駕照、護照簽證、證書資格、牙科口腔、游泳泳課及車輛保養 6 個相容 iOS 17 的符號，目錄增至 188 個，原有選擇保留。搜尋補充房租、物業、合同、年檢、複診、貸款、瑜伽及既有產品名稱等別名；8 個推薦結合自動圖示、目前選擇與車輛、VPN 安全、證件、居家、健康等關聯場景。搜尋別名不擴大自動匹配，手選始終優先。預覽確認、取消、完整提醒備註、日期、週期、完成、資料保護與固定更新地址不變。實際元件更新仍由 iOS 排程。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

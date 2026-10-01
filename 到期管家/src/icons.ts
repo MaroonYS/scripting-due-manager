@@ -235,6 +235,12 @@ export const DUE_ICON_OPTIONS: DueIconDefinition[] = [
   { name: "clock.fill", label: "时间安排", color: "systemOrange", group: "其他" },
   { name: "hourglass", label: "期限倒计时", color: "systemOrange", group: "其他" },
   { name: "alarm.fill", label: "闹钟唤醒", color: "systemRed", group: "其他" },
+  { name: "person.text.rectangle.fill", label: "身份驾照", color: "systemIndigo", group: "工作效率" },
+  { name: "checkmark.seal.fill", label: "证书资格", color: "systemGreen", group: "工作效率" },
+  { name: "figure.pool.swim", label: "游泳泳课", color: "systemBlue", group: "健康运动" },
+  { name: "mouth.fill", label: "牙科口腔", color: "systemPink", group: "健康运动" },
+  { name: "doc.text.image.fill", label: "护照签证", color: "systemIndigo", group: "出行旅行" },
+  { name: "wrench.adjustable.fill", label: "车辆保养", color: "systemOrange", group: "出行旅行" },
 ]
 
 export type DueIconLabelLanguage = "en" | "zh-Hans" | "zh-Hant"
@@ -294,6 +300,12 @@ const ENGLISH_ICON_LABELS: Record<string, string> = {
   "clock.fill": "Time Planning",
   "hourglass": "Countdown",
   "alarm.fill": "Alarm Clock",
+  "person.text.rectangle.fill": "Identity & Driving License",
+  "checkmark.seal.fill": "Certificates & Qualifications",
+  "figure.pool.swim": "Swimming",
+  "mouth.fill": "Dental & Oral Care",
+  "doc.text.image.fill": "Passports & Travel Visas",
+  "wrench.adjustable.fill": "Vehicle Maintenance",
   "creditcard.fill": "Credit Card",
   "building.columns.fill": "Banking",
   "banknote.fill": "Payments",
@@ -460,7 +472,8 @@ const TRADITIONAL_ICON_CHARACTERS: Record<string, string> = {
   "税": "稅", "钱": "錢", "镑": "鎊", "币": "幣", "欧": "歐", "转": "轉", "汇": "匯",
   "账": "賬", "证": "證", "键": "鍵", "热": "熱", "个": "個", "响": "響", "号": "號",
   "拨": "撥", "访": "訪", "风": "風", "调": "調", "锁": "鎖", "灯": "燈", "温": "溫",
-  "篮": "籃", "闹": "鬧", "钟": "鐘", "杂": "雜", "志": "誌",
+  "篮": "籃", "闹": "鬧", "钟": "鐘", "杂": "雜", "志": "誌", "驾": "駕", "业": "業",
+  "贷": "貸", "检": "檢", "养": "養", "续": "續", "复": "復",
 }
 
 type IconRule = {
@@ -514,6 +527,40 @@ const ICON_RULES: IconRule[] = [
   { icon: "train.side.front.car", keywords: ["train ticket", "rail ticket", "火车票", "火車票", "高铁票", "高鐵票"] },
   { icon: "car.side.fill", keywords: ["car rental", "rental car", "租车", "租車"] },
   { icon: "battery.100percent", keywords: ["charge battery", "battery replacement", "更换电池", "更換電池", "充电宝", "充電寶"] },
+  {
+    icon: "person.text.rectangle.fill",
+    keywords: [
+      "driver license", "driver licence", "driver's license", "driver's licence", "driving license", "driving licence", "identity card", "id card",
+      "driver license renewal", "driver's license renewal", "driving licence renewal", "identity card renewal", "id card renewal",
+      "驾照续期", "駕照續期", "驾照到期", "駕照到期", "驾驶证换证", "駕駛證換證", "身份证到期", "身份證到期",
+    ],
+  },
+  {
+    icon: "checkmark.seal.fill",
+    keywords: [
+      "professional certificate", "professional certification", "qualification renewal", "certification renewal",
+      "资格证续期", "資格證續期", "资格证书", "資格證書", "职业资格", "職業資格", "证书续期", "證書續期",
+    ],
+  },
+  {
+    icon: "figure.pool.swim",
+    keywords: ["swimming lesson", "swimming class", "swimming membership", "pool membership", "游泳课程", "游泳課程", "游泳会员", "游泳會員", "泳课", "泳課"],
+  },
+  {
+    icon: "mouth.fill",
+    keywords: ["dental appointment", "dentist appointment", "dental cleaning", "oral checkup", "牙医预约", "牙醫預約", "牙科预约", "牙科預約", "洗牙预约", "洗牙預約", "口腔检查", "口腔檢查"],
+  },
+  {
+    icon: "doc.text.image.fill",
+    keywords: [
+      "passport renewal", "passport expiry", "passport expiration", "visa renewal", "visa expiry", "visa expiration", "travel visa", "visa appointment", "visa application",
+      "护照续期", "護照續期", "护照到期", "護照到期", "签证到期", "簽證到期", "签证续期", "簽證續期", "旅行签证", "旅行簽證",
+    ],
+  },
+  {
+    icon: "wrench.adjustable.fill",
+    keywords: ["car maintenance", "vehicle maintenance", "car service", "vehicle service", "汽车保养", "汽車保養", "车辆保养", "車輛保養", "汽车维修", "汽車維修", "车辆维修", "車輛維修"],
+  },
   {
     icon: "sparkles",
     keywords: [
@@ -809,7 +856,14 @@ const ICON_RULES: IconRule[] = [
     icon: "dumbbell.fill",
     keywords: [
       "apple fitness+", "apple fitness plus", "peloton", "strava", "classpass", "gym membership",
-      "fitness subscription", "健身课程", "健身房", "健身会员", "运动会员", "瑜伽会员",
+      "fitness subscription", "健身课程", "健身房", "健身会员", "运动会员",
+    ],
+  },
+  {
+    icon: "figure.yoga",
+    keywords: [
+      "yoga membership", "yoga class", "yoga session", "yoga subscription",
+      "瑜伽会员", "瑜伽會員", "瑜伽课程", "瑜伽課程", "瑜伽练习", "瑜伽練習",
     ],
   },
   {
@@ -831,8 +885,8 @@ const ICON_RULES: IconRule[] = [
   {
     icon: "cross.case.fill",
     keywords: [
-      "hospital bill", "dental appointment", "medical appointment", "医疗费", "医院账单",
-      "体检预约", "牙医预约", "医疗服务",
+      "hospital bill", "medical appointment", "医疗费", "医院账单",
+      "体检预约", "医疗服务",
     ],
   },
   {
@@ -841,7 +895,7 @@ const ICON_RULES: IconRule[] = [
   },
   {
     icon: "airplane",
-    keywords: ["flight booking", "airline ticket", "travel membership", "机票", "航班", "旅行会员", "签证到期"],
+    keywords: ["flight booking", "airline ticket", "travel membership", "机票", "航班", "旅行会员"],
   },
   {
     icon: "map.fill",
@@ -867,6 +921,7 @@ const ICON_RULES: IconRule[] = [
     keywords: [
       "car insurance", "vehicle insurance", "car registration", "vehicle inspection", "roadside assistance",
       "车险", "汽车保险", "车辆年检", "道路救援", "用车会员",
+      "車險", "汽車保險", "車輛年檢", "汽车年检", "汽車年檢",
     ],
   },
   {
@@ -922,7 +977,7 @@ const ICON_RULES: IconRule[] = [
   {
     icon: "creditcard.fill",
     keywords: [
-      "credit card", "visa card", "mastercard", "american express", "amex", "credit 01", "credit 02", "credit 03", "credit 04",
+      "credit card", "visa card", "visa payment", "visa autopay", "visa bill", "mastercard", "american express", "amex", "credit 01", "credit 02", "credit 03", "credit 04",
       "信用卡", "还款日", "卡账单", "银行账单", "卡片年费",
       "信用卡还款", "信用卡還款", "信用卡年费", "信用卡年費", "银行卡激活", "銀行卡啟用",
     ],
@@ -1053,11 +1108,25 @@ const REMINDER_CONTENT_RULES: IconRule[] = [
   },
   {
     icon: "cross.case.fill",
-    keywords: ["health checkup", "dental checkup", "see the dentist", "去体检", "做体检", "看牙医", "牙医复诊"],
+    keywords: ["health checkup", "去体检", "做体检"],
+  },
+  {
+    icon: "mouth.fill",
+    noteConfidence: "strong",
+    keywords: ["dental checkup", "see the dentist", "see a dentist", "brush teeth", "看牙医", "看牙醫", "牙医复诊", "牙醫複診", "牙醫復診", "去洗牙", "刷牙"],
+  },
+  {
+    icon: "figure.pool.swim",
+    noteConfidence: "strong",
+    keywords: ["go swimming", "swimming practice", "swim practice", "go for a swim", "游泳", "去泳池", "游泳训练", "游泳訓練"],
   },
   {
     icon: "figure.run",
-    keywords: ["go running", "go swimming", "work out", "morning run", "去跑步", "跑步", "游泳", "锻炼", "做瑜伽", "健身"],
+    keywords: ["go running", "work out", "morning run", "去跑步", "跑步", "锻炼", "健身"],
+  },
+  {
+    icon: "figure.yoga",
+    keywords: ["do yoga", "practice yoga", "yoga practice", "做瑜伽", "练瑜伽", "練瑜伽"],
   },
   {
     icon: "bed.double.fill",
@@ -1081,7 +1150,12 @@ const REMINDER_CONTENT_RULES: IconRule[] = [
   },
   {
     icon: "car.fill",
-    keywords: ["wash the car", "service the car", "car service", "洗车", "车辆保养", "汽车保养", "送车维修"],
+    keywords: ["wash the car", "洗车", "洗車"],
+  },
+  {
+    icon: "wrench.adjustable.fill",
+    noteConfidence: "strong",
+    keywords: ["service the car", "repair the car", "book car service", "送车维修", "送車維修", "预约汽车保养", "預約汽車保養"],
   },
   {
     icon: "fuelpump.fill",
@@ -1105,7 +1179,22 @@ const REMINDER_CONTENT_RULES: IconRule[] = [
   },
   {
     icon: "doc.on.doc.fill",
-    keywords: ["sign contract", "renew document", "renew passport", "签合同", "合同续签", "更新证件", "护照续期", "证件续期"],
+    keywords: ["sign contract", "renew document", "签合同", "合同续签", "更新证件", "证件续期"],
+  },
+  {
+    icon: "doc.text.image.fill",
+    noteConfidence: "strong",
+    keywords: ["renew passport", "renew visa", "apply for passport", "apply for visa", "更新护照", "更新護照", "办理护照", "辦理護照", "办签证", "辦簽證"],
+  },
+  {
+    icon: "person.text.rectangle.fill",
+    noteConfidence: "strong",
+    keywords: ["renew driver license", "renew driver's license", "renew driving licence", "renew identity card", "更新驾照", "更新駕照", "换驾驶证", "換駕駛證", "更换身份证", "更換身份證", "办理身份证", "辦理身份證"],
+  },
+  {
+    icon: "checkmark.seal.fill",
+    noteConfidence: "strong",
+    keywords: ["renew professional certificate", "renew qualification", "更新资格证", "更新資格證", "资格证换证", "資格證換證", "领取资格证", "領取資格證"],
   },
   {
     icon: "calendar",
@@ -1295,7 +1384,10 @@ export const REMINDER_LIST_ICON_RULES: ReminderListIconRule[] = [
   { icon: "stethoscope", aliases: ["醫生", "医生", "門診", "门诊", "複診", "复诊", "就醫預約", "就医预约", "doctors", "doctor visits", "medical appointments"] },
   { icon: "figure.run", aliases: ["跑步", "鍛煉", "锻炼", "訓練", "训练", "exercise", "running", "training"] },
   { icon: "dumbbell.fill", aliases: ["健身", "健身房", "運動", "运动", "fitness", "gym", "workout", "workouts", "sports"] },
-  { icon: "figure.mind.and.body", aliases: ["冥想", "正念", "瑜伽", "meditation", "mindfulness", "yoga"] },
+  { icon: "figure.mind.and.body", aliases: ["冥想", "正念", "meditation", "mindfulness"] },
+  { icon: "figure.yoga", aliases: ["瑜伽", "瑜伽練習", "瑜伽练习", "瑜伽課程", "瑜伽课程", "yoga", "yoga practice", "yoga classes"] },
+  { icon: "figure.pool.swim", aliases: ["游泳", "泳課", "泳课", "泳池", "游泳訓練", "游泳训练", "swimming", "swimming lessons", "pool", "swim practice"] },
+  { icon: "mouth.fill", aliases: ["牙科", "牙醫", "牙医", "口腔", "口腔護理", "口腔护理", "dental", "dentistry", "oral care", "dentist"] },
   { icon: "bed.double.fill", aliases: ["睡眠", "作息", "bedtime", "sleep", "sleep routine"] },
   { icon: "brain.head.profile", aliases: ["心理健康", "心理", "專注", "专注", "mental health", "focus"] },
   { icon: "leaf.fill", aliases: ["身心健康", "自我關懷", "自我关怀", "營養", "营养", "wellbeing", "self care", "nutrition"] },
@@ -1303,7 +1395,11 @@ export const REMINDER_LIST_ICON_RULES: ReminderListIconRule[] = [
 
   // Transport and travel
   { icon: "airplane", aliases: ["航班", "飛行", "飞行", "機票", "机票", "flights", "air travel", "airline tickets"] },
-  { icon: "car.fill", aliases: ["車輛", "车辆", "汽車", "汽车", "用車", "用车", "汽車保養", "汽车保养", "car", "cars", "vehicles", "car care"] },
+  { icon: "car.fill", aliases: ["車輛", "车辆", "汽車", "汽车", "用車", "用车", "car", "cars", "vehicles"] },
+  { icon: "wrench.adjustable.fill", aliases: ["汽車保養", "汽车保养", "車輛保養", "车辆保养", "汽車維修", "汽车维修", "car care", "car maintenance", "vehicle maintenance", "car service"] },
+  { icon: "doc.text.image.fill", aliases: ["護照", "护照", "旅行簽證", "旅行签证", "簽證", "签证", "passports", "passport", "travel visas", "visas"] },
+  { icon: "person.text.rectangle.fill", aliases: ["身份", "身份證", "身份证", "駕照", "驾照", "駕駛證", "驾驶证", "identity documents", "identity cards", "driving licences", "driver licenses"] },
+  { icon: "checkmark.seal.fill", aliases: ["資格", "资格", "資格證", "资格证", "資格證書", "资格证书", "職業資格", "职业资格", "證書", "证书", "qualifications", "certifications", "professional certificates"] },
   { icon: "bus.fill", aliases: ["公交", "公車", "公车", "巴士", "通勤", "bus", "buses", "commute"] },
   { icon: "tram.fill", aliases: ["公共交通", "地鐵", "地铁", "火車", "火车", "鐵路", "铁路", "transit", "metro", "subway", "trains", "rail"] },
   { icon: "ferry.fill", aliases: ["船務", "船务", "輪渡", "轮渡", "船票", "ferries", "boats", "cruises"] },
@@ -1367,6 +1463,66 @@ const REMINDER_LIST_ICONS_BY_TITLE = buildReminderListIconMap(REMINDER_LIST_ICON
 // Build only when search is used; widget-only runs do not need the search catalog.
 let systemIconSearchIndex: { icon: DueIconDefinition; text: string }[] | null = null
 
+// Search vocabulary is intentionally separate from inference. A short query
+// such as “合同 / license / AI” is useful when browsing, but must not turn every
+// unrelated title or private note containing that word into a category match.
+const SYSTEM_ICON_SEARCH_ALIASES: Record<string, readonly string[]> = {
+  "house.fill": [
+    "租金", "租屋", "租房", "房租", "物业", "物業", "物业管理", "物業管理", "管理费", "管理費",
+    "房贷", "房貸", "按揭", "房屋贷款", "房屋貸款", "房屋租赁", "房屋租賃", "租约", "租約",
+    "rent", "rental", "lease", "landlord", "property management", "mortgage", "housing loan",
+  ],
+  "person.crop.rectangle.fill": [
+    "身份证明", "身份證明", "证件", "證件", "identification", "identity documents",
+  ],
+  "person.text.rectangle.fill": [
+    "驾照", "駕照", "驾驶证", "駕駛證", "身份证", "身份證", "证件", "證件",
+    "driver license", "driver's license", "driving licence", "identification", "identity card", "id card",
+  ],
+  "doc.text.image.fill": [
+    "护照", "護照", "签证", "簽證", "旅行签证", "旅行簽證", "出境", "证件", "證件", "passport", "visa", "travel visa", "immigration",
+  ],
+  "checkmark.seal.fill": [
+    "证书", "證書", "资格", "資格", "资格证", "資格證", "执照", "執照", "资格认证", "資格認證", "certificate", "certification", "qualification", "professional license",
+  ],
+  "signature": [
+    "合同", "合约", "合約", "协议", "協議", "签约", "簽約", "签合同", "簽合同", "contract", "agreement", "sign contract",
+  ],
+  "doc.on.doc.fill": [
+    "合同", "合约", "合約", "协议", "協議", "合同续签", "合同續簽", "证件续期", "證件續期", "contract", "agreement", "paperwork",
+  ],
+  "car.fill": [
+    "年检", "年檢", "车检", "車檢", "验车", "驗車", "汽车年检", "汽車年檢", "vehicle inspection", "annual inspection", "mot test",
+  ],
+  "wrench.adjustable.fill": [
+    "保养", "保養", "车辆保养", "車輛保養", "汽车保养", "汽車保養", "汽车维修", "汽車維修", "car maintenance", "vehicle service", "car repair",
+  ],
+  "wrench.and.screwdriver.fill": [
+    "保养", "保養", "维修", "維修", "检修", "檢修", "maintenance", "servicing", "repair", "inspection",
+  ],
+  "stethoscope": [
+    "复诊", "複診", "復診", "门诊", "門診", "诊所", "診所", "看医生", "看醫生", "医生预约", "醫生預約",
+    "follow up", "follow-up", "followup", "doctor appointment", "clinic", "medical consultation",
+  ],
+  "mouth.fill": [
+    "牙科", "牙医", "牙醫", "看牙", "洗牙", "牙齿", "牙齒", "dental", "dentist", "dentistry", "dental cleaning", "dental checkup", "dental check-up",
+  ],
+  "cross.case.fill": ["体检", "體檢", "health checkup", "health check-up", "medical examination"],
+  "percent": [
+    "贷款", "貸款", "借款", "还贷", "還貸", "贷款还款", "貸款還款", "分期付款", "分期还款", "分期還款",
+    "loan", "repayment", "installment", "instalment", "debt", "interest", "apr",
+  ],
+  "banknote.fill": [
+    "贷款还款", "貸款還款", "还贷", "還貸", "还款", "還款", "loan payment", "repayment", "installment payment",
+  ],
+  "figure.yoga": [
+    "瑜伽", "拉伸", "伸展", "瑜珈", "yoga", "stretch", "stretching", "flexibility",
+  ],
+  "figure.pool.swim": ["游泳", "泳池", "泳课", "泳課", "swim", "swimming", "pool", "swimming lessons"],
+  "desktopcomputer": ["软件许可证", "軟件許可證", "软件授权", "軟件授權", "license", "licence", "software license", "software licence"],
+  "building.columns.fill": ["汇丰", "滙豐", "匯豐", "hsbc"],
+}
+
 export function normalizeIconOverride(value: unknown): string | null {
   if (typeof value !== "string") return null
   return ICON_OPTION_NAMES.has(value) ? value : null
@@ -1376,11 +1532,38 @@ export function normalizeIconOverride(value: unknown): string | null {
 export function searchSystemIcons(query: string): DueIconDefinition[] {
   const terms = query.normalize("NFKC").toLowerCase().trim().split(/\s+/).filter(Boolean)
   if (!terms.length) return [...DUE_ICON_OPTIONS]
-  if (!systemIconSearchIndex) systemIconSearchIndex = DUE_ICON_OPTIONS.map(icon => ({
+  if (!systemIconSearchIndex) systemIconSearchIndex = buildSystemIconSearchIndex()
+  const matches = terms.map(term => {
+    // Very short Latin abbreviations are whole words: “AI” must not find mail
+    // or trains, while longer queries retain the existing partial-name search.
+    const boundary = /^[a-z]{2}$/.test(term)
+      ? new RegExp(`(?:^|[^a-z0-9])${term}(?=$|[^a-z0-9])`)
+      : null
+    return (text: string) => boundary ? boundary.test(text) : text.includes(term)
+  })
+  return systemIconSearchIndex.filter(entry => matches.every(match => match(entry.text))).map(entry => entry.icon)
+}
+
+function buildSystemIconSearchIndex(): { icon: DueIconDefinition; text: string }[] {
+  const aliasesByIcon = new Map<string, Set<string>>()
+  const addAliases = (name: string, aliases: readonly string[]) => {
+    const existing = aliasesByIcon.get(name) ?? new Set<string>()
+    for (const alias of aliases) {
+      existing.add(alias)
+      existing.add(traditionalIconLabel(alias))
+    }
+    aliasesByIcon.set(name, existing)
+  }
+  for (const rule of [...ICON_RULES, ...REMINDER_CONTENT_RULES]) {
+    addAliases(rule.icon, [...rule.keywords, ...(rule.exactKeywords ?? [])])
+  }
+  for (const rule of REMINDER_LIST_ICON_RULES) addAliases(rule.icon, rule.aliases)
+  for (const [name, aliases] of Object.entries(SYSTEM_ICON_SEARCH_ALIASES)) addAliases(name, aliases)
+  return DUE_ICON_OPTIONS.map(icon => ({
     icon,
-    text: `${icon.name} ${icon.label} ${icon.group} ${dueIconLabel(icon.name, "en")} ${dueIconLabel(icon.name, "zh-Hant")}`.normalize("NFKC").toLowerCase(),
+    text: [icon.name, icon.label, icon.group, dueIconLabel(icon.name, "en"), dueIconLabel(icon.name, "zh-Hant"),
+      ...(aliasesByIcon.get(icon.name) ?? [])].join(" ").normalize("NFKC").toLowerCase(),
   }))
-  return systemIconSearchIndex.filter(entry => terms.every(term => entry.text.includes(term))).map(entry => entry.icon)
 }
 
 /** Human-readable catalog label for a resolved SF Symbol used by widgets. */
