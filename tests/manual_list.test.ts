@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs"
 import test from "node:test"
 import * as storage from "../到期管家/src/storage.ts"
 import * as dates from "../到期管家/src/date.ts"
-import { resolveDueIcon } from "../到期管家/src/icons.ts"
+import { normalizeIconOverride, resolveDueIcon } from "../到期管家/src/icons.ts"
 import { recurrenceLabel } from "../到期管家/src/presentation.ts"
 import { itemIconID } from "../到期管家/src/icon_preferences.ts"
 import { symbolChoice } from "../到期管家/src/icon_preferences.ts"
@@ -19,6 +19,37 @@ const h = (type: string | ((props: any) => Node), props: any, ...children: any[]
   typeof type === "function" ? type({ ...props, children }) : {
     type, props: props ?? {}, children: children.flat(Infinity).filter(child => child != null && child !== false),
   }
+const symbolSource = readFileSync(new URL("../到期管家/src/due_symbol.tsx", import.meta.url), "utf8")
+const symbolCode = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(
+  symbolSource.replace(/^import[\s\S]*?from\s+"[^"]+"\s*\n/gm, "").replace(/^export /gm, ""),
+)
+const { DueSymbol, DueSymbolLabel } = new Function("h", "Image", "Label", "VStack", "normalizeIconOverride",
+  `${symbolCode}\nreturn { DueSymbol, DueSymbolLabel }`)(h, "Image", "Label", "VStack", normalizeIconOverride)
+function completionLabel(button: Node): Node {
+  assert.equal(button.type, "Button")
+  assert.equal(button.props.title, undefined, "the native child label owns the accessible title")
+  assert.equal(button.props.systemImage, undefined)
+  const label = button.children[0]
+  assert.equal(label.type, "Label")
+  assert.equal(label.props.labelStyle, "iconOnly")
+  assert.equal(label.props.foregroundStyle, "clear")
+  assert.equal(label.props.contentShape, "rect")
+  assert.deepEqual(label.props.frame, { width: 40, height: 40, alignment: "center" })
+  return label
+}
+function assertSymbol(node: Node, name: string, color: string) {
+  assert.equal(node.type, "VStack")
+  assert.equal(node.props.spacing, 0)
+  assert.deepEqual(node.props.frame, { width: 40, height: 40, alignment: "center" })
+  const image = node.children[0]
+  assert.equal(image.type, "Image")
+  assert.equal(image.props.systemName, name)
+  assert.equal(image.props.foregroundStyle, color)
+  assert.equal(image.props.resizable, true)
+  assert.equal(image.props.scaleToFit, true)
+  assert.equal(image.props.fontWeight, "regular")
+  assert.deepEqual(image.props.frame, { width: 20, height: 20, alignment: "center" })
+}
 const nodes = (node: Node): Node[] => [node, ...node.children.filter(child => typeof child === "object").flatMap(nodes)]
 const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve() }
 const legacyBrandID = "brand-retired-cmb"
@@ -60,7 +91,7 @@ function harness(options: {
     readAsString: async () => { throw Error("missing fallback") },
   }
   const bindings = {
-    h, ...dates, resolveDueIcon, recurrenceLabel, itemIconID, symbolChoice,
+    h, ...dates, resolveDueIcon, recurrenceLabel, itemIconID, symbolChoice, DueSymbol, DueSymbolLabel,
     useVisibleArtwork: () => ({ image: options.color && !options.noImages ? { image: "png", lightBackplate: false } : null }), ArtworkImage: "ArtworkImage", ArtworkCompletionLabel: "ArtworkCompletionLabel",
     ...Object.fromEntries(["Button", "Image", "HStack", "VStack", "NavigationLink", "Section", "Text", "Spacer", "ItemEditor"].map(name => [name, name])),
     Script: { directory: "/bundle" },
@@ -108,8 +139,9 @@ test("retired brand preferences never load artwork and retain the explicit syste
     try {
       const row = env.render(), button = row.children[0]
       assert.equal(button.type, "Button")
-      assert.equal(button.props.systemImage, env.item.iconName)
-      assert.equal(button.props.title, "完成事项：招商银行")
+      const label = completionLabel(button)
+      assert.equal(label.props.systemImage, env.item.iconName)
+      assert.equal(label.props.title, "完成事项：招商银行")
       assert.deepEqual(env.reads, [])
       assert.deepEqual(env.events, [])
       assert.equal(row.props.onAppear, undefined)
@@ -129,8 +161,10 @@ test("retired color selections fall back to native actions and are removed on th
       assert.equal(button.type, "Button")
       assert.deepEqual(button.props.frame, { width: 40, height: 40 })
       assert.equal(button.props.foregroundStyle, resolveDueIcon(env.item.title, env.item.kind, env.item.iconName).color)
-      assert.equal(button.props.systemImage, env.item.iconName)
-      assert.equal(button.props.title, "完成事项：招商银行")
+      const label = completionLabel(button)
+      assert.equal(label.props.systemImage, env.item.iconName)
+      assert.equal(label.props.title, "完成事项：招商银行")
+      assertSymbol(label.props.background.content, env.item.iconName!, button.props.foregroundStyle)
       assert.deepEqual(env.reads, [])
       const action = button.props.action
       action(); action(); await flush()
@@ -147,7 +181,7 @@ test("brand-looking titles still auto-match a local system category without artw
   try {
     const patch = { title: "ChatGPT Pro - Monthly", iconName: null }
     const row = env.render(patch)
-    assert.equal(row.children[0].props.systemImage, resolveDueIcon(patch.title, env.item.kind).name)
+    assert.equal(completionLabel(row.children[0]).props.systemImage, resolveDueIcon(patch.title, env.item.kind).name)
     assert.deepEqual(env.reads, [])
     assert.deepEqual(env.events, [])
   } finally { env.cleanup() }
@@ -251,8 +285,9 @@ test("system completion buttons stay usable without image support, while inactiv
     try {
       const row = env.render(), button = row.children[0]
       assert.equal(button.type, "Button")
-      assert.equal(button.props.systemImage, "calendar.badge.clock")
-      assert.equal(button.props.title, "完成事项：招商银行")
+      const label = completionLabel(button)
+      assert.equal(label.props.systemImage, "calendar.badge.clock")
+      assert.equal(label.props.title, "完成事项：招商银行")
       assert.ok(!nodes(row).some(node => node.type === "BrandCompletionLabel"))
       button.props.action(); await flush()
       assert.equal(storage.loadState().completionHistory?.length, 1)
@@ -260,4 +295,28 @@ test("system completion buttons stay usable without image support, while inactiv
       assert.ok(!nodes(env.render({ enabled: false })).some(node => node.type === "Button"))
     } finally { env.cleanup() }
   }
+})
+
+test("active and inactive main-list symbols share drawing bounds and slots without changing semantics or data", () => {
+  const env = harness({ choice: "system" })
+  try {
+    for (const iconName of ["creditcard.fill", "lanyardcard.fill", "airplane.circle.fill"]) {
+      const patch = { iconName, title: "A complete, untruncated item title for accessibility" }
+      const active = env.render(patch), button = active.children[0], label = completionLabel(button)
+      const color = resolveDueIcon(patch.title, env.item.kind, iconName).color
+      assert.equal(active.props.spacing, 2)
+      assert.deepEqual(button.props.frame, { width: 40, height: 40 })
+      assert.equal(label.props.title, `完成事项：${patch.title}`)
+      assert.equal(label.props.systemImage, iconName)
+      assertSymbol(label.props.background.content, iconName, color)
+      for (const [nextPatch, inactive] of [[patch, true], [{ ...patch, enabled: false }, false]] as const) {
+        const readonly = env.render(nextPatch, inactive)
+        assert.equal(readonly.props.spacing, 2)
+        assertSymbol(readonly.children[0], iconName, "tertiaryLabel")
+        assert.ok(!nodes(readonly).some(node => node.type === "Button" || node.type === "NavigationLink"))
+      }
+    }
+    assert.deepEqual(env.events, [])
+    assert.deepEqual(storage.loadState(), storage.normalizeState(env.original))
+  } finally { env.cleanup() }
 })

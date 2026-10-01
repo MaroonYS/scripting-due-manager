@@ -28,6 +28,7 @@ import {
   useState,
 } from "scripting"
 import { configureWidgetLocale } from "./widget_localization"
+import { DueSymbol, DueSymbolLabel } from "./due_symbol"
 import {
   advanceManualItem,
   actionDateKey,
@@ -964,22 +965,21 @@ function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} 
       if (warnings.length) await Dialog.alert({ title: "事项已完成", message: `${warnings.join("\n")}\n无需再次点击完成。` })
     } finally { gate.busy = false; setBusy(false) }
   }
-  if (inactive || !item.enabled) return <HStack spacing={10}>
-    <Image systemName={icon.name} foregroundStyle="tertiaryLabel" frame={{ width: 24 }} />
+  if (inactive || !item.enabled) return <HStack spacing={2}>
+    <DueSymbol name={icon.name} color="tertiaryLabel" size={20} slotSize={40} />
     <ManualItemDetails item={item} inactive />
   </HStack>
   return <HStack spacing={2}>
     <Button
-      title={completionTitle}
-      systemImage={icon.name}
-      labelStyle="iconOnly"
       buttonStyle="borderless"
       foregroundStyle={icon.color}
       frame={{ width: 40, height: 40 }}
       contentShape="rect"
       disabled={busy}
       action={() => { void complete() }}
-    />
+    >
+      <DueSymbolLabel title={completionTitle} name={icon.name} color={icon.color} size={20} slotSize={40} />
+    </Button>
     <NavigationLink destination={<ItemEditor item={item} onChanged={onChanged} />}>
       <ManualItemDetails item={item} />
     </NavigationLink>
@@ -1021,7 +1021,7 @@ function IconSettingRow({
 }) {
   const icon = resolveDueIcon(title, kind, value)
   return <HStack spacing={10}>
-    <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 24 }} />
+    <DueSymbol name={icon.name} color={icon.color} size={20} slotSize={26} />
     <Text>图标</Text>
     <Spacer />
     <Text font="subheadline" foregroundStyle="secondaryLabel" lineLimit={1}>

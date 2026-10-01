@@ -9,6 +9,7 @@ import * as storage from "../到期管家/src/storage.ts"
 import { createRecurrenceRule } from "../到期管家/src/date.ts"
 import { createBackupJSON, parseBackupJSON, restoreBackupJSON } from "../到期管家/src/recovery.ts"
 import { normalizeLegacyIconPreferences } from "../到期管家/src/legacy_icon_preferences.ts"
+import { normalizeIconOverride } from "../到期管家/src/icons.ts"
 import type { ManualDueItem } from "../到期管家/src/types.ts"
 
 function setup() {
@@ -118,29 +119,62 @@ test("failed or stale saves cannot discard old choices, items or completion hist
   }
 })
 
-test("actual system widget buttons preserve 40 pt semantic targets, exact intents and read-only guards", () => {
+test("actual system widget buttons share aspect-fit bounds, preserve semantic targets and exact read-only guards", () => {
   const source = readFileSync(new URL("../到期管家/src/widget_view.tsx", import.meta.url), "utf8")
   const code = source.slice(source.indexOf("function ListCompletionIcon("), source.indexOf("function listItemSupportingText("))
+  const h = (type: any, props: any, ...children: any[]): any => typeof type === "function"
+    ? type({ ...props, children }) : { type, props: props ?? {}, children }
+  const transpile = (code: string) => new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(code)
+  const symbolSource = readFileSync(new URL("../到期管家/src/due_symbol.tsx", import.meta.url), "utf8")
+  const symbolCode = symbolSource.replace(/^import[\s\S]*?from\s+"[^"]+"\s*\n/gm, "").replace(/^export /gm, "")
+  const symbols = new Function("h", "Image", "Label", "VStack", "normalizeIconOverride",
+    `${transpile(symbolCode)}\nreturn { DueSymbol, DueSymbolLabel }`)(h, "Image", "Label", "VStack", normalizeIconOverride)
   const bindings = {
-    h: (type: unknown, props: any, ...children: any[]) => ({ type, props: props ?? {}, children }),
-    Button: "Button", Image: "Image", Label: "Label", ListCompletionSymbol: "ListCompletionSymbol",
+    h, ...symbols, Button: "Button",
     widgetItemIdentity: (item: any) => JSON.stringify([item.source, item.id, item.completionKey]),
     peekArtwork: () => null, Script: { directory: "/bundle" }, ArtworkCompletionLabel: "ArtworkCompletionLabel",
     widgetCompletionLabel: (item: any) => `完成事项：${item.title}`, widgetRuntimeLocale: () => "zh-Hans",
     CompleteDueItemIntent: (value: any) => value,
   }
-  const compiled = new Bun.Transpiler({loader:"tsx",tsconfig:{compilerOptions:{jsx:"react",jsxFactory:"h"}}}).transformSync(code)
+  const compiled = transpile(code)
   const render = new Function(...Object.keys(bindings), `${compiled}\nreturn ListCompletionIcon`)(...Object.values(bindings))
-  for (const source of ["manual", "reminder"]) {
-    const item = { source, id: "exact-id", title: "Keep", completionKey: "exact-occurrence", canComplete: true, stale: false, iconName: "creditcard.fill", iconColor: "systemOrange" }
-    const button = render({ item, hitSize: 40, symbolSize: 17 })
+  const assertSymbol = (symbol: any, item: any, hitSize: number, symbolSize: number, color: string) => {
+    assert.equal(symbol.type, "VStack")
+    assert.deepEqual(symbol.props.frame, { width: hitSize, height: hitSize, alignment: "center" })
+    const image = symbol.children[0]
+    assert.equal(image.type, "Image")
+    assert.equal(image.props.systemName, item.iconName)
+    assert.equal(image.props.resizable, true)
+    assert.equal(image.props.scaleToFit, true)
+    assert.equal(image.props.font, symbolSize)
+    assert.equal(image.props.fontWeight, "regular")
+    assert.deepEqual(image.props.frame, { width: symbolSize, height: symbolSize, alignment: "center" })
+    assert.equal(image.props.foregroundStyle, color)
+    assert.equal(image.props.widgetAccentable, true)
+    return image
+  }
+  for (const source of ["manual", "reminder"]) for (const [hitSize, symbolSize] of [[40, 17], [38, 17], [40, 18], [32, 18]]) {
+    const item = { source, id: "exact-id", title: "Full item title, not a slot label", completionKey: "exact-occurrence", canComplete: true, stale: false, iconName: "creditcard.fill", iconColor: "systemOrange" }
+    const button = render({ item, hitSize, symbolSize })
     assert.equal(button.type, "Button")
-    assert.deepEqual(button.props.frame, { width: 40, height: 40 })
-    assert.equal(button.children[0].props.contentShape, "rect")
-    assert.deepEqual(button.children[0].props.frame, { width: 40, height: 40 })
-    assert.equal(button.children[0].props.title, "完成事项：Keep")
-    assert.equal(button.children[0].props.systemImage, item.iconName)
+    assert.deepEqual(button.props.frame, { width: hitSize, height: hitSize })
+    assert.equal(button.props.key, JSON.stringify([source, item.id, item.completionKey]))
+    const label = button.children[0]
+    assert.equal(label.type, "Label")
+    assert.equal(label.props.contentShape, "rect")
+    assert.equal(label.props.labelStyle, "iconOnly")
+    assert.equal(label.props.foregroundStyle, "clear")
+    assert.deepEqual(label.props.frame, { width: hitSize, height: hitSize, alignment: "center" })
+    assert.equal(label.props.title, `完成事项：${item.title}`)
+    assert.equal(label.props.systemImage, item.iconName)
+    assertSymbol(label.props.background.content, item, hitSize, symbolSize, item.iconColor)
     assert.deepEqual(button.props.intent, {source, id:item.id, occurrenceKey:item.completionKey})
-    for (const patch of [{stale:true}, {canComplete:false}]) assert.notEqual(render({item:{...item,...patch},hitSize:40,symbolSize:17}).type, "Button")
+    for (const patch of [{stale:true}, {canComplete:false}]) {
+      const readonly = render({item:{...item,...patch},hitSize,symbolSize})
+      const image = assertSymbol(readonly, item, hitSize, symbolSize, "tertiaryLabel")
+      assert.equal(image.props.contentTransition, "symbolEffectReplace")
+      assert.equal(readonly.props.intent, undefined)
+      assert.notEqual(readonly.type, "Button")
+    }
   }
 })

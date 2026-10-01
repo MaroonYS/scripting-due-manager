@@ -2803,9 +2803,10 @@ test("medium and large rows use compact item icons as completion controls withou
   assert.match(listDetail, /return \[item\.amount, item\.note\][\s\S]*?\.join\(" · "\)/)
   assert.doesNotMatch(listDetail, /formatWidgetItemDate\(item, widgetRuntimeLocale\(\)\)/)
 
-  assert.match(listCompletionIcon, /systemName=\{item\.iconName\}/)
-  assert.match(listCompletionIcon, /font=\{symbolSize\}/)
-  assert.match(listCompletionIcon, /foregroundStyle=\{enabled \? item\.iconColor : "tertiaryLabel"\}/)
+  assert.match(listCompletionIcon, /<DueSymbolLabel[\s\S]*?name=\{item\.iconName\}[\s\S]*?size=\{symbolSize\}\s+slotSize=\{hitSize\}/)
+  assert.match(listCompletionIcon, /return <DueSymbol\s+name=\{item\.iconName\}/)
+  assert.match(listCompletionIcon, /color=\{enabled \? item\.iconColor : "tertiaryLabel"\}/)
+  assert.match(listCompletionIcon, /size=\{symbolSize\}\s+slotSize=\{hitSize\}/)
   assert.match(listCompletionIcon, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
   assert.match(
     listCompletionIcon,
@@ -2842,8 +2843,7 @@ test("large widgets use adaptive Reminders-style summary and section spacing", (
     largeHeader,
     /<Spacer minLength=\{0\} \/>\s*<Divider padding=\{\{ leading: 5, trailing: 5 \}\} \/>/,
   )
-  assert.match(largeHeader, /font=\{26\}/)
-  assert.match(largeHeader, /frame=\{\{ width: 40, height: 40 \}\}/)
+  assert.match(largeHeader, /<DueSymbol[\s\S]*?size=\{26\}\s+slotSize=\{40\}/)
   assert.match(largeHeader, /<Divider padding=\{\{ leading: 5, trailing: 5 \}\} \/>/)
   assert.match(
     listWidget,
@@ -2998,8 +2998,10 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
   assert.match(widgetHeader, /font=\{compact \? 13 :/)
   assert.match(widgetHeader, /top: compact \? 8 :/)
   assert.match(widgetHeader, /bottom: compact \? -6 :/)
-  assert.match(listCompletionIcon, /systemName=\{item\.iconName\}/)
-  assert.match(listCompletionIcon, /foregroundStyle=\{enabled \? item\.iconColor : "tertiaryLabel"\}/)
+  assert.match(listCompletionIcon, /<DueSymbolLabel[\s\S]*?name=\{item\.iconName\}[\s\S]*?size=\{symbolSize\}\s+slotSize=\{hitSize\}/)
+  assert.match(listCompletionIcon, /return <DueSymbol\s+name=\{item\.iconName\}/)
+  assert.match(listCompletionIcon, /color=\{enabled \? item\.iconColor : "tertiaryLabel"\}/)
+  assert.match(listCompletionIcon, /size=\{symbolSize\}\s+slotSize=\{hitSize\}/)
   assert.match(listCompletionIcon, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
   assert.match(
     listCompletionIcon,
@@ -3017,6 +3019,7 @@ test("small widget uses adaptive item icons and fixed preview geometry", () => {
   assert.doesNotMatch(preview, />下一项<\/Text>/)
   assert.match(preview, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
   assert.match(preview, /<Link url=\{itemURL\(item\)\}>/)
+  assert.match(preview, /<DueSymbol\s+name=\{item\.iconName\}\s+color=\{item\.iconColor\}\s+size=\{11\}\s+slotSize=\{12\}\s+widget/)
   assert.match(preview, /\{formatWidgetItemDate\(item, widgetRuntimeLocale\(\)\)\}/)
   assert.doesNotMatch(preview, /status\.label|DateLabel|style="timer"/)
   assert.doesNotMatch(preview, /ListCompletionIcon|CompleteDueItemIntent/)
@@ -3282,7 +3285,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "3.6.0")
+  assert.equal(manifest.version, "3.6.1")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

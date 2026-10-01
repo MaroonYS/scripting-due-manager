@@ -6,6 +6,7 @@ import { Button, HStack, Image, List, Navigation, Section, Spacer, Text, VStack,
 import { resolveDueIcon } from "./icons"
 import type { ResolvedDueIcon } from "./icons"
 import { SystemIconThemes } from "./system_icon_themes"
+import { DueSymbol } from "./due_symbol"
 import type { ItemKind } from "./types"
 
 /** Selection is a draft until confirmed, whether it belongs to a form or a saved item. */
@@ -34,7 +35,7 @@ export function SystemIconPicker({ title, kind, automatic, value, onConfirm, con
     }}>
     <Section header={<Text>预览</Text>} footer={<Text>{footer}</Text>}>
       <HStack spacing={14} padding={{ vertical: 6 }}>
-        <Image systemName={preview.name} foregroundStyle={preview.color} font="largeTitle" frame={{ width: 48 }} />
+        <DueSymbol name={preview.name} color={preview.color} size={36} slotSize={48} />
         <VStack alignment="leading" spacing={4}>
           <Text font="headline" lineLimit={2}>{title.trim() || "未命名事项"}</Text>
           <Text font="subheadline" foregroundStyle="secondaryLabel">{`${selected == null ? "自动匹配" : "手动指定"} · ${preview.label}`}</Text>
@@ -42,7 +43,7 @@ export function SystemIconPicker({ title, kind, automatic, value, onConfirm, con
       </HStack>
       <Button buttonStyle="plain" action={() => select(null)}>
         <HStack spacing={12} frame={{ minHeight: 44 }} contentShape="rect">
-          <Image systemName={automatic.name} foregroundStyle={automatic.color} frame={{ width: 26 }} />
+          <DueSymbol name={automatic.name} color={automatic.color} size={20} slotSize={26} />
           <VStack alignment="leading" spacing={3}>
             <Text foregroundStyle="label">自动匹配</Text>
             <Text font="caption" foregroundStyle="secondaryLabel">{`当前：${automatic.label}；内容变化时跟随更新`}</Text>

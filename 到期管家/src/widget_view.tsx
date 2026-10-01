@@ -7,7 +7,6 @@ import {
   Divider,
   HStack,
   Image,
-  Label,
   Link,
   Script,
   Spacer,
@@ -16,6 +15,7 @@ import {
   Widget,
 } from "scripting"
 import { CompleteDueItemIntent } from "../app_intents"
+import { DueSymbol, DueSymbolLabel } from "./due_symbol"
 import { dueStatus } from "./date"
 import { dueIconLabel } from "./icons"
 import type { DisplayDueItem } from "./types"
@@ -235,14 +235,13 @@ function LargeSummaryHeader({
             foregroundStyle={issue.color}
           />
           : null}
-        <Image
-          systemName={item?.iconName ?? "calendar.badge.clock"}
-          font={26}
-          foregroundStyle={item?.iconColor ?? "systemOrange"}
-          symbolRenderingMode="hierarchical"
-          frame={{ width: 40, height: 40 }}
-          contentTransition="symbolEffectReplace"
-          widgetAccentable
+        <DueSymbol
+          name={item?.iconName ?? "calendar.badge.clock"}
+          color={item?.iconColor ?? "systemOrange"}
+          size={26}
+          slotSize={40}
+          replace
+          widget
         />
       </HStack>
       <Spacer minLength={0} />
@@ -483,13 +482,12 @@ function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
         padding={{ top: -5, leading: 5, trailing: 5, bottom: 9 }}
         frame={{ maxWidth: "infinity" }}
       >
-        <Image
-          systemName={item.iconName}
-          font={11}
-          foregroundStyle={item.iconColor}
-          symbolRenderingMode="hierarchical"
-          frame={{ width: 12, height: 12 }}
-          widgetAccentable
+        <DueSymbol
+          name={item.iconName}
+          color={item.iconColor}
+          size={11}
+          slotSize={12}
+          widget
         />
         <Text
           font="caption2"
@@ -935,16 +933,13 @@ function ListCompletionIcon({
       occurrenceKey: item.completionKey,
     })}
   >
-    <Label
+    <DueSymbolLabel
       title={widgetCompletionLabel(item, widgetRuntimeLocale())}
-      systemImage={item.iconName}
-      labelStyle="iconOnly"
-      font={symbolSize}
-      foregroundStyle={item.iconColor}
-      symbolRenderingMode="hierarchical"
-      frame={{ width: hitSize, height: hitSize }}
-      contentShape="rect"
-      widgetAccentable
+      name={item.iconName}
+      color={item.iconColor}
+      size={symbolSize}
+      slotSize={hitSize}
+      widget
     />
   </Button>
 }
@@ -960,14 +955,13 @@ function ListCompletionSymbol({
   symbolSize: number
   enabled: boolean
 }) {
-  return <Image
-    systemName={item.iconName}
-    font={symbolSize}
-    foregroundStyle={enabled ? item.iconColor : "tertiaryLabel"}
-    symbolRenderingMode="hierarchical"
-    frame={{ width: hitSize, height: hitSize }}
-    contentTransition="symbolEffectReplace"
-    widgetAccentable
+  return <DueSymbol
+    name={item.iconName}
+    color={enabled ? item.iconColor : "tertiaryLabel"}
+    size={symbolSize}
+    slotSize={hitSize}
+    replace
+    widget
   />
 }
 

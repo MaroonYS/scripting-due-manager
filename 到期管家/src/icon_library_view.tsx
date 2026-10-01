@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
-import { Button, HStack, Image, List, NavigationLink, Picker, Section, Spacer, Text, TextField, Toggle, VStack, useEffect, useState } from "scripting"
+import { Button, HStack, List, NavigationLink, Picker, Section, Spacer, Text, TextField, Toggle, VStack, useEffect, useState } from "scripting"
 import { indexItemIconChoices, indexedItemIconID, itemIconID, symbolChoice } from "./icon_preferences"
 import type { IconSource } from "./icon_preferences"
 import { resolveDueIcon } from "./icons"
+import { DueSymbol } from "./due_symbol"
 import { SystemIconPicker } from "./system_icon_picker"
 import { loadReminderItems } from "./reminders"
 import { loadState, updateItemIconChoice, updateManualItemIcon } from "./storage"
@@ -144,7 +145,7 @@ export function IconLibraryView({ state, onChanged }: { state: AppState; onChang
 function ItemIconLibraryRow({ row, settings }: { row: IconRow; settings: AppSettings }) {
   const { icon, explicit, unavailable } = iconRowAppearance(row, settings)
   return <HStack spacing={12}>
-    <Image systemName={icon.name} foregroundStyle={icon.color} frame={{ width: 26 }} />
+    <DueSymbol name={icon.name} color={icon.color} size={20} slotSize={26} />
     <VStack alignment="leading" spacing={3}>
       <Text lineLimit={2}>{row.item.title}</Text>
       <Text font="caption" foregroundStyle="secondaryLabel">{`${row.source === "manual" ? "手动事项" : "Apple 提醒事项"}${row.source === "manual" && !row.item.enabled ? " · 已隐藏" : ""} · ${explicit ? "手动指定" : "自动匹配"} · ${unavailable ? "旧图标不可用" : icon.label}`}</Text>

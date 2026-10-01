@@ -5,16 +5,20 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
-import { resolveDueIcon } from "../到期管家/src/icons.ts"
+import { DUE_ICON_OPTIONS, normalizeIconOverride, resolveDueIcon } from "../到期管家/src/icons.ts"
 import { indexItemIconChoices, indexedItemIconID, itemIconID, symbolChoice } from "../到期管家/src/icon_preferences.ts"
 import { defaultState } from "../到期管家/src/storage.ts"
 import type { AppState, DisplayDueItem, ManualDueItem } from "../到期管家/src/types.ts"
 
 type Node = { type: string; props: Record<string, any>; children: any[] }
-const h = (type: any, props: any, ...children: any[]): Node => ({
-  type: typeof type === "function" ? type.name : type, props: props ?? {},
-  children: children.flat(Infinity).filter(child => child != null && child !== false),
-})
+const h = (type: any, props: any, ...children: any[]): Node => typeof type === "function" && type.name === "DueSymbol"
+  ? type({ ...props, children })
+  : ({ type: typeof type === "function" ? type.name : type, props: props ?? {},
+    children: children.flat(Infinity).filter(child => child != null && child !== false) })
+const dueSymbolSource = readFileSync(new URL("../到期管家/src/due_symbol.tsx", import.meta.url), "utf8").replace(/^import .*$/gm, "").replace(/^export /gm, "")
+const dueSymbolCompiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(dueSymbolSource)
+const dueSymbolBindings = { h, Image: "Image", VStack: "VStack", normalizeIconOverride }
+const DueSymbol = new Function(...Object.keys(dueSymbolBindings), `${dueSymbolCompiled}\nreturn DueSymbol`)(...Object.values(dueSymbolBindings))
 const nodes = (node: Node): Node[] => [node, ...node.children.filter(child => typeof child === "object").flatMap(nodes)]
 const flush = async () => { for (let index = 0; index < 10; index++) await Promise.resolve() }
 function deferred<T>() {
@@ -38,7 +42,7 @@ function harness(initial: AppState = defaultState(), extra: Record<string, any> 
   const requests: ReturnType<typeof deferred<any>>[] = []
   let cursor = 0
   const bindings = {
-    h, resolveDueIcon, indexItemIconChoices, indexedItemIconID, itemIconID, symbolChoice,
+    h, DueSymbol, resolveDueIcon, indexItemIconChoices, indexedItemIconID, itemIconID, symbolChoice,
     ...Object.fromEntries(["Button", "HStack", "Image", "List", "NavigationLink", "Picker", "Section", "Spacer", "Text", "TextField", "Toggle", "VStack", "SystemIconPicker"].map(name => [name, name])),
     useState: (value: any) => {
       const index = cursor++
@@ -64,7 +68,7 @@ function harness(initial: AppState = defaultState(), extra: Record<string, any> 
   const source = readFileSync(new URL("../到期管家/src/icon_library_view.tsx", import.meta.url), "utf8")
     .replace(/^import .*$/gm, "").replace(/^export /gm, "")
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(source)
-  const components = new Function(...Object.keys(bindings), `${compiled}\nreturn { IconLibraryView, ItemIconEditor, filterIconRows, iconRowAppearance, createIconRowSearchIndex }`)(...Object.values(bindings))
+  const components = new Function(...Object.keys(bindings), `${compiled}\nreturn { IconLibraryView, ItemIconLibraryRow, ItemIconEditor, filterIconRows, iconRowAppearance, createIconRowSearchIndex }`)(...Object.values(bindings))
   return {
     ...components, reads, requests, changed, writes,
     render: (state = initial) => {
@@ -124,6 +128,23 @@ test("icon row previews respect choice precedence and distinguish legacy manual 
   assert.equal(iconRowAppearance({ source: "manual", item: legacy }, state.settings).icon.name, "creditcard.fill")
   assert.equal(iconRowAppearance({ source: "reminder", item: reminder("legacy") }, state.settings).explicit, false)
   assert.equal(iconRowAppearance({ source: "reminder", item: reminder("legacy") }, state.settings).icon.name, "wallet.pass.fill")
+})
+
+test("manual and reminder library rows render all 216 symbols at the same 20 by 26 pt geometry", () => {
+  const state = defaultState(), { ItemIconLibraryRow } = harness(state)
+  for (const icon of DUE_ICON_OPTIONS) for (const source of ["manual", "reminder"] as const) {
+    const item = source === "manual" ? manual("local-test", { iconName: icon.name }) : reminder("local-test", { iconName: icon.name, iconColor: icon.color })
+    const root = ItemIconLibraryRow({ row: { source, item }, settings: state.settings }) as Node
+    const glyphs = nodes(root).filter(node => node.type === "Image")
+    assert.equal(glyphs.length, 1)
+    assert.equal(glyphs[0].props.systemName, icon.name)
+    assert.equal(glyphs[0].props.font, 20)
+    assert.equal(glyphs[0].props.resizable, true)
+    assert.equal(glyphs[0].props.scaleToFit, true)
+    assert.deepEqual(glyphs[0].props.frame, { width: 20, height: 20, alignment: "center" })
+    assert.deepEqual(root.children[0].props.frame, { width: 26, height: 26, alignment: "center" })
+    assert.equal(root.props.spacing, 12)
+  }
 })
 
 test("icon library retries a failed reminder read and reports cache fallback", async () => {

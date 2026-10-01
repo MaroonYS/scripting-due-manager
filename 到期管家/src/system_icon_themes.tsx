@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
-import { Button, Image, LazyVGrid, Picker, Section, Text, TextField, VStack, useState } from "scripting"
+import { Button, LazyVGrid, Picker, Section, Text, TextField, VStack, useState } from "scripting"
 import { DUE_ICON_GROUPS, DUE_ICON_OPTIONS, searchSystemIcons } from "./icons"
 import { recommendedSystemIcons } from "./system_icon_recommendations"
+import { DueSymbol } from "./due_symbol"
 import type { ItemKind } from "./types"
 
 /** Both entry points use the same searchable, single-category grid. */
@@ -28,7 +29,7 @@ export function SystemIconThemes({ value, automaticName, title, kind, onChanged 
     {choices.length ? <LazyVGrid columns={[{ size: { type: "adaptive", min: 80 }, spacing: 12 }]} spacing={12}>
       {choices.map(icon => <Button key={icon.name} buttonStyle="plain" action={() => onChanged(icon.name)}>
         <VStack spacing={8} padding={{ vertical: 10, horizontal: 4 }} frame={{ maxWidth: "infinity", minHeight: 84 }} contentShape="rect">
-          <Image systemName={icon.name} foregroundStyle={icon.color} font="title2" frame={{ height: 28 }} />
+          <DueSymbol name={icon.name} color={icon.color} size={24} slotSize={32} />
           <Text font="caption" foregroundStyle={value === icon.name ? "systemBlue" : "label"} lineLimit={2} multilineTextAlignment="center">
             {`${value === icon.name ? "✓ " : ""}${icon.label}`}
           </Text>

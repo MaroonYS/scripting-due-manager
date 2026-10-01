@@ -14,6 +14,13 @@ import type { ManualDueItem } from "../到期管家/src/types.ts"
 
 const nodes = (node: any): any[] => [node, ...node.children.filter((child: any) => typeof child === "object").flatMap(nodes)]
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve() }
+const h = (type: any, props: any, ...children: any[]): any => typeof type === "function" && type.name === "DueSymbol"
+  ? type({ ...props, children })
+  : ({ type: typeof type === "function" ? type.name : type, props: props ?? {}, children: children.flat(Infinity).filter(child => child != null) })
+const dueSymbolSource = readFileSync(new URL("../到期管家/src/due_symbol.tsx", import.meta.url), "utf8").replace(/^import .*$/gm, "").replace(/^export /gm, "")
+const dueSymbolCompiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(dueSymbolSource)
+const dueSymbolBindings = { h, Image: "Image", VStack: "VStack", normalizeIconOverride: icons.normalizeIconOverride }
+const DueSymbol = new Function(...Object.keys(dueSymbolBindings), `${dueSymbolCompiled}\nreturn DueSymbol`)(...Object.values(dueSymbolBindings))
 
 function editorHarness(options: { brand?: string; icon?: string; fail?: boolean; confirm?: boolean } = {}) {
   const source = readFileSync(new URL("../到期管家/src/app.tsx", import.meta.url), "utf8")
@@ -30,8 +37,7 @@ function editorHarness(options: { brand?: string; icon?: string; fail?: boolean;
   const slots: Record<string, any[]> = {}
   let active: any[] = [], cursor = 0
   const bindings = {
-    ...dates, ...icons, ...kinds, itemIconID, symbolChoice, SystemIconThemes: "SystemIconThemes",
-    h: (type: any, props: any, ...children: any[]) => ({ type: typeof type === "function" ? type.name : type, props: props ?? {}, children: children.flat(Infinity).filter(child => child != null) }),
+    h, ...dates, ...icons, ...kinds, DueSymbol, itemIconID, symbolChoice, SystemIconThemes: "SystemIconThemes",
     ...Object.fromEntries(["Button", "DatePicker", "HStack", "Image", "LabeledContent", "List", "NavigationLink", "Picker", "Section", "Spacer", "Text", "TextField", "Toggle", "VStack", "IconSettingRow"].map(name => [name,name])),
     Navigation: { useDismiss: () => () => events.push(["dismiss"]) },
     useState: (initial: any) => {

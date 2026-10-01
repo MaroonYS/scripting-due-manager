@@ -119,15 +119,21 @@ test("generic recommendations preserve the existing automatic, selected and cate
 })
 
 const read = (file: string) => readFileSync(new URL(`../到期管家/src/${file}`, import.meta.url), "utf8")
-const h = (type: any, props: any, ...children: any[]) => ({ type: typeof type === "function" ? type.name : type,
-  props: props ?? {}, children: children.flat(Infinity).filter(child => child != null && child !== false) })
+const h = (type: any, props: any, ...children: any[]): any => typeof type === "function" && type.name === "DueSymbol"
+  ? type({ ...props, children })
+  : ({ type: typeof type === "function" ? type.name : type,
+    props: props ?? {}, children: children.flat(Infinity).filter(child => child != null && child !== false) })
 const nodes = (node: any): any[] => [node, ...node.children.filter((child: any) => typeof child === "object").flatMap(nodes)]
 const primitives = Object.fromEntries(["Button", "HStack", "Image", "LazyVGrid", "List", "Picker", "Section", "Spacer", "SystemIconThemes", "Text", "TextField", "VStack"].map(name => [name, name]))
+const dueSymbolSource = read("due_symbol.tsx").replace(/^import .*$/gm, "").replace(/^export /gm, "")
+const dueSymbolCompiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(dueSymbolSource)
+const dueSymbolBindings = { h, ...primitives, normalizeIconOverride: icons.normalizeIconOverride }
+const DueSymbol = new Function(...Object.keys(dueSymbolBindings), `${dueSymbolCompiled}\nreturn DueSymbol`)(...Object.values(dueSymbolBindings))
 
 function harness(file: string, componentName: string) {
   const slots: any[] = []
   let cursor = 0
-  const bindings = { h, ...primitives, ...icons, recommendedSystemIcons,
+  const bindings = { h, ...primitives, ...icons, DueSymbol, recommendedSystemIcons,
     Navigation: { useDismiss: () => () => assert.fail("preview must not dismiss") },
     useEffect: () => {},
     useState: (initial: any) => {

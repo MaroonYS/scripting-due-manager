@@ -12,14 +12,20 @@ import { defaultState } from "../到期管家/src/storage.ts"
 import type { ManualDueItem } from "../到期管家/src/types.ts"
 
 const read = (file: string) => readFileSync(new URL(`../到期管家/src/${file}`, import.meta.url), "utf8")
-const h = (type: any, props: any, ...children: any[]) => ({ type: typeof type === "function" ? type.name : type,
-  props: props ?? {}, children: children.flat(Infinity).filter(child => child != null && child !== false) })
+const h = (type: any, props: any, ...children: any[]): any => typeof type === "function" && type.name === "DueSymbol"
+  ? type({ ...props, children })
+  : ({ type: typeof type === "function" ? type.name : type,
+    props: props ?? {}, children: children.flat(Infinity).filter(child => child != null && child !== false) })
 const nodes = (node: any): any[] => [node, ...node.children.filter((child: any) => typeof child === "object").flatMap(nodes)]
 const flush = async () => { for (let n = 0; n < 20; n++) await Promise.resolve() }
 const primitives = Object.fromEntries(["Button", "DisclosureGroup", "HStack", "Image", "LazyVGrid", "List", "NavigationLink", "Picker", "Section", "Spacer", "SystemIconPicker", "SystemIconThemes", "Text", "TextField", "Toggle", "VStack"].map(name => [name, name]))
+const dueSymbolSource = read("due_symbol.tsx").replace(/^import .*$/gm, "").replace(/^export /gm, "")
+const dueSymbolCompiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(dueSymbolSource)
+const dueSymbolBindings = { h, ...primitives, normalizeIconOverride: icons.normalizeIconOverride }
+const DueSymbol = new Function(...Object.keys(dueSymbolBindings), `${dueSymbolCompiled}\nreturn DueSymbol`)(...Object.values(dueSymbolBindings))
 
 function compiledFunction(file: string, name: string, extra: Record<string, any> = {}) {
-  const bindings = { h, ...primitives, ...icons, recommendedSystemIcons, itemIconID, symbolChoice, ...extra }
+  const bindings = { h, ...primitives, ...icons, DueSymbol, recommendedSystemIcons, itemIconID, symbolChoice, ...extra }
   const source = read(file).replace(/^import .*$/gm, "").replace(/^export /gm, "")
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(source)
   return new Function(...Object.keys(bindings), `${compiled}\nreturn ${name}`)(...Object.values(bindings))
@@ -94,6 +100,34 @@ test("category browsing is one visible grid and global search restores the previ
   assert.deepEqual(iconNames(root), icons.DUE_ICON_OPTIONS.filter(icon => icon.group === group).map(icon => icon.name))
 })
 
+test("all category grid choices render through the same 24 pt glyph in a complete 32 pt slot", () => {
+  const render = harness("system_icon_themes.tsx", "SystemIconThemes")
+  const props = { value: "creditcard.fill", automaticName: "calendar.badge.clock", onChanged: () => assert.fail("rendering must not select") }
+  const covered = new Set<string>()
+  for (const group of icons.DUE_ICON_GROUPS) {
+    nodes(render(props)).find(node => node.type === "Picker")!.props.onChanged(group)
+    const root = render(props)
+    const buttons = nodes(root).filter(node => node.type === "Button" && node.props.key)
+    assert.deepEqual(buttons.map(node => node.props.key), icons.DUE_ICON_OPTIONS.filter(icon => icon.group === group).map(icon => icon.name))
+    for (const button of buttons) {
+      const glyphs = nodes(button).filter(node => node.type === "Image")
+      assert.equal(glyphs.length, 1)
+      const glyph = glyphs[0], slot = button.children[0].children[0]
+      assert.equal(glyph.props.systemName, button.props.key)
+      assert.equal(glyph.props.font, 24)
+      assert.equal(glyph.props.resizable, true)
+      assert.equal(glyph.props.scaleToFit, true)
+      assert.deepEqual(glyph.props.frame, { width: 24, height: 24, alignment: "center" })
+      assert.equal(slot.type, "VStack")
+      assert.deepEqual(slot.props.frame, { width: 32, height: 32, alignment: "center" })
+      assert.equal(button.children[0].props.frame.minHeight, 84, "the new drawing bounds must not shrink a grid tap target")
+      assert.equal(button.children[0].props.contentShape, "rect")
+      covered.add(glyph.props.systemName)
+    }
+  }
+  assert.equal(covered.size, 216)
+})
+
 test("recommendations stay stable while previewing and empty searches never choose a symbol", () => {
   const events: string[] = [], render = harness("system_icon_themes.tsx", "SystemIconThemes")
   const props = { value: "car.fill", automaticName: "music.note", onChanged: (name: string) => events.push(name) }
@@ -140,9 +174,13 @@ test("automatic previews use the note-inferred reminder symbol instead of a gene
   const env = pickerEnvironment()
   assert.equal(env.automatic.name, "music.note")
   automaticButton(env.render()).props.action()
-  const root = env.render(), preview = nodes(root).find(node => node.type === "Image" && node.props.font === "largeTitle")!
+  const root = env.render(), preview = nodes(root).find(node => node.type === "Image" && node.props.frame?.width === 36 && node.props.frame?.height === 36)!
   assert.equal(preview.props.systemName, "music.note")
   assert.equal(preview.props.foregroundStyle, env.automatic.color)
+  assert.equal(preview.props.font, 36)
+  assert.equal(preview.props.resizable, true)
+  assert.equal(preview.props.scaleToFit, true)
+  assert.ok(nodes(root).some(node => node.type === "VStack" && node.props.frame?.width === 48 && node.props.frame?.height === 48), "preview retains its full 48 pt slot")
   assert.equal(nodes(root).find(node => node.type === "SystemIconThemes")!.props.value, null)
   assert.ok(JSON.stringify(root).includes("自动匹配 ·"))
   assert.deepEqual(env.events, [])
