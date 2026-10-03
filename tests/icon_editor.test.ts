@@ -25,7 +25,7 @@ const DueSymbol = new Function(...Object.keys(dueSymbolBindings), `${dueSymbolCo
 function editorHarness(options: { brand?: string; icon?: string; fail?: boolean; confirm?: boolean } = {}) {
   const source = readFileSync(new URL("../到期管家/src/app.tsx", import.meta.url), "utf8")
   const code = source.slice(source.indexOf("function ItemEditor("), source.indexOf("function ManualItemsSection("))
-    + source.slice(source.indexOf("function IconPicker("), source.indexOf("function ReminderCalendarPicker("))
+    + source.slice(source.indexOf("function IconPicker("), source.indexOf("function ReminderStatusRow("))
     + readFileSync(new URL("../到期管家/src/system_icon_picker.tsx", import.meta.url), "utf8").replace(/^import .*$/gm, "").replace(/^export /gm, "")
   const item: ManualDueItem = { id: "editor-test", title: "Monthly", kind: "subscription", iconName: null,
     dueDate: "2026-09-30", includesTime: false, hour: 0, minute: 0, remindBeforeDays: 0,

@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.6.1",
-  "description": "Due dates and Apple Reminders with 216 native SF Symbols, shared aspect-fit item icon sizing, complete layout bounds and preserved completion semantics.",
+  "version": "3.7.0",
+  "description": "Due dates and Apple Reminders with a lighter ordering pipeline, source-scoped icon indexing, guarded local mutations and lifecycle-safe list selection.",
   "localizedDescriptions": {
-    "en": "3.6.1 unifies item-symbol rendering across icon grids, previews, lists, forms and widgets. Native symbols now resize proportionally into explicit drawing bounds, centered in separate layout and tap slots. Existing colors, choices, 216 catalog entries, complete semantic labels and exact completion intents are preserved. Symbol proportions remain intact; this does not promise identical filled areas. Full notes, dates, recurrence, notifications, cache safeguards and fixed updates remain. Actual iPhone layout, VoiceOver and tinted widgets still require device verification.",
-    "zh": "3.6.1 统一选图网格、预览、图标库、编辑行、主列表与小组件的事项图标渲染。原生符号在明确的绘制框内等比缩放，再居中放入独立布局及点击框，不再只限制字号或单轴宽度。保留 216 个目录定义、颜色、手选、原生完成语义标题及准确期次 Intent。保持符号原有比例，不拉伸或裁切，不承诺不同形状具有相同实心面积。完整备注、日期、周期、完成、通知、缓存保护及固定更新地址不变。真实 iPhone 排版、VoiceOver 与桌面着色模式仍需设备验收。",
-    "zh-Hans": "3.6.1 统一选图网格、预览、图标库、编辑行、主列表与小组件的事项图标渲染。原生符号在明确的绘制框内等比缩放，再居中放入独立布局及点击框，不再只限制字号或单轴宽度。保留 216 个目录定义、颜色、手选、原生完成语义标题及准确期次 Intent。保持符号原有比例，不拉伸或裁切，不承诺不同形状具有相同实心面积。完整备注、日期、周期、完成、通知、缓存保护及固定更新地址不变。真实 iPhone 排版、VoiceOver 与桌面着色模式仍需设备验收。",
-    "zh-Hant": "3.6.1 統一選圖網格、預覽、圖示庫、編輯列、主列表與小工具的事項圖示繪製。原生符號在明確的繪製框內等比縮放，再置中放入獨立排版及點擊框，不再只限制字級或單軸寬度。保留 216 個目錄定義、顏色、手選、原生完成語意標題及準確期次 Intent。保持符號原有比例，不拉伸或裁切，不承諾不同形狀具有相同實心面積。完整備註、日期、週期、完成、通知、快取保護及固定更新網址不變。真實 iPhone 排版、VoiceOver 與桌面著色模式仍需裝置驗收。"
+    "en": "3.7.0 separates date ordering from storage and icon rendering, calculates sort keys once per item, shares source-scoped icon indexes and avoids artwork work during refresh scheduling. Local mutations reject observed concurrent changes before commit and after backup; malformed saved reminder-list filters fail closed. List selection gains a read deadline and lifecycle guards. All 216 symbols, proportional sizing, choices, full notes, dates, recurrence, completion checks, backups and fixed updates remain. Host benchmarks are not iPhone measurements; Shared Storage is not atomic and WidgetKit controls actual refresh timing.",
+    "zh": "3.7.0 优化整体数据与显示链路：日期排序独立于存储和图标，每项只预计算一次排序键；主列表共用来源隔离的图标索引，刷新计时不再解析图标。保存前与备份后检查已观察到的新修改，拒绝陈旧覆盖；损坏的已存提醒列表筛选不会扩大为全部列表。列表选择页增加只读超时、并发与退出保护。216 个图标、等比尺寸、手选、完整备注、日期、周期、完成校验、备份和固定更新地址保留。本机合成基准不等于 iPhone 实测，共享存储不是原子事务，实际组件刷新由 iOS 调度。",
+    "zh-Hans": "3.7.0 优化整体数据与显示链路：日期排序独立于存储和图标，每项只预计算一次排序键；主列表共用来源隔离的图标索引，刷新计时不再解析图标。保存前与备份后检查已观察到的新修改，拒绝陈旧覆盖；损坏的已存提醒列表筛选不会扩大为全部列表。列表选择页增加只读超时、并发与退出保护。216 个图标、等比尺寸、手选、完整备注、日期、周期、完成校验、备份和固定更新地址保留。本机合成基准不等于 iPhone 实测，共享存储不是原子事务，实际组件刷新由 iOS 调度。",
+    "zh-Hant": "3.7.0 優化整體資料與顯示鏈路：日期排序獨立於儲存和圖示，每項只預先計算一次排序鍵；主列表共用來源隔離的圖示索引，更新計時不再解析圖示。儲存前與備份後檢查已觀察到的新修改，拒絕舊狀態覆蓋；損壞的已存提醒列表篩選不會擴大成全部列表。列表選擇頁增加唯讀逾時、並行與離頁保護。216 個圖示、等比尺寸、手選、完整備註、日期、週期、完成校驗、備份及固定更新網址保留。本機合成基準不等於 iPhone 實測，共享儲存不是原子交易，實際小工具更新由 iOS 排程。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

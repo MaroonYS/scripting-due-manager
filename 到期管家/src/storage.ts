@@ -73,6 +73,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   showAmounts: true,
 }
 
+// A first save may start with no stored state. Keep that origin separate from
+// a saved empty state that another runtime later removed; entries do not keep
+// any loaded item data alive and never cross the process boundary.
+const statesLoadedWithoutStorage = new WeakSet<AppState>()
+const statesLoadedWithSyntheticRevision = new WeakSet<AppState>()
+
 export function defaultState(now = Date.now()): AppState {
   assertStateTimestamp(now)
   return {
@@ -88,12 +94,13 @@ export function defaultState(now = Date.now()): AppState {
 
 export function loadState(): AppState {
   const shared = Storage.get<unknown>(STATE_KEY, SHARED_STORAGE_OPTIONS)
-  if (shared != null) return normalizeStoredState(shared)
+  if (shared != null) return normalizeLoadedState(shared)
 
   // Versions before 1.2.1 used the current script's private domain. Copy a
   // validated snapshot once so future package replacements keep the data.
   const legacy = Storage.get<unknown>(STATE_KEY)
-  const state = legacy != null ? normalizeStoredState(legacy) : defaultState()
+  const state = legacy != null ? normalizeLoadedState(legacy) : defaultState()
+  if (legacy == null) statesLoadedWithoutStorage.add(state)
   if (legacy != null && !Storage.set(STATE_KEY, state, SHARED_STORAGE_OPTIONS)) {
     throw new Error(
       "检测到旧版到期管家数据，但无法迁移到共享存储；旧数据仍已保留，请确认设备存储空间后重试。",
@@ -102,11 +109,53 @@ export function loadState(): AppState {
   return state
 }
 
+function hasFiniteStoredRevision(raw: unknown): boolean {
+  return isRecord(raw) && typeof raw.updatedAt === "number" && Number.isFinite(raw.updatedAt)
+}
+
+function normalizeLoadedState(raw: unknown): AppState {
+  const state = normalizeStoredState(raw)
+  // Very old states without a revision temporarily use the read clock. Mark
+  // only that origin so a second unchanged read cannot look like an edit.
+  if (!hasFiniteStoredRevision(raw)) statesLoadedWithSyntheticRevision.add(state)
+  return state
+}
+
 export function saveState(state: AppState, snapshotReason = "自动备份"): boolean {
   assertStateMetadata(state)
   const previous = Storage.get<unknown>(STATE_KEY, SHARED_STORAGE_OPTIONS)
   if (previous != null && !saveSnapshotOfState(normalizeStoredState(previous), snapshotReason)) {
     return false
+  }
+  return writeState(state)
+}
+
+/**
+ * Mutations must not overwrite a different state already observed before
+ * their commit. Shared Storage does not provide atomic compare-and-set: this
+ * preflight narrows, but cannot remove, the final cross-runtime read/write gap.
+ * Explicit public saveState() replacements retain their existing semantics.
+ */
+function saveStateIfCurrent(state: AppState, expected: AppState): boolean {
+  assertStateMetadata(state)
+  const previousRaw = Storage.get<unknown>(STATE_KEY, SHARED_STORAGE_OPTIONS)
+  let previous = previousRaw != null ? normalizeStoredState(previousRaw) : null
+  if (previous && statesLoadedWithSyntheticRevision.has(expected) && !hasFiniteStoredRevision(previousRaw)) {
+    previous = { ...previous, updatedAt: expected.updatedAt }
+  }
+  if (statesLoadedWithoutStorage.has(expected)
+    ? previous !== null
+    : previous === null || JSON.stringify(previous) !== JSON.stringify(expected)) {
+    throw new Error("到期管家数据已在其他位置更新，为避免覆盖新数据，本次操作已取消。请返回后刷新并重试。")
+  }
+  // Snapshot writes can yield to another runtime even though this JavaScript
+  // operation is synchronous. Compare the raw stored content again directly
+  // before the primary write; a conflict leaves the rollback snapshot intact.
+  const previousJSON = JSON.stringify(previousRaw ?? null)
+  if (previous && !saveSnapshotOfState(previous, "自动备份")) return false
+  const latestRaw = Storage.get<unknown>(STATE_KEY, SHARED_STORAGE_OPTIONS)
+  if (JSON.stringify(latestRaw ?? null) !== previousJSON) {
+    throw new Error("备份期间到期管家数据已在其他位置更新，为避免覆盖新数据，本次操作已取消。请返回后刷新并重试。")
   }
   return writeState(state)
 }
@@ -128,7 +177,7 @@ export function updateSettings(settings: Partial<AppSettings>): AppState {
     settings: normalizeSettings({ ...current.settings, ...settings }),
     updatedAt: Date.now(),
   }
-  return persistOrThrow(next)
+  return persistOrThrow(next, current)
 }
 
 export function upsertItem(
@@ -150,7 +199,7 @@ export function upsertItem(
   assertKnownIconEdit(iconEdit)
   const settings = applyItemIconEdit(current.settings, "manual", item.id, iconEdit)
   const next = { ...current, items, settings, updatedAt: Date.now() }
-  return persistOrThrow(next)
+  return persistOrThrow(next, current)
 }
 
 function assertKnownIconEdit(edit?: ItemIconEdit) {
@@ -183,7 +232,7 @@ export function updateItemIconChoice(source: IconSource, itemID: string, edit: I
   const current = loadState()
   if (source === "manual" && !current.items.some(item => item.id === itemID)) throw Error("事项已被移除。")
   const settings = applyItemIconEdit(current.settings, source, itemID, edit)
-  return persistOrThrow({ ...current, settings, updatedAt: Date.now() })
+  return persistOrThrow({ ...current, settings, updatedAt: Date.now() }, current)
 }
 
 export function deleteItem(id: string, expectedUpdatedAt?: number): AppState {
@@ -199,7 +248,7 @@ export function deleteItem(id: string, expectedUpdatedAt?: number): AppState {
     } : current.settings,
     updatedAt: Date.now(),
   }
-  return persistOrThrow(next)
+  return persistOrThrow(next, current)
 }
 
 export function createDraftItem(now = new Date()): ManualDueItem {
@@ -309,9 +358,10 @@ export function completeManualOccurrence(
   completionKey: string,
   nowMs = Date.now(),
 ): ManualCompletionResult {
-  const planned = planManualCompletion(loadState(), id, completionKey, nowMs)
+  const current = loadState()
+  const planned = planManualCompletion(current, id, completionKey, nowMs)
   if (planned.result !== "applied") return planned.result
-  if (!saveState(planned.state)) {
+  if (!saveStateIfCurrent(planned.state, current)) {
     throw new Error("无法保存完成状态，请确认设备存储空间后重试。")
   }
   return "applied"
@@ -345,7 +395,7 @@ export function completeManualItem(
     settings,
     updatedAt: after.updatedAt,
     completionHistory: appendCompletionRecord(current, manualCompletionRecord(item, after, nowMs, skipToFuture)),
-  })
+  }, current)
 }
 
 export function listCompletionHistory(): CompletionRecord[] {
@@ -373,7 +423,7 @@ export function undoManualCompletion(recordID: string, nowMs = Date.now()): AppS
     items,
     updatedAt: revision,
     completionHistory: history.map(entry => entry.id === recordID ? { ...entry, undoneAt: nowMs } : entry),
-  })
+  }, current)
 }
 
 /** Called only after the system reports a successful Reminder.save(). */
@@ -390,7 +440,7 @@ export function recordReminderCompletion(
       dueDate: item.dueDate, completedAt: nowMs, action: "complete", undoneAt: null,
     }),
     updatedAt: incrementRevision(nowMs, current.updatedAt),
-  })
+  }, current)
 }
 
 export function createLocalSnapshot(reason: string): LocalSnapshot {
@@ -616,6 +666,17 @@ function normalizeStoredState(raw: unknown): AppState {
   if (!isRecord(raw) || !Array.isArray(raw.items)) {
     throw new Error("无法读取已保存的数据结构；原数据已保留，未创建空白数据覆盖它。")
   }
+  // Missing scope is an old-version default; explicit [] deliberately means
+  // every list. A damaged explicit selection must never normalize to that
+  // broader scope, truncate an identifier, or silently discard a member.
+  if (isRecord(raw.settings) && Object.prototype.hasOwnProperty.call(raw.settings, "reminderCalendarIDs")) {
+    const identifiers = raw.settings.reminderCalendarIDs
+    if (!Array.isArray(identifiers) || identifiers.length > 100
+      || identifiers.some((id: unknown) => typeof id !== "string" || !id.trim()
+        || id.length > 512 || /[\u0000-\u001f\u007f]/.test(id))) {
+      throw new Error("提醒事项列表筛选损坏；为保护范围，没有扩大至全部列表，原数据已保留。请从有效备份恢复后重试。")
+    }
+  }
   const state = normalizeState(raw)
   assertStateMetadata(state)
   if (state.items.length !== raw.items.length) {
@@ -695,18 +756,23 @@ function normalizeItem(raw: unknown, index: number): ManualDueItem | null {
 function uniqueItemIDs(items: ManualDueItem[]): ManualDueItem[] {
   const seen = new Set<string>()
   const reserved = new Set(items.map(item => item.id))
+  const nextSuffixByBase = new Map<string, number>()
   return items.map(item => {
     if (!seen.has(item.id)) {
       seen.add(item.id)
       return item
     }
 
-    let suffix = 2
+    // Previously every duplicate restarted at 2, rescanning all earlier
+    // duplicates. Occupied IDs only accumulate, so the next first-fit suffix
+    // for this base can safely continue after its last successful candidate.
+    let suffix = nextSuffixByBase.get(item.id) ?? 2
     let id = duplicateItemID(item.id, suffix)
     while (seen.has(id) || reserved.has(id)) {
       suffix += 1
       id = duplicateItemID(item.id, suffix)
     }
+    nextSuffixByBase.set(item.id, suffix + 1)
     seen.add(id)
     return { ...item, id }
   })
@@ -923,8 +989,8 @@ function archiveRawRecoveryContext(context: RawRecoveryContext, reason: string):
   }
 }
 
-function persistOrThrow(state: AppState): AppState {
-  if (!saveState(state)) {
+function persistOrThrow(state: AppState, expected: AppState): AppState {
+  if (!saveStateIfCurrent(state, expected)) {
     throw new Error("无法保存到期管家数据，请确认设备存储空间后重试。")
   }
   return state

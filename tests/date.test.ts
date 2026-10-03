@@ -3079,11 +3079,12 @@ test("settings expose a native multi-list reminder picker", () => {
     new URL("../到期管家/src/app.tsx", import.meta.url),
     "utf8",
   )
-  assert.match(source, /function ReminderCalendarPicker/)
-  assert.match(source, /Calendar\.forReminders\(\)/)
+  assert.match(source, /import \{ ReminderCalendarPicker \} from "\.\/reminder_calendar_picker"/)
+  const picker = readFileSync(new URL("../到期管家/src/reminder_calendar_picker.tsx", import.meta.url), "utf8")
+  assert.match(picker, /Calendar\.forReminders\(\)/)
   assert.match(source, /reminderCalendarIDs/)
   assert.match(source, /提醒事项列表/)
-  assert.match(source, /requestAccess\(\[\s*"calendar"\s*,\s*"reminders"\s*\]\)/)
+  assert.match(picker, /requestAccess\(\[\s*"calendar"\s*,\s*"reminders"\s*\]\)/)
 })
 
 test("item editor uses native labeled content for the recurrence interval", () => {
@@ -3285,7 +3286,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "3.6.1")
+  assert.equal(manifest.version, "3.7.0")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

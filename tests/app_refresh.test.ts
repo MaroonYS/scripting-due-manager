@@ -87,6 +87,23 @@ test("closing a foreground observer cancels scheduled work and detaches both nat
   assert.deepEqual(native.events, ["scene-add", "resume-add", "scene-remove", "resume-remove"])
 })
 
+test("backgrounding cancels a queued foreground read until the next active event", () => {
+  const timing = clock(), native = nativeLifecycle()
+  let count = 0
+  const stop = lifecycleObserver(timing)(() => count++, undefined, native.runtime)
+  native.resume()
+  const oldCallback = [...timing.timers.values()][0].callback
+  native.phase("background")
+  assert.equal(timing.timers.size, 0)
+  oldCallback(); assert.equal(count, 0)
+  native.phase("active")
+  assert.equal(timing.timers.size, 1)
+  oldCallback(); assert.equal(count, 0); assert.equal(timing.timers.size, 1)
+  timing.fire(milliseconds => milliseconds === 0)
+  assert.equal(count, 1)
+  stop()
+})
+
 test("older hosts can use the global lifecycle API or retain manual refresh without optional APIs", () => {
   const timing = clock(), native = nativeLifecycle()
   let count = 0
@@ -186,7 +203,7 @@ function application(initial = state(), options: {
   }
   const source = read("src/app.tsx")
   const constants = source.slice(source.indexOf("const EMPTY_REMINDER_STATUS"), source.indexOf("function recurrenceIntervalUnitLabel"))
-  const start = source.indexOf("function DueManagerApp()"), end = source.indexOf("  const { overdueItems, needsActionItems, upcomingItems, inactiveItems } = groupManualItems(state)", start)
+  const start = source.indexOf("function DueManagerApp()"), end = source.indexOf("  const renderNow = new Date()", start)
   assert.ok(start > 0 && end > start)
   // Keep every real callback and effect; omit only the unrelated rendered rows.
   const callbacks = source.slice(start, end) + "\nreturn { refreshReminders, setReminderIntegration, setReminderCalendarSelection, reminderRequests }; }"
@@ -304,4 +321,23 @@ test("a time-boundary callback skips background work, while foreground return re
   env.render(); env.commit()
   assert.equal([...env.timing.timers.values()].filter(value => value.milliseconds >= 1000).length, 1)
   env.unmount(); assert.equal(env.timing.timers.size, 0)
+})
+
+test("a retained refresh callback starts no native work after exit or while backgrounded", async () => {
+  const env = application(state()), app = env.render()
+  env.commit(); await flush()
+  const reads = env.reads(), queries = env.queries.length, events = env.events.length
+  env.native.phase("background")
+  await app.refreshReminders()
+  assert.equal(app.reminderRequests.queued, true)
+  assert.equal(env.reads(), reads); assert.equal(env.queries.length, queries)
+  env.native.phase("active"); env.timing.fire(milliseconds => milliseconds === 0); await flush()
+  assert.equal(env.queries.length, queries + 1, "foreground request consumes the already queued background refresh")
+  assert.equal(app.reminderRequests.queued, false)
+  const afterResume = [env.reads(), env.queries.length, env.events.length]
+  env.unmount()
+  await app.refreshReminders(); await app.setReminderIntegration(false)
+  await assert.rejects(app.setReminderCalendarSelection(["late"]), /主界面已关闭/)
+  assert.deepEqual([env.reads(), env.queries.length, env.events.length], afterResume)
+  assert.ok(env.events.length > events); assert.deepEqual(env.mutations, [])
 })

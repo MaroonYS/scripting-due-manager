@@ -9,7 +9,7 @@ import * as storage from "../到期管家/src/storage.ts"
 import * as dates from "../到期管家/src/date.ts"
 import { normalizeIconOverride, resolveDueIcon } from "../到期管家/src/icons.ts"
 import { recurrenceLabel } from "../到期管家/src/presentation.ts"
-import { itemIconID } from "../到期管家/src/icon_preferences.ts"
+import { indexItemIconChoices, indexedItemIconID, itemIconID } from "../到期管家/src/icon_preferences.ts"
 import { symbolChoice } from "../到期管家/src/icon_preferences.ts"
 import type { ManualDueItem } from "../到期管家/src/types.ts"
 
@@ -91,7 +91,7 @@ function harness(options: {
     readAsString: async () => { throw Error("missing fallback") },
   }
   const bindings = {
-    h, ...dates, resolveDueIcon, recurrenceLabel, itemIconID, symbolChoice, DueSymbol, DueSymbolLabel,
+    h, ...dates, resolveDueIcon, recurrenceLabel, itemIconID, indexedItemIconID, symbolChoice, DueSymbol, DueSymbolLabel,
     useVisibleArtwork: () => ({ image: options.color && !options.noImages ? { image: "png", lightBackplate: false } : null }), ArtworkImage: "ArtworkImage", ArtworkCompletionLabel: "ArtworkCompletionLabel",
     ...Object.fromEntries(["Button", "Image", "HStack", "VStack", "NavigationLink", "Section", "Text", "Spacer", "ItemEditor"].map(name => [name, name])),
     Script: { directory: "/bundle" },
@@ -121,9 +121,9 @@ function harness(options: {
   const onChanged = (next: any) => { events.push(["changed", next]); if (options.failDisplay) throw Error("display failed") }
   return {
     item, values, events, reads, original: structuredClone(state),
-    render: (patch: Partial<ManualDueItem> = {}, inactive = false) => {
+    render: (patch: Partial<ManualDueItem> = {}, inactive = false, extra: Record<string, any> = {}) => {
       cursor = 0
-      return renderRow({ item: { ...item, ...patch }, inactive, settings: storage.loadState().settings, onChanged }) as Node
+      return renderRow({ item: { ...item, ...patch }, inactive, settings: storage.loadState().settings, onChanged, ...extra }) as Node
     },
     cleanup: () => {
       for (const slot of slots) slot?.cleanup?.()
@@ -132,6 +132,25 @@ function harness(options: {
     },
   }
 }
+
+test("manual rows use the shared source-scoped icon index and supplied render clock", () => {
+  const env = harness()
+  try {
+    const choices = indexItemIconChoices({ itemIconChoices: [
+      { source: "reminder", itemID: env.item.id, iconID: "sf:airplane" },
+      { source: "manual", itemID: env.item.id, iconID: "sf:bed.double.fill" },
+    ] })
+    const row = env.render({ dueDate: "2026-10-03", includesTime: true, hour: 13 }, false,
+      { iconChoices: choices, now: new Date(2026, 9, 3, 12) })
+    assert.equal(completionLabel(row.children[0]).props.systemImage, "bed.double.fill")
+    const labels = nodes(row).filter(node => node.type === "Text").flatMap(node => node.children)
+    assert.ok(labels.includes("今天"), "row uses the same clock as its list grouping")
+    const later = env.render({ dueDate: "2026-10-03", includesTime: true, hour: 13 }, false,
+      { iconChoices: choices, now: new Date(2026, 9, 3, 14) })
+    assert.ok(nodes(later).filter(node => node.type === "Text").flatMap(node => node.children).includes("已到期"))
+    assert.deepEqual(env.events, [])
+  } finally { env.cleanup() }
+})
 
 test("retired brand preferences never load artwork and retain the explicit system symbol", () => {
   for (const style of ["brand", "system"] as const) for (const choice of [legacyBrandID, "brand-future", "system", null]) {

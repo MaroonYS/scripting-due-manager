@@ -5,7 +5,6 @@
 import {
   actionTimestamp,
   dateKeyToLocalDate,
-  dueStatus,
   formatDateKey,
   parseDateKey,
 } from "./date"
@@ -28,6 +27,7 @@ import type {
 } from "./types"
 import { currentWidgetLocale, widgetText } from "./widget_localization"
 import { ReadDeadlineError, withReadDeadline } from "./async_deadline"
+export { sortDueItems } from "./due_ordering"
 
 const REMINDER_SYNC_TOKEN_KEY = "due-manager-reminder-sync-token-v1"
 const REMINDER_QUERY_TOKEN_KEY = "due-manager-reminder-query-token-v1"
@@ -218,28 +218,6 @@ function sameCalendarFilter(left: readonly string[], right: readonly string[]): 
   return left.every((identifier, index) => identifier === right[index])
 }
 
-export function sortDueItems(items: DisplayDueItem[], now = new Date()): DisplayDueItem[] {
-  return [...items].sort((left, right) => {
-    if (left.stale !== right.stale) return left.stale ? 1 : -1
-    const leftStatus = dueStatus(left, now)
-    const rightStatus = dueStatus(right, now)
-    const leftRank = urgencyRank(leftStatus.overdue, leftStatus.needsAction)
-    const rightRank = urgencyRank(rightStatus.overdue, rightStatus.needsAction)
-    if (leftRank !== rightRank) return leftRank - rightRank
-    const leftActionTimestamp = actionTimestamp(left)
-    const rightActionTimestamp = actionTimestamp(right)
-    if (leftActionTimestamp !== rightActionTimestamp) {
-      return leftActionTimestamp - rightActionTimestamp
-    }
-    if (left.dueTimestamp !== right.dueTimestamp) return left.dueTimestamp - right.dueTimestamp
-    if (left.priority !== right.priority) return right.priority - left.priority
-    const titleOrder = left.title.localeCompare(right.title, "zh-Hans-CN")
-    if (titleOrder !== 0) return titleOrder
-    if (left.source !== right.source) return left.source.localeCompare(right.source)
-    return left.id.localeCompare(right.id)
-  })
-}
-
 export type ReminderCompletionResult = "applied" | "appliedCacheStale" | "stale" | "missing"
 
 export function findReminderDisplayItemForCompletion(
@@ -306,7 +284,8 @@ export async function completeReminderOccurrence(
 }
 
 export function nextWidgetRefresh(
-  items: DisplayDueItem[],
+  items: readonly (Pick<DisplayDueItem, "dueDate" | "includesTime" | "hour" | "minute" | "remindBeforeDays">
+    & { dueTimestamp?: number })[],
   now = new Date(),
   remindersEnabled = false,
   remindersNeedRetry = false,
@@ -323,7 +302,9 @@ export function nextWidgetRefresh(
 
   for (const item of items) {
     if (!item.includesTime) continue
-    const transitionTimes = [actionTimestamp(item), item.dueTimestamp]
+    const dueAt = typeof item.dueTimestamp === "number" && Number.isFinite(item.dueTimestamp)
+      ? item.dueTimestamp : dateKeyToLocalDate(item.dueDate, true, item.hour, item.minute).getTime()
+    const transitionTimes = [actionTimestamp(item), dueAt]
     for (const transitionAt of transitionTimes) {
       if (transitionAt <= now.getTime()) continue
       if (transitionAt < refreshAt.getTime()) {
@@ -515,12 +496,6 @@ function normalizeCachedItem(raw: any): CachedReminderItem | null {
     priority: boundedInteger(raw.priority, 0, 3, 0),
     canComplete: typeof raw.canComplete === "boolean" ? raw.canComplete : true,
   }
-}
-
-function urgencyRank(overdue: boolean, needsAction: boolean): number {
-  if (overdue) return 0
-  if (needsAction) return 1
-  return 2
 }
 
 function normalizedReminderCacheTitle(value: unknown): string {

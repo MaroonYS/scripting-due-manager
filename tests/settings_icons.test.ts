@@ -85,6 +85,7 @@ function settings(includeReminders: boolean, loading = false) {
       "ReminderStatusRow", "ReminderNotesList", "WidgetActionStatusView", "NotificationView", "Label", "ItemEditor", "ManualItemsSection",
       "ManualItemRow", "IconLibraryView", "RecoveryView", "UpdateView", "OwnershipView"].map(name => [name, name])),
     activeCount: 0, overdueItems: [], needsActionItems: [], upcomingItems: [], inactiveItems: [], newItem: { id: "draft" },
+    iconChoices: new Map(), renderNow: new Date(2026, 9, 3, 12),
     dismiss: () => events.push(["dismiss"]),
     finishNewItem: () => events.push(["new-item"]),
     refreshState: (value: any) => events.push(["changed", value]),

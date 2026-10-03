@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
-import { dueStatus } from "./date"
-import { sortDueItems } from "./reminders"
-import { manualItemsForDisplay } from "./storage"
+import { dateKeyToLocalDate, dueStatus } from "./date"
+import { orderedDueEntries } from "./due_ordering"
+import { itemKindPriority } from "./item_kinds"
 import type { AppState, ManualDueItem } from "./types"
 
 export interface ManualItemGroups {
@@ -27,10 +27,19 @@ export function groupManualItems(state: AppState, now = new Date()): ManualItemG
     if (!itemsByID.has(item.id)) itemsByID.set(item.id, item)
     if (!item.enabled) groups.inactiveItems.push(item)
   }
-  for (const displayed of sortDueItems(manualItemsForDisplay(state), now)) {
-    const item = itemsByID.get(displayed.id)
+  const active = state.items.filter(item => item.enabled).map(item => ({
+    id: item.id, source: "manual" as const, title: item.title, stale: false,
+    priority: itemKindPriority(item.kind), dueDate: item.dueDate, includesTime: item.includesTime,
+    hour: item.hour, minute: item.minute, remindBeforeDays: item.remindBeforeDays,
+    dueTimestamp: dateKeyToLocalDate(item.dueDate, item.includesTime, item.hour, item.minute).getTime(),
+    original: item,
+  }))
+  for (const entry of orderedDueEntries(active, now)) {
+    const item = itemsByID.get(entry.item.id)
     if (!item) continue
-    const status = dueStatus(item, now)
+    // Stored IDs are unique; retain the earlier first-match behavior for callers
+    // passing an unnormalised state with duplicates as well.
+    const status = item === entry.item.original ? entry.status : dueStatus(item, now)
     if (status.overdue) groups.overdueItems.push(item)
     else if (status.needsAction) groups.needsActionItems.push(item)
     else groups.upcomingItems.push(item)

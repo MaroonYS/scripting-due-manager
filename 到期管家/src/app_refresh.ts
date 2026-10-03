@@ -9,19 +9,28 @@ export function observeApplicationRefresh(refresh: () => void,
   onForegroundChanged?: (foreground: boolean) => void, runtime: any = Scripting): () => void {
   const globals = globalThis as unknown as Record<string, any>
   const scene = (runtime.AppEvents ?? globals.AppEvents)?.scenePhase
-  let active = true, wasBackground = false, queued = false
+  let active = true, foreground = true, wasBackground = false, queued = false, requestGeneration = 0
   let timer: unknown = null
   const request = () => {
-    if (!active || queued) return
+    if (!active || !foreground || queued) return
     queued = true
+    const request = ++requestGeneration
     timer = setTimeout(() => {
+      if (request !== requestGeneration) return
+      timer = null
       queued = false
-      if (active) refresh()
+      if (active && foreground) refresh()
     }, 0)
   }
   const listener = (phase: string) => {
-    if (phase === "background") { wasBackground = true; onForegroundChanged?.(false) }
-    if (phase === "active" && wasBackground) { wasBackground = false; onForegroundChanged?.(true); request() }
+    if (phase === "background") {
+      foreground = false; wasBackground = true; requestGeneration++; queued = false
+      if (timer != null) { clearTimeout(timer); timer = null }
+      onForegroundChanged?.(false)
+    }
+    if (phase === "active" && wasBackground) {
+      foreground = true; wasBackground = false; onForegroundChanged?.(true); request()
+    }
   }
   let removeResume: (() => void) | undefined
   try {
@@ -29,6 +38,8 @@ export function observeApplicationRefresh(refresh: () => void,
   } catch { /* Manual refresh remains available on older hosts. */ }
   try {
     if (typeof runtime.Script?.onResume === "function") removeResume = runtime.Script.onResume((details: any) => {
+      if (!active) return
+      foreground = true
       onForegroundChanged?.(true)
       const action = details?.queryParameters?.action
       // The lightweight entry handles the selected reminder's destination.

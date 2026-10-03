@@ -62,9 +62,7 @@ import {
   deleteItem,
   findItem,
   loadState,
-  manualItemsForDisplay,
   manualOccurrenceKey,
-  normalizeReminderCalendarIDs,
   updateSettings,
   upsertItem,
 } from "./storage"
@@ -86,13 +84,14 @@ import { OwnershipView } from "./ownership_view"
 import { SettingsRowIcon, SettingsRowLabel } from "./settings_icons"
 import { readRecoveryStatus } from "./recovery"
 import { WidgetActionStatusView } from "./widget_action_view"
-import { itemIconID, symbolChoice } from "./icon_preferences"
-import type { ItemIconEdit } from "./icon_preferences"
+import { indexItemIconChoices, indexedItemIconID, itemIconID, symbolChoice } from "./icon_preferences"
+import type { ItemIconChoiceIndex, ItemIconEdit } from "./icon_preferences"
 import { IconLibraryView } from "./icon_library_view"
 import { SystemIconPicker } from "./system_icon_picker"
 import { groupManualItems } from "./manual_item_groups"
 import { cleanupRetiredIcons } from "./icon_cleanup"
 import { ReminderNotesList } from "./reminder_notes_list"
+import { ReminderCalendarPicker } from "./reminder_calendar_picker"
 
 configureWidgetLocale(Device)
 
@@ -103,13 +102,6 @@ type ReminderStatus = {
   live: boolean
   fromCache: boolean
   error: string | null
-}
-
-type ReminderCalendarChoice = {
-  id: string
-  title: string
-  sourceTitle: string
-  readOnly: boolean
 }
 
 const EMPTY_REMINDER_STATUS: ReminderStatus = {
@@ -147,6 +139,7 @@ function DueManagerApp() {
   const [reminderRequests] = useState(() => ({ generation: 0, refreshing: false, settingsBusy: false, queued: false, active: true, foreground: true }))
 
   const refreshState = (nextState?: AppState) => {
+    if (!reminderRequests.active) return
     setState(nextState ?? loadState())
   }
 
@@ -156,7 +149,11 @@ function DueManagerApp() {
   }
 
   const refreshReminders = async () => {
+    if (!reminderRequests.active) return
+    if (!reminderRequests.foreground) { reminderRequests.queued = true; return }
     if (reminderRequests.refreshing || reminderRequests.settingsBusy) { reminderRequests.queued = true; return }
+    // Consume pending work now; only requests arriving during this read queue a follow-up.
+    reminderRequests.queued = false
     reminderRequests.refreshing = true
     const request = ++reminderRequests.generation
     try {
@@ -212,7 +209,7 @@ function DueManagerApp() {
 
   // Keep a visible, long-lived main screen current at known date/time changes.
   useEffect(() => {
-    const next = nextWidgetRefresh(manualItemsForDisplay(state), new Date(), state.settings.includeReminders)
+    const next = nextWidgetRefresh(state.items.filter(item => item.enabled), new Date(), state.settings.includeReminders)
     const timer = setTimeout(() => { if (reminderRequests.active && reminderRequests.foreground) void refreshReminders() }, Math.max(1000, next.getTime() - Date.now()))
     return () => clearTimeout(timer)
   }, [state])
@@ -226,7 +223,7 @@ function DueManagerApp() {
   }
 
   const setReminderIntegration = async (enabled: boolean) => {
-    if (reminderRequests.settingsBusy) return
+    if (!reminderRequests.active || reminderRequests.settingsBusy) return
     reminderRequests.settingsBusy = true
     try {
       const request = ++reminderRequests.generation
@@ -304,6 +301,7 @@ function DueManagerApp() {
   }
 
   const setReminderCalendarSelection = async (calendarIDs: string[]) => {
+    if (!reminderRequests.active) throw new Error("主界面已关闭，请重新打开后保存列表。")
     if (reminderRequests.settingsBusy) throw new Error("提醒事项设置正在更新，请稍后再保存列表。")
     reminderRequests.settingsBusy = true
     try {
@@ -349,6 +347,7 @@ function DueManagerApp() {
   }
 
   const setShowAmounts = async (showAmounts: boolean) => {
+    if (!reminderRequests.active) return
     try {
       const next = updateSettings({ showAmounts })
       refreshState(next)
@@ -366,7 +365,9 @@ function DueManagerApp() {
     }
   }
 
-  const { overdueItems, needsActionItems, upcomingItems, inactiveItems } = groupManualItems(state)
+  const renderNow = new Date()
+  const iconChoices = indexItemIconChoices(state.settings)
+  const { overdueItems, needsActionItems, upcomingItems, inactiveItems } = groupManualItems(state, renderNow)
   const activeCount = overdueItems.length + needsActionItems.length + upcomingItems.length
 
   return <NavigationStack>
@@ -399,9 +400,9 @@ function DueManagerApp() {
           : null}
       </Section>
 
-      <ManualItemsSection title="已逾期" items={overdueItems} settings={state.settings} onChanged={refreshState} />
-      <ManualItemsSection title="需要处理" items={needsActionItems} settings={state.settings} onChanged={refreshState} />
-      <ManualItemsSection title="接下来" items={upcomingItems} settings={state.settings} onChanged={refreshState} />
+      <ManualItemsSection title="已逾期" items={overdueItems} settings={state.settings} iconChoices={iconChoices} now={renderNow} onChanged={refreshState} />
+      <ManualItemsSection title="需要处理" items={needsActionItems} settings={state.settings} iconChoices={iconChoices} now={renderNow} onChanged={refreshState} />
+      <ManualItemsSection title="接下来" items={upcomingItems} settings={state.settings} iconChoices={iconChoices} now={renderNow} onChanged={refreshState} />
 
       {inactiveItems.length > 0
         ? <Section header={<Text>已完成或隐藏</Text>}>
@@ -410,7 +411,7 @@ function DueManagerApp() {
               key={item.id}
               destination={<ItemEditor item={item} onChanged={refreshState} />}
             >
-              <ManualItemRow item={item} inactive settings={state.settings} />
+              <ManualItemRow item={item} inactive settings={state.settings} iconChoices={iconChoices} now={renderNow} />
             </NavigationLink>
           ))}
         </Section>
@@ -916,27 +917,32 @@ function ManualItemsSection({
   title,
   items,
   settings,
+  iconChoices,
+  now,
   onChanged,
 }: {
   title: string
   items: ManualDueItem[]
   settings?: AppSettings
+  iconChoices?: ItemIconChoiceIndex
+  now?: Date
   onChanged: (state?: AppState) => void
 }) {
   if (items.length === 0) return null
   return <Section header={<Text>{title}</Text>}>
     {items.map(item => (
-      <ManualItemRow key={item.id} item={item} settings={settings} onChanged={onChanged} />
+      <ManualItemRow key={item.id} item={item} settings={settings} iconChoices={iconChoices} now={now} onChanged={onChanged} />
     ))}
   </Section>
 }
 
-function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} }: {
-  item: ManualDueItem; settings?: AppSettings; inactive?: boolean; onChanged?: (state?: AppState) => void
+function ManualItemRow({ item, settings, iconChoices, now, inactive = false, onChanged = () => {} }: {
+  item: ManualDueItem; settings?: AppSettings; iconChoices?: ItemIconChoiceIndex; now?: Date
+  inactive?: boolean; onChanged?: (state?: AppState) => void
 }) {
   const [busy, setBusy] = useState(false)
   const [gate] = useState(() => ({ busy: false }))
-  const choiceID = itemIconID(settings, "manual", item.id)
+  const choiceID = iconChoices ? indexedItemIconID(iconChoices, "manual", item.id) : itemIconID(settings, "manual", item.id)
   const icon = symbolChoice(choiceID) ?? resolveDueIcon(item.title, item.kind, item.iconName)
   const completionKey = manualOccurrenceKey(item)
   const completionTitle = `完成事项：${item.title}`
@@ -967,7 +973,7 @@ function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} 
   }
   if (inactive || !item.enabled) return <HStack spacing={2}>
     <DueSymbol name={icon.name} color="tertiaryLabel" size={20} slotSize={40} />
-    <ManualItemDetails item={item} inactive />
+    <ManualItemDetails item={item} inactive now={now} />
   </HStack>
   return <HStack spacing={2}>
     <Button
@@ -981,13 +987,13 @@ function ManualItemRow({ item, settings, inactive = false, onChanged = () => {} 
       <DueSymbolLabel title={completionTitle} name={icon.name} color={icon.color} size={20} slotSize={40} />
     </Button>
     <NavigationLink destination={<ItemEditor item={item} onChanged={onChanged} />}>
-      <ManualItemDetails item={item} />
+      <ManualItemDetails item={item} now={now} />
     </NavigationLink>
   </HStack>
 }
 
-function ManualItemDetails({ item, inactive = false }: { item: ManualDueItem; inactive?: boolean }) {
-  const status = dueStatus(item)
+function ManualItemDetails({ item, inactive = false, now }: { item: ManualDueItem; inactive?: boolean; now?: Date }) {
+  const status = dueStatus(item, now)
   return <HStack spacing={10} frame={{ maxWidth: "infinity" }}>
     <VStack alignment="leading" spacing={2}>
       <Text fontWeight="semibold" lineLimit={1} foregroundStyle={inactive ? "secondaryLabel" : "label"}>
@@ -1046,192 +1052,6 @@ function IconPicker({
     footer="此处确认会将图标带回编辑页；保存事项后生效。取消或返回不改变选择。自动匹配根据名称和类型在本机完成。" />
 }
 
-function ReminderCalendarPicker({
-  selectedIDs,
-  onChanged,
-}: {
-  selectedIDs: string[]
-  onChanged: (calendarIDs: string[]) => Promise<void>
-}) {
-  const dismiss = Navigation.useDismiss()
-  const [selection, setSelection] = useState<string[]>(
-    () => normalizeReminderCalendarIDs(selectedIDs),
-  )
-  const [calendars, setCalendars] = useState<ReminderCalendarChoice[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [saveGate] = useState(() => ({ busy: false }))
-
-  const loadCalendars = async () => {
-    setLoading(true)
-    setLoadError(null)
-    try {
-      const granted = await Script.requestAccess(["calendar", "reminders"])
-      if (!granted.includes("calendar") || !granted.includes("reminders")) {
-        throw new Error("需要日历与提醒事项权限，才能读取可选列表。")
-      }
-      const available = await Calendar.forReminders()
-      const byIdentifier = new Map<string, ReminderCalendarChoice>()
-      for (const calendar of available) {
-        const id = typeof calendar?.identifier === "string"
-          ? calendar.identifier.trim()
-          : ""
-        if (!id || byIdentifier.has(id)) continue
-        byIdentifier.set(id, {
-          id,
-          title: String(calendar.title || "未命名列表").slice(0, 100),
-          sourceTitle: String(calendar.source?.title || "").slice(0, 100),
-          readOnly: calendar.allowsContentModifications === false,
-        })
-      }
-      setCalendars([...byIdentifier.values()].sort((left, right) => {
-        const sourceOrder = left.sourceTitle.localeCompare(right.sourceTitle, "zh-Hans-CN")
-        return sourceOrder || left.title.localeCompare(right.title, "zh-Hans-CN")
-      }))
-    } catch (error) {
-      setLoadError(String(error))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    void loadCalendars()
-  }, [])
-
-  const toggleCalendar = (id: string) => {
-    if (saveGate.busy) return
-    const knownIDs = new Set(calendars.map(calendar => calendar.id))
-    setSelection(previous => {
-      const current = previous.filter(identifier => knownIDs.has(identifier))
-      return normalizeReminderCalendarIDs(
-        current.includes(id)
-          ? current.filter(identifier => identifier !== id)
-          : [...current, id],
-      )
-    })
-  }
-
-  const availableIDs = new Set(calendars.map(calendar => calendar.id))
-  const unavailableCount = selection.filter(identifier => !availableIDs.has(identifier)).length
-
-  const save = async () => {
-    if (saveGate.busy || loading || loadError) return
-    if (unavailableCount > 0) {
-      await Dialog.alert({
-        title: "无法保存列表选择",
-        message: `有 ${unavailableCount} 个原先选择的列表已不可用。请改选现有列表，或选择“全部列表”后再保存。`,
-      })
-      return
-    }
-    saveGate.busy = true
-    setSaving(true)
-    try {
-      await onChanged(normalizeReminderCalendarIDs(selection))
-      dismiss()
-    } catch (error) {
-      await Dialog.alert({ title: "列表设置保存失败", message: String(error) })
-    } finally {
-      saveGate.busy = false
-      setSaving(false)
-    }
-  }
-
-  return <List
-    listStyle="insetGroup"
-    navigationTitle="提醒事项列表"
-    navigationBarTitleDisplayMode="inline"
-    disabled={saving}
-    toolbar={{
-      confirmationAction: <Button
-        title={saving ? "正在保存…" : "完成"}
-        disabled={saving || loading || loadError != null}
-        action={() => { void save() }}
-      />,
-    }}
-  >
-    <Section footer={<Text>不选择具体列表时会读取全部列表；也可以同时选择多个列表。</Text>}>
-      <Button buttonStyle="plain" action={() => setSelection([])}>
-        <ReminderCalendarRow
-          title="全部列表"
-          detail="包含所有账户中的提醒事项"
-          selected={selection.length === 0}
-          iconName="tray.full.fill"
-        />
-      </Button>
-    </Section>
-
-    <Section
-      header={<Text>具体列表</Text>}
-      footer={unavailableCount > 0
-        ? <Text foregroundStyle="systemOrange">有 {unavailableCount} 个原先选择的列表已不可用；请选择现有列表或改为全部列表。</Text>
-        : undefined}
-    >
-      {loading
-        ? <HStack spacing={10}>
-          <Image systemName="arrow.clockwise" foregroundStyle="secondaryLabel" />
-          <Text foregroundStyle="secondaryLabel">正在读取列表…</Text>
-        </HStack>
-        : null}
-      {!loading && loadError
-        ? <Button
-          title="读取失败，点此重试"
-          systemImage="exclamationmark.triangle"
-          action={() => { void loadCalendars() }}
-        />
-        : null}
-      {!loading && !loadError && calendars.length === 0
-        ? <Text foregroundStyle="secondaryLabel">没有可用的提醒事项列表</Text>
-        : null}
-      {!loading && !loadError
-        ? calendars.map(calendar => (
-          <Button
-            key={calendar.id}
-            buttonStyle="plain"
-            action={() => toggleCalendar(calendar.id)}
-          >
-            <ReminderCalendarRow
-              title={calendar.title}
-              detail={[
-                calendar.sourceTitle,
-                calendar.readOnly ? "只读" : "",
-              ].filter(Boolean).join(" · ") || undefined}
-              selected={selection.includes(calendar.id)}
-              iconName="list.bullet.circle.fill"
-            />
-          </Button>
-        ))
-        : null}
-    </Section>
-  </List>
-}
-
-function ReminderCalendarRow({
-  title,
-  detail,
-  selected,
-  iconName,
-}: {
-  title: string
-  detail?: string
-  selected: boolean
-  iconName: string
-}) {
-  return <HStack spacing={12}>
-    <Image systemName={iconName} foregroundStyle="systemBlue" frame={{ width: 26 }} />
-    <VStack alignment="leading" spacing={1}>
-      <Text foregroundStyle="label">{title}</Text>
-      {detail
-        ? <Text font="caption" foregroundStyle="secondaryLabel" lineLimit={1}>{detail}</Text>
-        : null}
-    </VStack>
-    <Spacer />
-    {selected
-      ? <Image systemName="checkmark" foregroundStyle="systemBlue" fontWeight="semibold" />
-      : null}
-  </HStack>
-}
 
 function ReminderStatusRow({ status }: { status: ReminderStatus }) {
   let title = `${status.count} 项有到期日期的未完成提醒`
