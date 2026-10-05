@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.7.0",
-  "description": "Due dates and Apple Reminders with a lighter ordering pipeline, source-scoped icon indexing, guarded local mutations and lifecycle-safe list selection.",
+  "version": "3.7.1",
+  "description": "Due dates and Apple Reminders with softer native completion fades, stable occurrence identity and safe animation fallback.",
   "localizedDescriptions": {
-    "en": "3.7.0 separates date ordering from storage and icon rendering, calculates sort keys once per item, shares source-scoped icon indexes and avoids artwork work during refresh scheduling. Local mutations reject observed concurrent changes before commit and after backup; malformed saved reminder-list filters fail closed. List selection gains a read deadline and lifecycle guards. All 216 symbols, proportional sizing, choices, full notes, dates, recurrence, completion checks, backups and fixed updates remain. Host benchmarks are not iPhone measurements; Shared Storage is not atomic and WidgetKit controls actual refresh timing.",
-    "zh": "3.7.0 优化整体数据与显示链路：日期排序独立于存储和图标，每项只预计算一次排序键；主列表共用来源隔离的图标索引，刷新计时不再解析图标。保存前与备份后检查已观察到的新修改，拒绝陈旧覆盖；损坏的已存提醒列表筛选不会扩大为全部列表。列表选择页增加只读超时、并发与退出保护。216 个图标、等比尺寸、手选、完整备注、日期、周期、完成校验、备份和固定更新地址保留。本机合成基准不等于 iPhone 实测，共享存储不是原子事务，实际组件刷新由 iOS 调度。",
-    "zh-Hans": "3.7.0 优化整体数据与显示链路：日期排序独立于存储和图标，每项只预计算一次排序键；主列表共用来源隔离的图标索引，刷新计时不再解析图标。保存前与备份后检查已观察到的新修改，拒绝陈旧覆盖；损坏的已存提醒列表筛选不会扩大为全部列表。列表选择页增加只读超时、并发与退出保护。216 个图标、等比尺寸、手选、完整备注、日期、周期、完成校验、备份和固定更新地址保留。本机合成基准不等于 iPhone 实测，共享存储不是原子事务，实际组件刷新由 iOS 调度。",
-    "zh-Hant": "3.7.0 優化整體資料與顯示鏈路：日期排序獨立於儲存和圖示，每項只預先計算一次排序鍵；主列表共用來源隔離的圖示索引，更新計時不再解析圖示。儲存前與備份後檢查已觀察到的新修改，拒絕舊狀態覆蓋；損壞的已存提醒列表篩選不會擴大成全部列表。列表選擇頁增加唯讀逾時、並行與離頁保護。216 個圖示、等比尺寸、手選、完整備註、日期、週期、完成校驗、備份及固定更新網址保留。本機合成基準不等於 iPhone 實測，共享儲存不是原子交易，實際小工具更新由 iOS 排程。"
+    "en": "3.7.1 requests softer native completion fades: old occurrences ease out over 0.46 seconds, new content eases in with a short animation-only delay, without full-height bottom movement. Small items, disappearing large sections and final-item empty states have explicit transitions; surviving items retain exact identity. Unsupported animation APIs fall back to static rendering. No extra timeline, completed-item snapshot or completion-write delay is added. All 216 symbols, sizing, choices, full notes, dates, recurrence, completion checks, backups, architecture improvements and fixed updates remain. Actual animation and refresh require iPhone verification and are controlled by iOS and Scripting.",
+    "zh": "3.7.1 改善完成后的原生淡出接替：旧事项请求约 0.46 秒淡出，新事项稍后柔和淡入，取消从底部整行滑入。小号换项、大号分类消失和最后一项空状态补齐过渡，保留其他事项的准确身份。动画不支持时静态显示，不增加时间线、已完成快照或完成写入等待。216 个图标、尺寸、手选、完整备注、日期、周期、完成校验、备份、架构优化和固定更新地址保留。实际播放和刷新由 iOS 与 Scripting 决定，须在 iPhone 验证。",
+    "zh-Hans": "3.7.1 改善完成后的原生淡出接替：旧事项请求约 0.46 秒淡出，新事项稍后柔和淡入，取消从底部整行滑入。小号换项、大号分类消失和最后一项空状态补齐过渡，保留其他事项的准确身份。动画不支持时静态显示，不增加时间线、已完成快照或完成写入等待。216 个图标、尺寸、手选、完整备注、日期、周期、完成校验、备份、架构优化和固定更新地址保留。实际播放和刷新由 iOS 与 Scripting 决定，须在 iPhone 验证。",
+    "zh-Hant": "3.7.1 改善完成後的原生淡出接替：舊事項請求約 0.46 秒淡出，新事項稍後柔和淡入，取消從底部整行滑入。小號換項、大號分類消失及最後一項空狀態補齊過渡，保留其他事項的準確身分。動畫不支援時靜態顯示，不增加時間軸、已完成快照或完成寫入等待。216 個圖示、尺寸、手選、完整備註、日期、週期、完成校驗、備份、架構最佳化及固定更新網址保留。實際播放及更新由 iOS 與 Scripting 決定，須在 iPhone 驗證。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

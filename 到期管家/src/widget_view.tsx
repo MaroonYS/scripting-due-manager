@@ -68,16 +68,28 @@ function widgetRuntimeLanguage() { return widgetLanguage(widgetRuntimeLocale()) 
 // Animation and Transition are Scripting runtime globals (like Storage), not
 // named exports. A persisted generation drives one WidgetKit timeline diff.
 declare const Transition: any
-const COMPLETION_QUEUE_ANIMATION = Animation.smooth({
-  duration: 0.32,
-  extraBounce: 0,
-})
-const QUEUE_SLOT_TRANSITION = Transition
-  .asymmetric(
-    Transition.move("bottom").combined(Transition.opacity()),
-    Transition.opacity(),
-  )
-  .animation(COMPLETION_QUEUE_ANIMATION)
+const {
+  animation: COMPLETION_QUEUE_ANIMATION,
+  transition: QUEUE_SLOT_TRANSITION,
+} = completionMotion()
+
+function completionMotion(): { animation?: any; transition?: any } {
+  // Cosmetic timeline differences must not make valid items or their controls
+  // unavailable on a host without these animation APIs. No JS timer or extra
+  // timeline entry is needed: WidgetKit animates its old and new native views.
+  try {
+    if (typeof Animation === "undefined" || typeof Transition === "undefined") return {}
+    return {
+      animation: Animation.smooth({ duration: 0.46, extraBounce: 0 }),
+      transition: Transition.asymmetric(
+        Transition.opacity().animation(Animation.easeIn(0.32).delay(0.08)),
+        Transition.opacity().animation(Animation.easeOut(0.46)),
+      ),
+    }
+  } catch {
+    return {}
+  }
+}
 
 export function DueManagerWidget(props: WidgetDataProps) {
   const displaySize = Widget.displaySize
@@ -332,13 +344,7 @@ function SmallWidgetBody({
       displayWidth={displayWidth}
       issue={issue}
     />
-    : <Link url={Script.createRunURLScheme(Script.name)}>
-      <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-        {issue
-          ? <ErrorState compact title={widgetText("unableToLoad", widgetRuntimeLocale())} detail={issue.text} />
-          : <EmptyState compact />}
-      </VStack>
-    </Link>
+    : <WidgetEmptyContent compact issue={issue} />
 }
 
 function SmallDueItem({
@@ -356,9 +362,11 @@ function SmallDueItem({
   const titleFontSize = smallItemTitleFontSize(item.title, displayWidth)
 
   return <VStack
+    key={widgetItemIdentity(item)}
     alignment="leading"
     spacing={0}
     contentTransition="opacity"
+    transition={QUEUE_SLOT_TRANSITION}
     frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
   >
     <VStack
@@ -621,37 +629,31 @@ function ListWidgetBody({
     spacing={0}
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
   >
-    {visible.length > 0
-      ? <VStack
-        alignment="leading"
-        spacing={1}
-        padding={{ top: 3 }}
-        frame={{ maxWidth: "infinity" }}
-      >
-        {visible.map(item => (
-          <VStack
-            key={widgetItemIdentity(item)}
-            spacing={0}
-            contentTransition="opacity"
-            transition={QUEUE_SLOT_TRANSITION}
-            frame={{ maxWidth: "infinity" }}
-          >
-            <DueItemRow
-              item={item}
-              roomy={false}
-              height={rowHeight}
-              displayWidth={displayWidth}
-            />
-          </VStack>
-        ))}
-      </VStack>
-      : <Link url={Script.createRunURLScheme(Script.name)}>
-        <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-          {issue
-            ? <ErrorState title={widgetText("unableToLoad", widgetRuntimeLocale())} detail={issue.text} />
-            : <EmptyState />}
+    <VStack
+      key="medium-item-queue"
+      alignment="leading"
+      spacing={1}
+      padding={{ top: visible.length > 0 ? 3 : 0 }}
+      frame={{ maxWidth: "infinity", maxHeight: visible.length > 0 ? undefined : "infinity" }}
+    >
+      {visible.map(item => (
+        <VStack
+          key={widgetItemIdentity(item)}
+          spacing={0}
+          contentTransition="opacity"
+          transition={QUEUE_SLOT_TRANSITION}
+          frame={{ maxWidth: "infinity" }}
+        >
+          <DueItemRow
+            item={item}
+            roomy={false}
+            height={rowHeight}
+            displayWidth={displayWidth}
+          />
         </VStack>
-      </Link>}
+      ))}
+      {visible.length === 0 ? <WidgetEmptyContent issue={issue} /> : null}
+    </VStack>
     <Spacer minLength={0} />
     {visible.length > 0 && issue
       ? <WidgetIssueLink issue={issue} />
@@ -681,16 +683,17 @@ function LargeListWidgetBody({
   const needsAction = indexedItems.filter(row => row.needsAction)
   const upcoming = indexedItems.filter(row => !row.needsAction)
   const sections: Array<{
+    id: "recent" | "action" | "upcoming"
     title: string
     rows: Array<{ item: DisplayDueItem; index: number }>
   }> = maximumSections === 1
-    ? [{ title: widgetText("recentItems", widgetRuntimeLocale()), rows: indexedItems }]
+    ? [{ id: "recent", title: widgetText("recentItems", widgetRuntimeLocale()), rows: indexedItems }]
     : []
   if (maximumSections === 2 && needsAction.length > 0) {
-    sections.push({ title: widgetText("needsAction", widgetRuntimeLocale()), rows: needsAction })
+    sections.push({ id: "action", title: widgetText("needsAction", widgetRuntimeLocale()), rows: needsAction })
   }
   if (maximumSections === 2 && upcoming.length > 0) {
-    sections.push({ title: widgetText("nextItems", widgetRuntimeLocale()), rows: upcoming })
+    sections.push({ id: "upcoming", title: widgetText("nextItems", widgetRuntimeLocale()), rows: upcoming })
   }
 
   return <VStack
@@ -698,26 +701,24 @@ function LargeListWidgetBody({
     spacing={0}
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
   >
-    {visible.length > 0
-      ? <VStack alignment="leading" spacing={0} frame={{ maxWidth: "infinity" }}>
-        {sections.map(section => (
-          <LargeWidgetSection
-            key={`large-section-${section.title}`}
-            title={section.title}
-            rows={section.rows}
-            rowHeight={rowHeight}
-            headerHeight={sectionHeaderHeight}
-            displayWidth={displayWidth}
-          />
-        ))}
-      </VStack>
-      : <Link url={Script.createRunURLScheme(Script.name)}>
-        <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-          {issue
-            ? <ErrorState title={widgetText("unableToLoad", widgetRuntimeLocale())} detail={issue.text} />
-            : <EmptyState />}
-        </VStack>
-      </Link>}
+    <VStack
+      key="large-item-queue"
+      alignment="leading"
+      spacing={0}
+      frame={{ maxWidth: "infinity", maxHeight: visible.length > 0 ? undefined : "infinity" }}
+    >
+      {visible.length > 0 ? sections.map(section => (
+        <LargeWidgetSection
+          key={`large-section-${section.id}`}
+          sectionID={section.id}
+          title={section.title}
+          rows={section.rows}
+          rowHeight={rowHeight}
+          headerHeight={sectionHeaderHeight}
+          displayWidth={displayWidth}
+        />
+      )) : <WidgetEmptyContent issue={issue} />}
+    </VStack>
     <Spacer minLength={0} />
     {visible.length > 0 && issue
       ? <WidgetIssueLink issue={issue} />
@@ -726,19 +727,27 @@ function LargeListWidgetBody({
 }
 
 function LargeWidgetSection({
+  sectionID,
   title,
   rows,
   rowHeight,
   headerHeight,
   displayWidth,
 }: {
+  sectionID: "recent" | "action" | "upcoming"
   title: string
   rows: Array<{ item: DisplayDueItem; index: number }>
   rowHeight: number
   headerHeight: number
   displayWidth?: number
 }) {
-  return <VStack alignment="leading" spacing={0} frame={{ maxWidth: "infinity" }}>
+  return <VStack
+    key={`large-section-${sectionID}`}
+    alignment="leading"
+    spacing={0}
+    transition={QUEUE_SLOT_TRANSITION}
+    frame={{ maxWidth: "infinity" }}
+  >
     <HStack
       alignment="center"
       spacing={0}
@@ -784,6 +793,26 @@ function largeWidgetSectionCount(
   return hasNeedsAction && hasUpcoming ? 2 : 1
 }
 
+function WidgetEmptyContent({
+  compact = false,
+  issue,
+}: {
+  compact?: boolean
+  issue: WidgetIssue | null
+}) {
+  return <Link
+    key="queue-empty-state"
+    url={Script.createRunURLScheme(Script.name)}
+    transition={QUEUE_SLOT_TRANSITION}
+  >
+    <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+      {issue
+        ? <ErrorState compact={compact} title={widgetText("unableToLoad", widgetRuntimeLocale())} detail={issue.text} />
+        : <EmptyState compact={compact} />}
+    </VStack>
+  </Link>
+}
+
 function CompletionContent({
   generation,
   children,
@@ -795,7 +824,9 @@ function CompletionContent({
     key="completion-active-layer"
     alignment="leading"
     contentTransition="opacity"
-    animation={{ animation: COMPLETION_QUEUE_ANIMATION, value: generation }}
+    animation={COMPLETION_QUEUE_ANIMATION
+      ? { animation: COMPLETION_QUEUE_ANIMATION, value: generation }
+      : undefined}
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
   >
     {/* Only one AppIntent tree is mounted. Transparent overlapping controls

@@ -57,6 +57,8 @@ declare const Storage: {
 
 declare const Animation: {
   default(): any
+  easeIn(duration: number): { delay(time: number): any }
+  easeOut(duration: number): any
   smooth(options?: { duration?: number; extraBounce?: number }): any
   snappy(options?: { duration?: number; extraBounce?: number }): any
 }

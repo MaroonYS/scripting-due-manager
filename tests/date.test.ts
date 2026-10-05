@@ -2632,9 +2632,11 @@ test("widget view uses native queue transitions, safe controls, and unified list
   const importBlock = source.slice(0, source.indexOf("from \"scripting\"") + 16)
   assert.doesNotMatch(importBlock, /\bAnimation\b/)
   assert.match(source, /declare const Transition: any/)
-  assert.match(source, /Animation\.smooth\(\{\s*duration: 0\.32,\s*extraBounce: 0,\s*\}\)/)
-  assert.match(source, /const QUEUE_SLOT_TRANSITION = Transition\s*\.asymmetric\(/)
-  assert.match(source, /Transition\.move\("bottom"\)\.combined\(Transition\.opacity\(\)\)/)
+  assert.match(source, /Animation\.smooth\(\{\s*duration: 0\.46,\s*extraBounce: 0,?\s*\}\)/)
+  assert.match(source, /Transition\.asymmetric\(/)
+  assert.match(source, /Animation\.easeIn\(0\.32\)\.delay\(0\.08\)/)
+  assert.match(source, /Animation\.easeOut\(0\.46\)/)
+  assert.doesNotMatch(source, /Transition\.move\(|Transition\.scale\(/)
   assert.match(source, /transition=\{QUEUE_SLOT_TRANSITION\}/)
   assert.match(source, /key="completion-active-layer"/)
   assert.match(source, /function CompletionContent/)
@@ -2683,7 +2685,10 @@ test("widget view uses native queue transitions, safe controls, and unified list
   )
   assert.doesNotMatch(source, /contentPadding=\{roomy \? 14 : 11\}/)
   assert.doesNotMatch(source, /previousItems|completionPhase|layer0|layer1/)
-  assert.equal(source.match(/animation=\{\{ animation: COMPLETION_QUEUE_ANIMATION, value: generation \}\}/g)?.length, 1)
+  const completionContent = source.slice(source.indexOf("function CompletionContent("), source.indexOf("function DueItemRow("))
+  assert.equal(completionContent.match(/animation=/g)?.length, 1)
+  assert.match(completionContent, /animation: COMPLETION_QUEUE_ANIMATION, value: generation/)
+  assert.match(completionContent, /undefined/)
   assert.doesNotMatch(source, /symbolEffect=\{\{ effect: "bounce"/)
 })
 
@@ -2860,7 +2865,7 @@ test("large widgets use adaptive Reminders-style summary and section spacing", (
   )
   assert.match(listWidget, /maximumSections=\{largeLayout\.maximumSections\}/)
   assert.match(listWidget, /sectionHeaderHeight=\{largeLayout\.sectionHeaderHeight\}/)
-  assert.match(largeBody, /maximumSections === 1\s*\? \[\{ title: widgetText\("recentItems", widgetRuntimeLocale\(\)\), rows: indexedItems \}\]/)
+  assert.match(largeBody, /maximumSections === 1\s*\? \[\{ id: "recent", title: widgetText\("recentItems", widgetRuntimeLocale\(\)\), rows: indexedItems \}\]/)
   assert.match(largeBody, /title: widgetText\("needsAction", widgetRuntimeLocale\(\)\)/)
   assert.match(largeBody, /title: widgetText\("nextItems", widgetRuntimeLocale\(\)\)/)
   assert.match(largeBody, /maximumSections === 2 && needsAction\.length > 0/)
@@ -2868,7 +2873,7 @@ test("large widgets use adaptive Reminders-style summary and section spacing", (
   assert.match(largeBody, /padding=\{\{ bottom: 3, leading: 5, trailing: 5 \}\}/)
   assert.match(largeBody, /height: headerHeight, alignment: "bottomLeading"/)
   assert.doesNotMatch(largeBody, /<Divider/)
-  assert.match(mediumBody, /<VStack\s+alignment="leading"\s+spacing=\{1\}/)
+  assert.match(mediumBody, /<VStack\s+key="medium-item-queue"\s+alignment="leading"\s+spacing=\{1\}/)
   assert.doesNotMatch(mediumBody, /<Divider/)
 })
 
@@ -3286,7 +3291,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "3.7.0")
+  assert.equal(manifest.version, "3.7.1")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 
