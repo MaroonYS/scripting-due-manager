@@ -249,6 +249,63 @@ test("long small title takes a third line first and keeps the current detail and
   assert.equal(buttons(tree)[0].props.frame.width, 40)
 })
 
+test("small rows 1, 3 and 4 use a shared trailing inset while row 2 moves left with its unchanged completion target", () => {
+  const env = harness(), locale = "en-GB"
+  env.locale(locale)
+  const a = item("current", { title: "Train arrival", source: "reminder", note: "Trip list", includesTime: true })
+  const next = item("next", { title: "Next item", dueDate: localDateKey(new Date()) })
+  for (const [width, height] of [[118, 148], [141, 141], [170, 170], [204, 180]]) {
+    const plan = layout.smallWidgetLayout(width, height, { hasDetail: true, hasNext: true })
+    for (const warning of [false, true]) {
+      const tree = env.render("systemSmall", [a, next], 3, warning ? { interactionError: "warning" } : {}, height, width)
+      const inset = tree.children[0].props.padding
+      const headerWrap = tree.children[0].children[0].children[0]
+      const header = headerWrap.children[0]
+      const [headline, footer] = row(tree, a).children
+      assert.equal(inset.trailing, plan.padding)
+      assert.equal(inset.top, plan.padding)
+      assert.equal(inset.bottom, plan.padding)
+      assert.equal(inset.leading, plan.padding - Math.min(6, plan.padding))
+      assert.equal(inset.leading + headerWrap.props.padding.leading, plan.padding)
+      assert.equal(inset.leading + footer.props.padding.leading, plan.padding)
+      assert.equal(header.props.frame.alignment, "trailing")
+      const headerLink = header.children.at(-1)!
+      assert.equal(new URL(headerLink.props.url).searchParams.get("id"), a.id)
+      if (warning) assert.equal(new URL(header.children[0].props.url).searchParams.get("action"), "widget-status")
+      const [heading, headerDate] = headerLink.children[0].children
+      assert.equal(heading.props.frame.alignment, "trailing")
+      assert.equal(headerDate.props.layoutPriority, 1)
+      assert.equal(headline.props.frame.alignment, "leading")
+      assert.equal(headline.children[0].type, "Button")
+      assert.equal(headline.children[0].props.frame.width, plan.hitSize)
+      assert.equal(titleNode(tree, a).props.frame.alignment, "leading")
+      for (const link of footer.children) {
+        const rowStack = link.children[0]
+        assert.equal(rowStack.props.frame.alignment, "trailing")
+        assert.equal(rowStack.children.find((child: Node) => child.type === "Text").props.frame.alignment, "trailing")
+      }
+      assert.equal(footer.props.frame.alignment, "bottomLeading")
+      assertCurrentControls(tree, [a])
+    }
+  }
+})
+
+test("small footer still aligns right when date or time is absent, or time is the only field", () => {
+  const env = harness(); env.locale("en-GB")
+  const next = item("next", { dueDate: "2100-11-07", title: "Preview label" })
+  for (const a of [item("dateonly", { note: "Only note" }), item("timed", { includesTime: true })]) {
+    const tree = env.render("systemSmall", [a, next], 3, {}, 141, 110)
+    const [, footer] = row(tree, a).children
+    const [detail, preview] = footer.children
+    const auxiliary = detail.children[0]
+    assert.equal(auxiliary.props.frame.alignment, "trailing")
+    assert.equal(auxiliary.children.length, 1)
+    assert.equal(auxiliary.children[0].props.frame?.alignment ?? auxiliary.props.frame.alignment, "trailing")
+    assert.equal(preview.children[0].children.at(-1).children[0], next.title, "the preview date does not consume the narrow rail")
+    assert.equal(preview.children[0].children.at(-1).props.frame.alignment, "trailing")
+  }
+})
+
 test("small footer uses one band for a lone detail or preview and none when both are absent", () => {
   const env = harness(), current = item("current"), next = item("next")
   const withDetail = { ...current, note: "My detail" }

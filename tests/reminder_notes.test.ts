@@ -209,9 +209,9 @@ test("compact and roomy calendar headers open exact notes, with the issue link k
   const compact = WidgetHeader({ item, issue, locale, now, height: 20 })
   const links = nodes(compact).filter(node => node.type === "Link")
   assert.equal(links.length, 2)
-  assert.deepEqual(Object.fromEntries(new URL(links[0].props.url).searchParams), expected)
-  assert.equal(links[0].children[0].props.contentShape, "rect")
-  assert.equal(links[1].props.url, issue.url)
+  assert.equal(links[0].props.url, issue.url, "warning must precede the notes link so it cannot displace the trailing date")
+  assert.deepEqual(Object.fromEntries(new URL(links[1].props.url).searchParams), expected)
+  assert.equal(links[1].children[0].props.contentShape, "rect")
 
   for (const height of [36, 56]) {
     const roomy = AgendaHeader({ item, roomy: true, locale, now, height })

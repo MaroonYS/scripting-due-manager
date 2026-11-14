@@ -117,15 +117,19 @@ function WidgetHeader({
   now: Date
 }) {
   const url = item ? itemURL(item) : Script.createRunURLScheme(Script.name)
-  return <HStack spacing={4} frame={{ maxWidth: "infinity", height }}>
+  return <HStack spacing={4} frame={{ maxWidth: "infinity", height, alignment: "trailing" }}>
+    {issue ? <Link url={issue.url}>
+      <Image systemName="exclamationmark.circle.fill" font={11} foregroundStyle={issue.color}
+        frame={{ width: 18, height }} />
+    </Link> : null}
     <Link url={url}>
       <HStack
         spacing={4}
-        frame={{ maxWidth: "infinity", height, alignment: "leading" }}
+        frame={{ maxWidth: "infinity", height, alignment: "trailing" }}
         contentShape="rect"
       >
         <Text font={12} fontWeight="semibold" foregroundStyle="label" lineLimit={1} minScaleFactor={0.8}
-          frame={{ maxWidth: "infinity", alignment: "leading" }}>
+          multilineTextAlignment="trailing" frame={{ maxWidth: "infinity", alignment: "trailing" }}>
           {item ? dueIconLabel(item.iconName, widgetRuntimeLanguage()) : widgetText("due", locale)}
         </Text>
         {item ? <Text font={11} fontWeight="semibold" foregroundStyle="secondaryLabel" lineLimit={1}
@@ -134,10 +138,6 @@ function WidgetHeader({
         </Text> : null}
       </HStack>
     </Link>
-    {issue ? <Link url={issue.url}>
-      <Image systemName="exclamationmark.circle.fill" font={11} foregroundStyle={issue.color}
-        frame={{ width: 18, height }} />
-    </Link> : null}
   </HStack>
 }
 
@@ -151,21 +151,28 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number; displayHe
     hasNext: !!nextItem,
   }
   const compactLayout = smallWidgetLayout(displayWidth, displayHeight, options)
-  const titleWidth = compactLayout.contentWidth - compactLayout.hitSize
+  // Only the title band gets the extra room on the left. Its icon still owns
+  // the same square, and every row keeps the original trailing inset.
+  const titleLeadingShift = item ? Math.min(6, compactLayout.padding) : 0
+  const titleWidth = compactLayout.contentWidth + titleLeadingShift - compactLayout.hitSize
   const layout = item && compactLayout.titleLines === 2 && !widgetTitleFitsOneLine(item.title, titleWidth * 1.85, 15)
     ? smallWidgetLayout(displayWidth, displayHeight, { ...options, preferThreeLines: true })
     : compactLayout
   const locale = widgetRuntimeLocale()
   const now = new Date()
 
-  return <WidgetFrame contentPadding={layout.padding}>
+  return <WidgetFrame contentPadding={{
+    top: layout.padding, bottom: layout.padding,
+    leading: layout.padding - titleLeadingShift, trailing: layout.padding,
+  }}>
     <VStack alignment="leading" spacing={layout.gap}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
-      {layout.headerHeight > 0 ? <WidgetHeader item={item} issue={issue} height={layout.headerHeight}
-        locale={locale} now={now} /> : null}
+      {layout.headerHeight > 0 ? <VStack spacing={0} padding={{ leading: titleLeadingShift }}>
+        <WidgetHeader item={item} issue={issue} height={layout.headerHeight} locale={locale} now={now} />
+      </VStack> : null}
       <CompletionContent generation={completionGeneration}>
         {item && layout.titleHeight > 0 ? <SmallDueItem item={item} nextItem={nextItem} issue={issue}
-          detail={detail} layout={layout} locale={locale} now={now} />
+          detail={detail} layout={layout} titleLeadingShift={titleLeadingShift} locale={locale} now={now} />
           : <WidgetEmptyContent compact issue={issue} />}
       </CompletionContent>
     </VStack>
@@ -178,6 +185,7 @@ function SmallDueItem({
   issue,
   detail,
   layout,
+  titleLeadingShift,
   locale,
   now,
 }: {
@@ -186,10 +194,11 @@ function SmallDueItem({
   issue: WidgetIssue | null
   detail: string
   layout: SmallWidgetLayout
+  titleLeadingShift: number
   locale: string
   now: Date
 }) {
-  const titleWidth = Math.max(0, layout.contentWidth - layout.hitSize)
+  const titleWidth = Math.max(0, layout.contentWidth + titleLeadingShift - layout.hitSize)
   const titleFont = widgetTitleFitsOneLine(item.title, titleWidth, 17) ? 17 : 15
   const titleHeight = Math.max(1, Math.floor(layout.titleHeight / layout.titleLines) - 3)
   const preview = layout.previewHeight > 0 ? nextItem : undefined
@@ -210,6 +219,7 @@ function SmallDueItem({
     </HStack>
     {/* The footer shares the remaining height; its links occupy only their own bands. */}
     {layout.detailHeight > 0 || preview ? <VStack alignment="leading" spacing={layout.gap}
+      padding={{ leading: titleLeadingShift }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "bottomLeading" }}>
       {layout.detailHeight > 0 ? <SmallCurrentDetail item={item} detail={detail} issue={issue}
         height={layout.detailHeight} locale={locale} /> : null}
@@ -231,10 +241,10 @@ function SmallCurrentDetail({
   const time = formatWidgetItemTime(item, locale)
   const text = issue?.compactText ?? detail
   return <Link url={issue ? issue.url : itemURL(item)}>
-    <HStack spacing={5} frame={{ maxWidth: "infinity", height, alignment: "leading" }} contentShape="rect">
+    <HStack spacing={5} frame={{ maxWidth: "infinity", height, alignment: "trailing" }} contentShape="rect">
       {text ? <Text font={11} foregroundStyle={issue?.color ?? "secondaryLabel"} lineLimit={1}
         minScaleFactor={0.85} truncationMode="middle" allowsTightening
-        frame={{ maxWidth: "infinity", alignment: "leading" }}>
+        multilineTextAlignment="trailing" frame={{ maxWidth: "infinity", alignment: "trailing" }}>
         {text}
       </Text> : null}
       {time ? <Text font={11} fontWeight="medium" foregroundStyle="secondaryLabel" lineLimit={1}
@@ -253,10 +263,11 @@ function SmallNextItemPreview({ item, width, height, locale, now }: {
   const date = formatWidgetDate(widgetItemDateKey(item), locale, { now })
   const showDate = widgetTitleFitsOneLine(date, width * 0.39, 10)
   return <Link url={itemURL(item)}>
-    <HStack spacing={4} frame={{ maxWidth: "infinity", height, alignment: "leading" }} contentShape="rect">
+    <HStack spacing={4} frame={{ maxWidth: "infinity", height, alignment: "trailing" }} contentShape="rect">
       <DueSymbol name={item.iconName} color={item.iconColor} size={11} slotSize={13} widget />
       <Text font={11} fontWeight="medium" foregroundStyle="secondaryLabel" lineLimit={1}
-        truncationMode="tail" frame={{ maxWidth: "infinity", alignment: "leading" }}>{item.title}</Text>
+        truncationMode="tail" multilineTextAlignment="trailing"
+        frame={{ maxWidth: "infinity", alignment: "trailing" }}>{item.title}</Text>
       {showDate ? <Text font={10} foregroundStyle="secondaryLabel" lineLimit={1}
         layoutPriority={1} monospacedDigit>{date}</Text> : null}
     </HStack>

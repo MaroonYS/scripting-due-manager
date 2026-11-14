@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.8.3",
-  "description": "Restores the 3.8.1 small-widget layout via a normal update.",
+  "version": "3.8.4",
+  "description": "Refined small-widget alignment: details at the trailing inset, main item closer to the leading edge.",
   "localizedDescriptions": {
-    "en": "3.8.3 restores the 3.8.1 layout and runtime code. In the small widget the completion icon is back on the left, with details and preview at the bottom. This release upgrades 3.8.2 normally without disabling downgrade protection or changing reminder data.",
-    "zh": "3.8.3 恢复 3.8.1 的布局和运行代码，小号完成图标回到左侧，备注与预告继续靠底。使用新版本号便于覆盖更新 3.8.2；不改事项数据、提醒读取或其他组件。",
-    "zh-Hans": "3.8.3 恢复 3.8.1 的布局和运行代码，小号完成图标回到左侧，备注与预告继续靠底。使用新版本号便于覆盖更新 3.8.2；不改事项数据、提醒读取或其他组件。",
-    "zh-Hant": "3.8.3 恢復 3.8.1 的排版和執行程式碼，小型完成圖示回到左側，備註與預告繼續靠底。使用新版本號以覆蓋更新 3.8.2；不改事項資料、提醒事項讀取或其他小工具。"
+    "en": "3.8.4 refines only the small widget. The heading, note and preview rows align toward the same trailing inset; the main item moves left while the left-side completion target remains unchanged in size. The footer stays bottom-aligned. Other sizes, Reminders scope and data are unchanged.",
+    "zh": "3.8.4 仅调整小号桌面组件：第一行主题、第三行备注和第四行预告向右收齐，日期与时间共用右边距；第二行主事项向左移，完成图标仍在左侧，热区不变。备注和预告继续靠底，其他尺寸、提醒读取与数据不变。",
+    "zh-Hans": "3.8.4 仅调整小号桌面组件：第一行主题、第三行备注和第四行预告向右收齐，日期与时间共用右边距；第二行主事项向左移，完成图标仍在左侧，热区不变。备注和预告继续靠底，其他尺寸、提醒读取与数据不变。",
+    "zh-Hant": "3.8.4 僅調整小型桌面小工具：第一行主題、第三行備註和第四行預告向右收齊，日期與時間共用右邊距；第二行目前事項向左移，完成圖示仍在左側，點按區域不變。備註和預告繼續靠底，其他尺寸、提醒事項讀取與資料不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",
