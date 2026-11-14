@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.8.1",
-  "description": "Adaptive due-date widgets with a bottom-aligned notes and preview area in the small size.",
+  "version": "3.8.2",
+  "description": "Adaptive due-date widgets with a shared leading text edge in the small size.",
   "localizedDescriptions": {
-    "en": "3.8.1 brings the small widget’s notes and time back down beside the bottom preview, with separate rows and tap targets. The current item and its details still take priority when space is tight. Larger widget sizes, data, Reminders scope, completion and fades are unchanged.",
-    "zh": "3.8.1 仅调整小号组件：备注和时间下移，与下一项预告一起靠底。两行仍有独立间距和点击入口，空间不足继续优先保留主事项与详情。中、大及竖向超大号不变；数据、提醒读取范围、完成按钮和淡出保留。",
-    "zh-Hans": "3.8.1 仅调整小号组件：备注和时间下移，与下一项预告一起靠底。两行仍有独立间距和点击入口，空间不足继续优先保留主事项与详情。中、大及竖向超大号不变；数据、提醒读取范围、完成按钮和淡出保留。",
-    "zh-Hant": "3.8.1 僅調整小型小工具：備註和時間下移，與下一項預告一起靠底。兩行仍有獨立間距和點按入口，空間不足時優先保留目前事項與詳情。中型、大型和直向超大型不變；資料、提醒事項讀取範圍、完成按鈕與淡出保留。"
+    "en": "3.8.2 aligns the small widget heading, current title, notes, and preview title to the same leading inset. Dates and times remain trailing. The small widget completion icon moves to the trailing side with the same tap area. Details and the preview stay bottom-aligned; larger sizes are unchanged.",
+    "zh": "3.8.2 统一小号组件中文字的左边距：主题、主事项、备注和预告名称从同一条线开始。日期和时间仍靠右，小号完成图标移到主事项右侧，点击区域不变。备注和预告继续靠底，中、大和竖向超大号不变。",
+    "zh-Hans": "3.8.2 统一小号组件中文字的左边距：主题、主事项、备注和预告名称从同一条线开始。日期和时间仍靠右，小号完成图标移到主事项右侧，点击区域不变。备注和预告继续靠底，中、大和竖向超大号不变。",
+    "zh-Hant": "3.8.2 統一小型小工具中文字的左邊距：主題、目前事項、備註和預告名稱從同一條線開始。日期和時間仍靠右，小型完成圖示移到目前事項右側，點按區域不變。備註和預告繼續靠底，中型、大型和直向超大型不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

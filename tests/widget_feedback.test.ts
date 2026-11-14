@@ -140,7 +140,7 @@ test("small issue status replaces only auxiliary text and offers an app link", (
   const detail = source.slice(source.indexOf("function SmallCurrentDetail"), source.indexOf("function SmallNextItemPreview"))
   const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(detail)
   const h = (type: string, props: any, ...children: any[]) => ({ type, props, children: children.filter(child => child != null) })
-  const bindings = { h, Link: "Link", HStack: "HStack", Text: "Text", formatWidgetItemTime,
+  const bindings = { h, Link: "Link", HStack: "HStack", Spacer: "Spacer", Text: "Text", formatWidgetItemTime,
     itemURL: (item: DisplayDueItem) => `notes:${item.id}` }
   const render = new Function(...Object.keys(bindings), `${compiled}\nreturn SmallCurrentDetail`)(...Object.values(bindings))
   const current = item(), detailText = "Sensitive original note", locale = "en-GB"

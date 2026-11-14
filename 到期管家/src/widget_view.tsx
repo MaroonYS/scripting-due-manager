@@ -197,9 +197,9 @@ function SmallDueItem({
     alignment="leading" spacing={layout.gap}
     contentTransition="opacity" transition={QUEUE_SLOT_TRANSITION}
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
+    {/* Keep leading text on the card inset; the independent completion target follows it. */}
     <HStack alignment="center" spacing={0}
       frame={{ maxWidth: "infinity", height: layout.titleHeight, alignment: "leading" }}>
-      <ListCompletionIcon item={item} hitSize={layout.hitSize} symbolSize={17} />
       <Link url={itemURL(item)}>
         <Text font={Math.min(titleFont, titleHeight)} fontWeight="semibold" lineLimit={layout.titleLines}
           minScaleFactor={0.85} truncationMode="tail" multilineTextAlignment="leading"
@@ -207,6 +207,7 @@ function SmallDueItem({
           {item.title}
         </Text>
       </Link>
+      <ListCompletionIcon item={item} hitSize={layout.hitSize} symbolSize={17} />
     </HStack>
     {/* The footer shares the remaining height; its links occupy only their own bands. */}
     {layout.detailHeight > 0 || preview ? <VStack alignment="leading" spacing={layout.gap}
@@ -236,7 +237,7 @@ function SmallCurrentDetail({
         minScaleFactor={0.85} truncationMode="middle" allowsTightening
         frame={{ maxWidth: "infinity", alignment: "leading" }}>
         {text}
-      </Text> : null}
+      </Text> : time ? <Spacer minLength={0} /> : null}
       {time ? <Text font={11} fontWeight="medium" foregroundStyle="secondaryLabel" lineLimit={1}
         minScaleFactor={0.82} layoutPriority={1} monospacedDigit>{time}</Text> : null}
     </HStack>
@@ -254,9 +255,9 @@ function SmallNextItemPreview({ item, width, height, locale, now }: {
   const showDate = widgetTitleFitsOneLine(date, width * 0.39, 10)
   return <Link url={itemURL(item)}>
     <HStack spacing={4} frame={{ maxWidth: "infinity", height, alignment: "leading" }} contentShape="rect">
-      <DueSymbol name={item.iconName} color={item.iconColor} size={11} slotSize={13} widget />
       <Text font={11} fontWeight="medium" foregroundStyle="secondaryLabel" lineLimit={1}
         truncationMode="tail" frame={{ maxWidth: "infinity", alignment: "leading" }}>{item.title}</Text>
+      <DueSymbol name={item.iconName} color={item.iconColor} size={11} slotSize={13} widget />
       {showDate ? <Text font={10} foregroundStyle="secondaryLabel" lineLimit={1}
         layoutPriority={1} monospacedDigit>{date}</Text> : null}
     </HStack>
