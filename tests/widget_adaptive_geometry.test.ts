@@ -25,6 +25,9 @@ function assertSmallFit(width: number, height: number, hasDetail: boolean, hasNe
   const context = `small ${width}×${height}, detail=${hasDetail}, preview=${hasNext}`
   assertFiniteGeometry(plan, context)
   assert.ok(plan.contentWidth + 2 * plan.padding <= width + tolerance, context)
+  assert.ok(plan.auxiliaryInset <= 5, context)
+  assert.ok(Math.abs(plan.auxiliaryContentWidth + 2 * (plan.padding + plan.auxiliaryInset) - width) < tolerance, context)
+  if (plan.padding === 11) assert.equal(plan.padding + plan.auxiliaryInset, 16, context)
   assert.ok(plan.contentHeight + 2 * plan.padding <= height + tolerance, context)
   assert.ok(plan.titleHeight >= plan.hitSize && plan.hitSize <= plan.contentWidth, context)
   assert.ok([1, 2, 3].includes(plan.titleLines), context)

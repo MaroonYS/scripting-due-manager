@@ -249,6 +249,56 @@ test("long small title takes a third line first and keeps the current detail and
   assert.equal(buttons(tree)[0].props.frame.width, 40)
 })
 
+test("small auxiliary rows share modest horizontal margins without moving the second row or right-justifying labels", () => {
+  const env = harness(), locale = "en-GB"
+  env.locale(locale)
+  const current = item("current", { title: "Train arrival", source: "reminder", note: "Trip list", includesTime: true })
+  const date = new Date(new Date().getFullYear(), 9, 6)
+  const preview = item("following", { source: "reminder", title: "Next itinerary", dueDate: localDateKey(date) })
+  for (const [width, height] of [[118, 148], [141, 141], [170, 170]]) {
+    const tree = env.render("systemSmall", [current, preview], 4, {}, height, width)
+    const plan = layout.smallWidgetLayout(width, height, { hasDetail: true, hasNext: true })
+    const inset = { leading: plan.auxiliaryInset, trailing: plan.auxiliaryInset }
+    const content = tree.children[0]
+    const [header] = content.children[0].children
+    const [headline, footer] = row(tree, current).children
+    const headerLink = header.children[0].children.find((n: Node) => n.type === "Link")!
+    assert.equal(content.props.padding, plan.padding)
+    assert.deepEqual(header.props.padding, inset)
+    assert.deepEqual(footer.props.padding, inset)
+    assert.equal(headerLink.children[0].children[0].props.frame.alignment, "leading")
+    assert.equal(headerLink.children[0].children.at(-1).props.layoutPriority, 1)
+    assert.equal(headline.props.padding, undefined)
+    assert.equal(headline.children[0].type, "Button")
+    assert.equal(headline.children[0].props.frame.width, 40)
+    assert.equal(footer.props.frame.alignment, "bottomLeading")
+    const [detailLink, nextLink] = footer.children
+    assert.equal(detailLink.children[0].children[0].props.frame.alignment, "leading")
+    assert.equal(detailLink.children[0].children.at(-1).props.layoutPriority, 1)
+    assert.equal(nextLink.children[0].children[0].type, "VStack", "the preview symbol remains on its leading edge")
+    assert.equal(nextLink.children[0].children[1].props.frame.alignment, "leading")
+    assert.equal(new URL(nextLink.props.url).searchParams.get("id"), preview.id)
+    assertCurrentControls(tree, [current])
+  }
+})
+
+test("the small preview budgets its date from the inset width instead of crowding the title", () => {
+  const env = harness(); env.locale("en-GB")
+  const current = item("current")
+  const next = item("later", { dueDate: "2100-11-07" })
+  const previewDate = localization.formatWidgetDate(next.dueDate, "en-GB")
+  const width = Array.from({ length: 151 }, (_, i) => i + 90).find(width => {
+    const size = layout.smallWidgetLayout(width, 170)
+    return layout.widgetTitleFitsOneLine(previewDate, size.contentWidth * 0.39, 10)
+      && !layout.widgetTitleFitsOneLine(previewDate, size.auxiliaryContentWidth * 0.39, 10)
+  })
+  assert.ok(width, "fixture should expose the actual text-width difference")
+  const tree = env.render("systemSmall", [current, next], 4, {}, 170, width)
+  const [preview] = row(tree, current).children[1].children
+  assert.ok(texts(preview).includes(next.title))
+  assert.ok(!texts(preview).includes(previewDate))
+})
+
 test("small footer uses one band for a lone detail or preview and none when both are absent", () => {
   const env = harness(), current = item("current"), next = item("next")
   const withDetail = { ...current, note: "My detail" }

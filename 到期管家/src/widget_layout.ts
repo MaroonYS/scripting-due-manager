@@ -13,6 +13,8 @@ export type SmallWidgetLayout = {
   padding: number
   contentWidth: number
   contentHeight: number
+  auxiliaryInset: number
+  auxiliaryContentWidth: number
   headerHeight: number
   titleHeight: number
   titleLines: 1 | 2 | 3
@@ -74,6 +76,9 @@ export function smallWidgetLayout(
   // of planning for the roomiest standard small widget.
   const box = contentBox(widgetDimension(displayWidth, 148), widgetDimension(displayHeight, 148), 11)
   const { contentWidth, contentHeight } = box
+  // Use the 16 pt standard widget margin for the auxiliary rows when the
+  // card has room. Scale the extra inset with the existing compact padding.
+  const auxiliaryInset = box.padding * (5 / 11)
   const gap = 4
   const hitSize = Math.min(40, contentWidth * 0.42, contentHeight)
   // Two fixed-size title lines and the completion target share one band.
@@ -98,7 +103,8 @@ export function smallWidgetLayout(
 
   if (titleHeight === 42 && contentHeight >= 150 && room >= 16) titleHeight += 16
   return {
-    ...box, gap, hitSize, headerHeight, titleHeight, detailHeight, previewHeight,
+    ...box, auxiliaryInset, auxiliaryContentWidth: contentWidth - 2 * auxiliaryInset,
+    gap, hitSize, headerHeight, titleHeight, detailHeight, previewHeight,
     titleLines: titleHeight >= 58 ? 3 : titleHeight >= 38 ? 2 : 1,
   }
 }

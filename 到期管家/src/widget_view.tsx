@@ -161,8 +161,10 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number; displayHe
   return <WidgetFrame contentPadding={layout.padding}>
     <VStack alignment="leading" spacing={layout.gap}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
-      {layout.headerHeight > 0 ? <WidgetHeader item={item} issue={issue} height={layout.headerHeight}
-        locale={locale} now={now} /> : null}
+      {layout.headerHeight > 0 ? <VStack alignment="leading" spacing={0}
+        padding={{ leading: layout.auxiliaryInset, trailing: layout.auxiliaryInset }}>
+        <WidgetHeader item={item} issue={issue} height={layout.headerHeight} locale={locale} now={now} />
+      </VStack> : null}
       <CompletionContent generation={completionGeneration}>
         {item && layout.titleHeight > 0 ? <SmallDueItem item={item} nextItem={nextItem} issue={issue}
           detail={detail} layout={layout} locale={locale} now={now} />
@@ -210,11 +212,12 @@ function SmallDueItem({
     </HStack>
     {/* The footer shares the remaining height; its links occupy only their own bands. */}
     {layout.detailHeight > 0 || preview ? <VStack alignment="leading" spacing={layout.gap}
+      padding={{ leading: layout.auxiliaryInset, trailing: layout.auxiliaryInset }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "bottomLeading" }}>
       {layout.detailHeight > 0 ? <SmallCurrentDetail item={item} detail={detail} issue={issue}
         height={layout.detailHeight} locale={locale} /> : null}
       {preview ? <SmallNextItemPreview item={preview}
-        width={layout.contentWidth} height={layout.previewHeight} locale={locale} now={now} /> : null}
+        width={layout.auxiliaryContentWidth} height={layout.previewHeight} locale={locale} now={now} /> : null}
     </VStack> : null}
   </VStack>
 }
