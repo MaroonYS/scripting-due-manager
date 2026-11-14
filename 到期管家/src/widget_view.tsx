@@ -124,7 +124,8 @@ function WidgetHeader({
         frame={{ maxWidth: "infinity", height, alignment: "leading" }}
         contentShape="rect"
       >
-        <Text font={14} fontWeight="semibold" foregroundStyle="label" lineLimit={1} minScaleFactor={0.8}
+        <Text font={14} fontWeight="semibold" foregroundStyle={{ light: "#C72A32", dark: "#FF4148" }}
+          lineLimit={1} minScaleFactor={0.8}
           frame={{ maxWidth: "infinity", alignment: "leading" }}>
           {item ? dueIconLabel(item.iconName, widgetRuntimeLanguage()) : widgetText("due", locale)}
         </Text>
@@ -162,7 +163,7 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number; displayHe
     top: layout.verticalInset, bottom: layout.verticalInset,
     leading: layout.padding, trailing: layout.padding,
   }}>
-    <VStack alignment="leading" spacing={layout.gap}
+    <VStack alignment="leading" spacing={layout.headerGap}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
       {layout.headerHeight > 0 ? <VStack alignment="leading" spacing={0}
         padding={{ leading: layout.auxiliaryInset, trailing: layout.auxiliaryInset }}>
@@ -204,7 +205,7 @@ function SmallDueItem({
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
     <HStack alignment="center" spacing={0}
       frame={{ maxWidth: "infinity", height: layout.titleHeight, alignment: "leading" }}>
-      <ListCompletionIcon item={item} hitSize={layout.hitSize} symbolSize={17} />
+      <ListCompletionIcon item={item} hitSize={layout.hitSize} symbolSize={17} towardTitle />
       <Link url={itemURL(item)}>
         <Text font={Math.max(1, Math.min(titleFont, titleHeight) - 1)} fontWeight="semibold" lineLimit={layout.titleLines}
           minScaleFactor={0.85} truncationMode="tail" multilineTextAlignment="leading"
@@ -214,7 +215,7 @@ function SmallDueItem({
       </Link>
     </HStack>
     {/* The footer shares the remaining height; its links occupy only their own bands. */}
-    {layout.detailHeight > 0 || preview ? <VStack alignment="leading" spacing={layout.gap}
+    {layout.detailHeight > 0 || preview ? <VStack alignment="leading" spacing={layout.footerGap}
       padding={{ leading: layout.auxiliaryInset, trailing: layout.auxiliaryInset }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "bottomLeading" }}>
       {layout.detailHeight > 0 ? <SmallCurrentDetail item={item} detail={detail} issue={issue}
@@ -513,10 +514,12 @@ function ListCompletionIcon({
   item,
   hitSize,
   symbolSize,
+  towardTitle,
 }: {
   item: DisplayDueItem
   hitSize: number
   symbolSize: number
+  towardTitle?: boolean
 }) {
   if (hitSize < 8) return null
   const size = Math.min(symbolSize, hitSize)
@@ -526,6 +529,7 @@ function ListCompletionIcon({
       hitSize={hitSize}
       symbolSize={size}
       enabled={false}
+      towardTitle={towardTitle}
     />
   }
   return <Button
@@ -545,6 +549,7 @@ function ListCompletionIcon({
       size={size}
       slotSize={hitSize}
       widget
+      towardTitle={towardTitle}
     />
   </Button>
 }
@@ -554,11 +559,13 @@ function ListCompletionSymbol({
   hitSize,
   symbolSize,
   enabled,
+  towardTitle,
 }: {
   item: DisplayDueItem
   hitSize: number
   symbolSize: number
   enabled: boolean
+  towardTitle?: boolean
 }) {
   return <DueSymbol
     name={item.iconName}
@@ -567,6 +574,7 @@ function ListCompletionSymbol({
     slotSize={hitSize}
     replace
     widget
+    towardTitle={towardTitle}
   />
 }
 

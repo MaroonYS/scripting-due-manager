@@ -22,6 +22,8 @@ export type SmallWidgetLayout = {
   detailHeight: number
   previewHeight: number
   gap: number
+  headerGap: number
+  footerGap: number
   hitSize: number
 }
 
@@ -91,28 +93,32 @@ export function smallWidgetLayout(
   // When even a compact header cannot fit, stop at the primary title. This
   // avoids briefly showing a detail line only to lose it on a taller proposal
   // where the higher-priority header becomes available.
-  const detailHeight = hasDetail && headerHeight > 0 && room >= 17 + gap ? 17 : 0
-  if (detailHeight > 0) room -= detailHeight + gap
+  const detailBudget = hasDetail && headerHeight > 0 && room >= 17 + gap ? 17 : 0
+  if (detailBudget > 0) room -= detailBudget + gap
   // An unusually long title may use the spare line before a preview is
   // admitted, but never at the expense of requested current-item detail.
-  if (preferThreeLines && (!hasDetail || detailHeight > 0) && room >= 16) {
+  if (preferThreeLines && (!hasDetail || detailBudget > 0) && room >= 16) {
     titleHeight += 16
     room -= 16
   }
-  const previewHeight = hasNext && (!hasDetail || detailHeight > 0) && room >= 19 + gap ? 19 : 0
-  if (previewHeight > 0) room -= previewHeight + gap
+  const previewBudget = hasNext && (!hasDetail || detailBudget > 0) && room >= 19 + gap ? 19 : 0
+  if (previewBudget > 0) room -= previewBudget + gap
 
   if (titleHeight === 42 && contentHeight >= 150 && room >= 16) {
     titleHeight += 16
     room -= 16
   }
-  // Preserve the existing top/bottom budget; the wider side inset must not
-  // push the heading or the bottom preview farther in vertically.
+  // Keep the baseline admission policy and vertical inset. Moving the rows
+  // within those bounds must not change which optional bands fit.
   const verticalExtra = Math.min(box.padding * (5 / 11), Math.max(0, room) / 2)
+  // A shorter footer brings the detail closer to the reference's lower
+  // group, without crossing the preview or changing the bottom anchor.
+  const detailHeight = detailBudget > 0 ? 15 : 0
+  const previewHeight = previewBudget > 0 ? 16 : 0
   return {
     ...box, verticalInset: box.padding + verticalExtra, contentHeight: contentHeight - 2 * verticalExtra,
     auxiliaryInset, auxiliaryContentWidth: contentWidth - 2 * auxiliaryInset,
-    gap, hitSize, headerHeight, titleHeight, detailHeight, previewHeight,
+    gap, headerGap: 0, footerGap: 1, hitSize, headerHeight, titleHeight, detailHeight, previewHeight,
     titleLines: titleHeight >= 58 ? 3 : titleHeight >= 38 ? 2 : 1,
   }
 }

@@ -34,10 +34,10 @@ function assertSmallFit(width: number, height: number, hasDetail: boolean, hasNe
   assert.ok([1, 2, 3].includes(plan.titleLines), context)
   if (!hasDetail) assert.equal(plan.detailHeight, 0, context)
   if (!hasNext) assert.equal(plan.previewHeight, 0, context)
-  const bands = [plan.headerHeight, plan.titleHeight, plan.detailHeight, plan.previewHeight]
-    .filter(band => band > 0)
-  const heightUsed = bands.reduce((sum, band) => sum + band, 0)
-    + Math.max(0, bands.length - 1) * plan.gap
+  const heightUsed = plan.headerHeight + plan.titleHeight + plan.detailHeight + plan.previewHeight
+    + (plan.headerHeight ? plan.headerGap : 0)
+    + (plan.detailHeight || plan.previewHeight ? plan.gap : 0)
+    + (plan.detailHeight && plan.previewHeight ? plan.footerGap : 0)
   assert.ok(heightUsed <= plan.contentHeight + tolerance,
     `${context}: bands use ${heightUsed} of ${plan.contentHeight} pt`)
   return plan
@@ -120,6 +120,20 @@ test("small spends only leftover height on paired top and bottom insets", () => 
   assert.equal(roomy.padding + roomy.auxiliaryInset, 19)
   assert.equal(roomy.verticalInset, 16)
   assert.equal(roomy.hitSize, compact.hitSize)
+})
+
+test("small shifts the main and detail centers toward the reference without changing the footer bottom anchor", () => {
+  for (const [width, height] of [[141, 141], [148, 148], [170, 170]]) {
+    const plan = assertSmallFit(width, height, true, true)
+    const titleCenter = plan.verticalInset + plan.headerHeight + plan.headerGap + plan.titleHeight / 2
+    const detailCenter = height - plan.verticalInset - plan.previewHeight - plan.footerGap - plan.detailHeight / 2
+    const oldTitleCenter = plan.verticalInset + plan.headerHeight + 4 + plan.titleHeight / 2
+    const oldDetailCenter = height - plan.verticalInset - 19 - 4 - 17 / 2
+    assert.equal(oldTitleCenter - titleCenter, 4)
+    assert.equal(detailCenter - oldDetailCenter, 7)
+    assert.equal(plan.footerGap, 1)
+    assert.equal(plan.hitSize, 40)
+  }
 })
 
 test("small can give a long title another line before an optional preview without losing current detail", () => {

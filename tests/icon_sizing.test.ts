@@ -189,3 +189,19 @@ test("native label backgrounds share safe fallback and bounded geometry for malf
     assert.ok(expected.slotSize >= expected.size && expected.slotSize <= 64)
   }
 })
+
+test("small completion ink can move toward the title without shifting or shrinking the native label", () => {
+  for (const [size, slotSize, pad] of [[17, 40, 12], [17, 20, 3], [8, 8, 0]]) {
+    const props = { title: "Complete: exact title", name: "creditcard.fill", color: "systemBlue", size, slotSize, widget: true }
+    const center = DueSymbolLabel(props) as Node
+    const shifted = DueSymbolLabel({ ...props, towardTitle: true }) as Node
+    assert.deepEqual(shifted.props.frame, center.props.frame)
+    assert.equal(shifted.props.title, center.props.title)
+    assert.equal(shifted.props.contentShape, "rect")
+    assert.equal(shifted.props.padding, undefined)
+    const ink = image(shifted.props.background.content)
+    assert.deepEqual(ink.props.frame, image(center.props.background.content).props.frame)
+    assert.deepEqual(ink.props.padding, pad ? { leading: pad } : undefined)
+    assert.ok(size + pad <= slotSize)
+  }
+})

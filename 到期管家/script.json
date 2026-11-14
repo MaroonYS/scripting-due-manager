@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.8.9",
-  "description": "Refined small-widget heading size and side margins using a side-by-side reference.",
+  "version": "3.8.10",
+  "description": "Surge-inspired red heading and tighter main-item grouping in the small widget.",
   "localizedDescriptions": {
-    "en": "3.8.9 uses a side-by-side Surge screenshot as a visual reference for the small widget. The heading is 14 points and its date 12; supporting rows add up to 3 points per side. Vertical spacing, the main item, completion controls, other sizes and data are unchanged.",
-    "zh": "3.8.9 参照与 Surge 并排的截图，微调小号首行与边距：主题 14 点、日期 12 点，第一、三、四行常规尺寸左右各多留 3 点。上下留白及第二行、完成图标和点击区域保持 3.8.8 的设定。其他尺寸和事项数据不变。",
-    "zh-Hans": "3.8.9 参照与 Surge 并排的截图，微调小号首行与边距：主题 14 点、日期 12 点，第一、三、四行常规尺寸左右各多留 3 点。上下留白及第二行、完成图标和点击区域保持 3.8.8 的设定。其他尺寸和事项数据不变。",
-    "zh-Hant": "3.8.9 參照與 Surge 並排的截圖，微調小型小工具首行與邊距：主題 14 點、日期 12 點，第一、三、四行常規尺寸左右各多留 3 點。上下留白及第二行、完成圖示和點按區域保持 3.8.8 的設定。其他尺寸和事項資料不變。"
+    "en": "3.8.10 updates only the small widget: a Surge-inspired red heading, the second row about 4 points higher when the heading is present, and the icon visually closer to its title without changing the tap area. When the preview is present the detail sits about 7 points lower. Other layouts, completion, notes and data are unchanged.",
+    "zh": "3.8.10 只调整小号组件：首行主题改成接近 Surge 的红色，第二行上移约 4 点，图标在原完成热区内向标题靠拢。有预告时第三行下移约 7 点，第四行仍靠底。其他尺寸、完成操作、备注跳转和事项数据不变。",
+    "zh-Hans": "3.8.10 只调整小号组件：首行主题改成接近 Surge 的红色，第二行上移约 4 点，图标在原完成热区内向标题靠拢。有预告时第三行下移约 7 点，第四行仍靠底。其他尺寸、完成操作、备注跳转和事项数据不变。",
+    "zh-Hant": "3.8.10 只調整小型小工具：首行主題改成接近 Surge 的紅色，第二行上移約 4 點，圖示在原完成點按區域內向標題靠攏。有預告時第三行下移約 7 點，第四行仍靠底。其他尺寸、完成操作、備註跳轉和事項資料不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

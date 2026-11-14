@@ -215,7 +215,7 @@ test("compact small anchors both footer rows at the bottom and keeps their bands
   assert.equal(footer.type, "VStack")
   assert.equal(footer.props.frame.alignment, "bottomLeading")
   assert.equal(footer.props.frame.maxHeight, "infinity")
-  assert.equal(footer.props.spacing, plan.gap)
+  assert.equal(footer.props.spacing, plan.footerGap)
   assert.equal(headline.props.frame.height, plan.titleHeight)
   assert.equal(detail.children[0].props.frame.height, plan.detailHeight)
   assert.equal(next.children[0].props.frame.height, plan.previewHeight)
@@ -271,12 +271,18 @@ test("small auxiliary rows share modest horizontal margins without moving the se
     const [headingText, headingDate] = headerLink.children[0].children
     assert.equal(headingText.props.frame.alignment, "leading")
     assert.equal(headingText.props.font, 14)
+    assert.deepEqual(headingText.props.foregroundStyle, { light: "#C72A32", dark: "#FF4148" })
     assert.equal(headingDate.props.font, 12)
+    assert.equal(headingDate.props.foregroundStyle, "secondaryLabel")
     assert.equal(headingDate.props.layoutPriority, 1)
     assert.equal(headline.props.padding, undefined)
     assert.equal(headline.children[0].type, "Button")
     assert.equal(headline.children[0].props.frame.width, 40)
+    const glyph = nodes(headline.children[0].children[0].props.background.content).find(node => node.type === "Image")!
+    assert.deepEqual(glyph.props.padding, { leading: 12 })
+    assert.equal(content.children[0].props.spacing, plan.headerGap)
     assert.equal(footer.props.frame.alignment, "bottomLeading")
+    assert.equal(footer.props.spacing, 1)
     const [detailLink, nextLink] = footer.children
     assert.equal(detailLink.children[0].children[0].props.frame.alignment, "leading")
     assert.equal(detailLink.children[0].children.at(-1).props.layoutPriority, 1)
