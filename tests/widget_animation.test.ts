@@ -268,8 +268,11 @@ test("small auxiliary rows share modest horizontal margins without moving the se
     })
     assert.deepEqual(header.props.padding, inset)
     assert.deepEqual(footer.props.padding, inset)
-    assert.equal(headerLink.children[0].children[0].props.frame.alignment, "leading")
-    assert.equal(headerLink.children[0].children.at(-1).props.layoutPriority, 1)
+    const [headingText, headingDate] = headerLink.children[0].children
+    assert.equal(headingText.props.frame.alignment, "leading")
+    assert.equal(headingText.props.font, 14)
+    assert.equal(headingDate.props.font, 12)
+    assert.equal(headingDate.props.layoutPriority, 1)
     assert.equal(headline.props.padding, undefined)
     assert.equal(headline.children[0].type, "Button")
     assert.equal(headline.children[0].props.frame.width, 40)

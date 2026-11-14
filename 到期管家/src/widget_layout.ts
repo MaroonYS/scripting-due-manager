@@ -77,9 +77,9 @@ export function smallWidgetLayout(
   // of planning for the roomiest standard small widget.
   const box = contentBox(widgetDimension(displayWidth, 148), widgetDimension(displayHeight, 148), 11)
   const { contentWidth, contentHeight } = box
-  // Use the 16 pt standard widget margin for the auxiliary rows when the
-  // card has room. Scale the extra inset with the existing compact padding.
-  const auxiliaryInset = box.padding * (5 / 11)
+  // The side-by-side Surge reference has a slightly deeper side inset.
+  // Keep that adjustment independent of the previously balanced top/bottom.
+  const auxiliaryInset = box.padding * (8 / 11)
   const gap = 4
   const hitSize = Math.min(40, contentWidth * 0.42, contentHeight)
   // Two fixed-size title lines and the completion target share one band.
@@ -106,9 +106,9 @@ export function smallWidgetLayout(
     titleHeight += 16
     room -= 16
   }
-  // Bring the top and bottom toward the same inset as the auxiliary rows,
-  // but only spend leftover height so the planned rows and hit area still fit.
-  const verticalExtra = Math.min(auxiliaryInset, Math.max(0, room) / 2)
+  // Preserve the existing top/bottom budget; the wider side inset must not
+  // push the heading or the bottom preview farther in vertically.
+  const verticalExtra = Math.min(box.padding * (5 / 11), Math.max(0, room) / 2)
   return {
     ...box, verticalInset: box.padding + verticalExtra, contentHeight: contentHeight - 2 * verticalExtra,
     auxiliaryInset, auxiliaryContentWidth: contentWidth - 2 * auxiliaryInset,

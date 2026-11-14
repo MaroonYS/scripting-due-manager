@@ -124,11 +124,11 @@ function WidgetHeader({
         frame={{ maxWidth: "infinity", height, alignment: "leading" }}
         contentShape="rect"
       >
-        <Text font={12} fontWeight="semibold" foregroundStyle="label" lineLimit={1} minScaleFactor={0.8}
+        <Text font={14} fontWeight="semibold" foregroundStyle="label" lineLimit={1} minScaleFactor={0.8}
           frame={{ maxWidth: "infinity", alignment: "leading" }}>
           {item ? dueIconLabel(item.iconName, widgetRuntimeLanguage()) : widgetText("due", locale)}
         </Text>
-        {item ? <Text font={11} fontWeight="semibold" foregroundStyle="secondaryLabel" lineLimit={1}
+        {item ? <Text font={12} fontWeight="semibold" foregroundStyle="secondaryLabel" lineLimit={1}
           layoutPriority={1} minScaleFactor={0.8} monospacedDigit contentTransition="opacity">
           {formatWidgetDate(widgetItemDateKey(item), locale, { now })}
         </Text> : null}
