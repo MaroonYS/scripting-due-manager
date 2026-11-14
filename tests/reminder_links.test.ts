@@ -70,8 +70,10 @@ test("reminder content links stay separate from completion AppIntent buttons", (
   const row = functionSource(source, "DueItemRow")
   const completion = functionSource(source, "ListCompletionIcon")
 
-  assert.match(small, /<Link url=\{itemURL\(item\)\}>[\s\S]*?<\/Link>\s*<ListCompletionIcon[^>]*\/>/)
-  assert.match(row, /<ListCompletionIcon[^>]*\/>\s*<Link url=\{itemURL\(item\)\}>/)
+  for (const content of [small, row]) {
+    assert.match(content, /<ListCompletionIcon[\s\S]*?\/>\s*(?:<\/VStack>\s*)?<Link url=\{itemURL\(item\)\}>/)
+    assert.doesNotMatch(content, /<Link[^>]*>[\s\S]*?<ListCompletionIcon/)
+  }
   assert.match(completion, /return <Button/)
   assert.match(completion, /intent=\{CompleteDueItemIntent\(\{/)
   assert.match(completion, /occurrenceKey: item\.completionKey/)

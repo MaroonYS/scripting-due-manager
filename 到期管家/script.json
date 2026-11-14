@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.8.2",
-  "description": "Adaptive due-date widgets with a shared leading text edge in the small size.",
+  "version": "3.8.3",
+  "description": "Restores the 3.8.1 small-widget layout via a normal update.",
   "localizedDescriptions": {
-    "en": "3.8.2 aligns the small widget heading, current title, notes, and preview title to the same leading inset. Dates and times remain trailing. The small widget completion icon moves to the trailing side with the same tap area. Details and the preview stay bottom-aligned; larger sizes are unchanged.",
-    "zh": "3.8.2 统一小号组件中文字的左边距：主题、主事项、备注和预告名称从同一条线开始。日期和时间仍靠右，小号完成图标移到主事项右侧，点击区域不变。备注和预告继续靠底，中、大和竖向超大号不变。",
-    "zh-Hans": "3.8.2 统一小号组件中文字的左边距：主题、主事项、备注和预告名称从同一条线开始。日期和时间仍靠右，小号完成图标移到主事项右侧，点击区域不变。备注和预告继续靠底，中、大和竖向超大号不变。",
-    "zh-Hant": "3.8.2 統一小型小工具中文字的左邊距：主題、目前事項、備註和預告名稱從同一條線開始。日期和時間仍靠右，小型完成圖示移到目前事項右側，點按區域不變。備註和預告繼續靠底，中型、大型和直向超大型不變。"
+    "en": "3.8.3 restores the 3.8.1 layout and runtime code. In the small widget the completion icon is back on the left, with details and preview at the bottom. This release upgrades 3.8.2 normally without disabling downgrade protection or changing reminder data.",
+    "zh": "3.8.3 恢复 3.8.1 的布局和运行代码，小号完成图标回到左侧，备注与预告继续靠底。使用新版本号便于覆盖更新 3.8.2；不改事项数据、提醒读取或其他组件。",
+    "zh-Hans": "3.8.3 恢复 3.8.1 的布局和运行代码，小号完成图标回到左侧，备注与预告继续靠底。使用新版本号便于覆盖更新 3.8.2；不改事项数据、提醒读取或其他组件。",
+    "zh-Hant": "3.8.3 恢復 3.8.1 的排版和執行程式碼，小型完成圖示回到左側，備註與預告繼續靠底。使用新版本號以覆蓋更新 3.8.2；不改事項資料、提醒事項讀取或其他小工具。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

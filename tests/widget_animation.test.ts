@@ -249,44 +249,6 @@ test("long small title takes a third line first and keeps the current detail and
   assert.equal(buttons(tree)[0].props.frame.width, 40)
 })
 
-test("small heading, title, notes and preview start at the same card inset even with a warning or no completion access", () => {
-  const env = harness(), locale = "en-GB"
-  env.locale(locale)
-  const current = item("placed", { title: "Delivery", note: "Current note", source: "reminder" })
-  const next = item("preview", { title: "Next title" })
-  for (const width of [118, 141, 170, 204]) {
-    for (const readOnly of [false, true]) {
-      const a = { ...current, canComplete: !readOnly }
-      const tree = env.render("systemSmall", [a, next], 4, readOnly ? { interactionError: "warning" } : {}, 170, width)
-      const [headline, footer] = row(tree, a).children
-      const [details, preview] = footer.children
-      const header = nodes(tree).find(node => node.type === "Link" && node.children[0]?.props.frame?.height === 24)!
-      assert.equal(tree.children[0].props.padding, layout.smallWidgetLayout(width, 170).padding)
-      assert.equal(header.children[0].children[0].type, "Text", "heading has no leading icon or spacer")
-      const [itemLink, trailingControl] = headline.children
-      assert.equal(itemLink.type, "Link")
-      assert.equal(itemLink.children[0], titleNode(tree, a))
-      assert.equal(trailingControl.type, readOnly ? "VStack" : "Button")
-      assert.equal(trailingControl.props.frame.width, 40)
-      assert.equal(details.children[0].children[0].type, "Text", "detail text starts on the leading inset")
-      const [previewTitle, previewIcon] = preview.children[0].children
-      assert.equal(previewTitle.type, "Text")
-      assert.equal(previewTitle.children[0], next.title)
-      assert.equal(previewIcon.type, "VStack", "preview icon comes after text")
-      assert.equal(footer.props.frame.alignment, "bottomLeading")
-      assertCurrentControls(tree, [a])
-    }
-  }
-})
-
-test("small clock-only details remain on the trailing side without inventing a left text label", () => {
-  const env = harness(), current = item("timed", { includesTime: true })
-  const tree = env.render("systemSmall", [current], 1, {}, 170, 170)
-  const [spacer, clock] = row(tree, current).children[1].children[0].children[0].children
-  assert.equal(spacer.type, "Spacer")
-  assert.equal(clock.type, "Text")
-})
-
 test("small footer uses one band for a lone detail or preview and none when both are absent", () => {
   const env = harness(), current = item("current"), next = item("next")
   const withDetail = { ...current, note: "My detail" }
