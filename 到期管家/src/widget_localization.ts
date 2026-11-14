@@ -24,6 +24,8 @@ const WIDGET_TEXT = {
   en: {
     appName: "Due Manager",
     due: "Due",
+    nextDue: "Next due",
+    today: "Today",
     reminders: "Reminders",
     untitledReminder: "Untitled Reminder",
     recentItems: "Upcoming",
@@ -54,6 +56,8 @@ const WIDGET_TEXT = {
   "zh-Hans": {
     appName: "到期管家",
     due: "到期",
+    nextDue: "最近到期",
+    today: "今天",
     reminders: "提醒事项",
     untitledReminder: "未命名提醒",
     recentItems: "近期事项",
@@ -84,6 +88,8 @@ const WIDGET_TEXT = {
   "zh-Hant": {
     appName: "到期管家",
     due: "到期",
+    nextDue: "最近到期",
+    today: "今天",
     reminders: "提醒事項",
     untitledReminder: "未命名提醒",
     recentItems: "近期事項",
@@ -263,7 +269,7 @@ export function localizeWidgetActionError(message: string, locale: string): stri
   return widgetText(key ?? "actionNeedsReview", locale)
 }
 
-/** The small widget reserves one existing auxiliary line, not another row. */
+/** Format the authoritative device-local time, independent of the date label. */
 export function formatWidgetItemTime(item: DisplayDueItem, locale: string): string {
   if (!item.includesTime) return ""
   const timestampDate = Number.isFinite(item.dueTimestamp)
@@ -366,6 +372,22 @@ export function formatWidgetItemDate(
     minute: item.minute,
     now,
   })
+}
+
+export function widgetItemDateKey(item: DisplayDueItem): string {
+  if (item.includesTime && Number.isFinite(item.dueTimestamp)) {
+    const date = new Date(item.dueTimestamp)
+    if (Number.isFinite(date.getTime())) return localDateKey(date)
+  }
+  return item.dueDate
+}
+
+export function formatWidgetWeekday(dateKey: string, locale: string): string {
+  if (!parseDateKey(dateKey)) return ""
+  try {
+    return new Intl.DateTimeFormat(locale, { weekday: "short" })
+      .format(dateKeyToLocalDate(dateKey, true, 12, 0))
+  } catch { return "" }
 }
 
 export function formatWidgetMonth(dateKey: string, locale: string): string {

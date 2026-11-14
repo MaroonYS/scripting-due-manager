@@ -41,22 +41,24 @@ test("Apple Reminder links reject malformed or expanded identifiers", () => {
   }
 })
 
-test("widget item URLs deep-link reminders and retain the manual edit fallback", () => {
+test("widget item URLs open exact notes or manual edits without passing reminder content", () => {
   assert.equal(APPLE_REMINDERS_URL, "x-apple-reminderkit://")
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
-  const resolver = source.slice(source.indexOf("function itemURL"))
-  assert.match(resolver, /if \(item\.source === "reminder"\) \{/)
-  assert.match(
-    resolver,
-    /Script\.createRunURLScheme\(Script\.name, \{ action: "reminder-notes", id: item\.id \}\)/,
-  )
-  assert.match(
-    resolver,
-    /Script\.createRunURLScheme\(Script\.name, \{ action: "edit", id: item\.id \}\)/,
-  )
+  const resolver = functionSource(source, "itemURL")
+  const compiled = new Bun.Transpiler({ loader: "ts" }).transformSync(resolver)
+  const script = { name: "到期管家", createRunURLScheme: (name: string, parameters: unknown) => ({ name, parameters }) }
+  const itemURL = new Function("Script", `${compiled}\nreturn itemURL`)(script)
+  const item = { id: "apple&id=荟", title: "未公开标题", note: "敏感提醒正文" }
+  assert.deepEqual(itemURL({ ...item, source: "reminder" }), {
+    name: script.name, parameters: { action: "reminder-notes", id: item.id },
+  })
+  assert.deepEqual(itemURL({ ...item, source: "manual" }), {
+    name: script.name, parameters: { action: "edit", id: item.id },
+  })
+  assert.doesNotMatch(resolver, /appleReminderDeepLink|APPLE_REMINDERS_URL/)
 })
 
 test("reminder content links stay separate from completion AppIntent buttons", () => {
@@ -64,43 +66,34 @@ test("reminder content links stay separate from completion AppIntent buttons", (
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
-  const small = source.slice(
-    source.indexOf("function SmallDueItem"),
-    source.indexOf("function smallItemDetail"),
-  )
-  const row = source.slice(
-    source.indexOf("function DueItemRow"),
-    source.indexOf("function ListCompletionIcon"),
-  )
-  const completion = source.slice(
-    source.indexOf("function ListCompletionIcon"),
-    source.indexOf("function ListCompletionSymbol"),
-  )
+  const small = functionSource(source, "SmallDueItem")
+  const row = functionSource(source, "DueItemRow")
+  const completion = functionSource(source, "ListCompletionIcon")
 
-  assert.match(small, /<ListCompletionIcon[\s\S]*?\/>\s*<\/VStack>\s*<Link url=\{itemURL\(item\)\}>/)
-  assert.match(row, /<ListCompletionIcon[\s\S]*?\/>\s*<Link url=\{itemURL\(item\)\}>/)
+  for (const content of [small, row]) {
+    assert.match(content, /<ListCompletionIcon[\s\S]*?\/>\s*(?:<\/VStack>\s*)?<Link url=\{itemURL\(item\)\}>/)
+    assert.doesNotMatch(content, /<Link[^>]*>[\s\S]*?<ListCompletionIcon/)
+  }
   assert.match(completion, /return <Button/)
   assert.match(completion, /intent=\{CompleteDueItemIntent\(\{/)
   assert.match(completion, /occurrenceKey: item\.completionKey/)
   assert.doesNotMatch(completion, /<Link/)
 })
 
-test("current-item summaries use the same dynamic item link", () => {
+function functionSource(source: string, name: string): string {
+  const start = source.indexOf(`function ${name}(`)
+  assert.ok(start >= 0, `missing ${name}`)
+  const rest = source.slice(start)
+  const next = rest.search(/\n(?:export )?function /)
+  return next < 0 ? rest : rest.slice(0, next)
+}
+
+test("small preview is a navigation link and cannot complete the next item", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
-  const compactHeader = source.slice(
-    source.indexOf("function WidgetHeader"),
-    source.indexOf("function LargeSummaryHeader"),
-  )
-  const largeSummary = source.slice(
-    source.indexOf("function LargeSummaryHeader"),
-    source.indexOf("function largeSummaryDate"),
-  )
-
-  assert.match(compactHeader, /compact && items\[0\][\s\S]*?itemURL\(items\[0\]\)/)
-  assert.match(compactHeader, /return <Link url=\{url\}>/)
-  assert.match(largeSummary, /const url = item \? itemURL\(item\) : Script\.createRunURLScheme\(Script\.name\)/)
-  assert.match(largeSummary, /return <Link url=\{url\}>/)
+  const preview = functionSource(source, "SmallNextItemPreview")
+  assert.match(preview, /return <Link url=\{itemURL\(item\)\}>/)
+  assert.doesNotMatch(preview, /ListCompletionIcon|CompleteDueItemIntent|<Button|onTapGesture/)
 })

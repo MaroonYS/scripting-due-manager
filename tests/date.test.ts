@@ -84,12 +84,8 @@ import {
   writeWidgetCompletionFeedback,
 } from "../到期管家/src/widget_completion.ts"
 import {
-  largeWidgetLayout,
-  listItemTitleFontSize,
-  smallItemTitleFontSize,
-  visibleWidgetItems,
-  widgetItemCapacity,
-  widgetRowHeight,
+  agendaWidgetLayout,
+  widgetTitleFitsOneLine,
 } from "../到期管家/src/widget_layout.ts"
 import {
   currentWidgetLocale,
@@ -1360,19 +1356,22 @@ test("manual widget completion is idempotent for an old occurrence button", () =
   assert.equal(repeated.state.items[0].dueDate, "2026-02-28")
 })
 
-test("completing the visible item backfills every medium and large widget capacity", () => {
+test("completing the visible item backfills the adaptive agenda across all list families", () => {
   const layouts = [
-    ["systemMedium", 145, 2],
-    ["systemMedium", 152, 3],
-    ["systemLarge", 250, 3],
-    ["systemLarge", 281, 4],
-    ["systemLarge", 320, 5],
-    ["systemLarge", 354, 5],
-    ["systemLarge", 382, 5],
+    ["systemMedium", 300, 145], ["systemMedium", 364, 170],
+    ["systemLarge", 280, 250], ["systemLarge", 364, 382],
+    ["systemExtraLargePortrait", 320, 520],
   ] as const
+  const now = new Date(2026, 7, 31, 12)
+  const showRows = (state: ReturnType<typeof defaultState>, family: typeof layouts[number][0], width: number, height: number) => {
+    const sorted = sortDueItems(manualItemsForDisplay(state), now)
+    const actionFlags = sorted.map(item => dueStatus(item, now).needsAction)
+    const { capacity } = agendaWidgetLayout(family, width, height, { itemCount: sorted.length, actionFlags })
+    return sorted.slice(0, capacity)
+  }
 
-  for (const [family, displayHeight, expectedCapacity] of layouts) {
-    const queue = Array.from({ length: expectedCapacity + 1 }, (_, index) => item({
+  for (const [family, width, height] of layouts) {
+    const queue = Array.from({ length: 20 }, (_, index) => item({
       id: `queue-${index + 1}`,
       title: `第 ${index + 1} 件`,
       dueDate: `2026-09-${String(index + 1).padStart(2, "0")}`,
@@ -1383,13 +1382,9 @@ test("completing the visible item backfills every medium and large widget capaci
       items: queue,
       updatedAt: queue.length,
     }
-    const capacity = widgetItemCapacity(family, displayHeight)
-    assert.equal(capacity, expectedCapacity, `${family} at ${displayHeight} pt`)
-
-    const before = visibleWidgetItems(
-      sortDueItems(manualItemsForDisplay(state)),
-      capacity,
-    )
+    const before = showRows(state, family, width, height)
+    const capacity = before.length
+    assert.ok(capacity > 0 && capacity < queue.length, family)
     assert.deepEqual(
       before.map(value => value.id),
       queue.slice(0, capacity).map(value => value.id),
@@ -1403,10 +1398,7 @@ test("completing the visible item backfills every medium and large widget capaci
       manualOccurrenceKey(first),
       100,
     )
-    const after = visibleWidgetItems(
-      sortDueItems(manualItemsForDisplay(completed.state)),
-      capacity,
-    )
+    const after = showRows(completed.state, family, width, height)
     assert.deepEqual(
       after.map(value => value.id),
       queue.slice(1, capacity + 1).map(value => value.id),
@@ -1446,156 +1438,20 @@ test("manual completion feedback lookup requires the exact visible occurrence", 
   }
 })
 
-test("widget capacities adapt to small, medium, and large heights", () => {
-  assert.equal(widgetItemCapacity("systemSmall", 170), 1)
-  assert.equal(widgetItemCapacity("systemMedium", 145), 2)
-  assert.equal(widgetItemCapacity("systemMedium", 151), 2)
-  assert.equal(widgetItemCapacity("systemMedium", 152), 3)
-  assert.equal(widgetItemCapacity("systemMedium", 168), 3)
-  assert.equal(widgetItemCapacity("systemLarge", 250), 3)
-  assert.equal(widgetItemCapacity("systemLarge", 271), 3)
-  assert.equal(widgetItemCapacity("systemLarge", 272), 4)
-  assert.equal(widgetItemCapacity("systemLarge", 309), 4)
-  assert.equal(widgetItemCapacity("systemLarge", 310), 5)
-  assert.equal(widgetItemCapacity("systemLarge", 349), 5)
-  assert.equal(widgetItemCapacity("systemLarge", 350), 5)
-  assert.equal(widgetItemCapacity("systemLarge", 354), 5)
-  assert.equal(widgetItemCapacity("systemLarge", 382), 5)
-  assert.equal(widgetItemCapacity("systemLarge"), 5)
-})
-
-test("large widget layout adapts its summary, sections, and rows to each height tier", () => {
-  assert.deepEqual(largeWidgetLayout(250), {
-    summaryHeight: 66,
-    sectionHeaderHeight: 24,
-    maximumSections: 1,
-    maximumRows: 3,
-  })
-  assert.deepEqual(largeWidgetLayout(281), {
-    summaryHeight: 70,
-    sectionHeaderHeight: 28,
-    maximumSections: 1,
-    maximumRows: 4,
-  })
-  assert.deepEqual(largeWidgetLayout(320), {
-    summaryHeight: 70,
-    sectionHeaderHeight: 28,
-    maximumSections: 1,
-    maximumRows: 5,
-  })
-  for (const height of [354, 382]) {
-    assert.deepEqual(largeWidgetLayout(height), {
-      summaryHeight: 74,
-      sectionHeaderHeight: 32,
-      maximumSections: 2,
-      maximumRows: 5,
-    })
-  }
-  assert.deepEqual(largeWidgetLayout(), {
-    summaryHeight: 74,
-    sectionHeaderHeight: 32,
-    maximumSections: 2,
-    maximumRows: 5,
-  })
-})
-
-test("list item title fonts adapt to widget width and estimated wrapping", () => {
-  // Short titles retain each widget family's normal list typography.
-  assert.equal(listItemTitleFontSize("Claude Pro", "systemMedium", 364), 14)
-  assert.equal(listItemTitleFontSize("Claude Pro", "systemLarge", 364), 15)
-
-  // Real compact and roomy widget widths affect whether the same English title
-  // is expected to wrap and therefore needs the first compact font step.
-  assert.equal(listItemTitleFontSize("Equifax Complete Premier", "systemMedium", 364), 14)
-  assert.equal(listItemTitleFontSize("Equifax Complete Premier", "systemMedium", 320), 13)
-  assert.equal(listItemTitleFontSize("Equifax Complete Premier", "systemLarge", 364), 14)
-
-  // Mixed CJK and Latin glyphs use visual width rather than UTF-16 length.
-  assert.equal(
-    listItemTitleFontSize("BANK 06 | Ally 后备资格与一次性申请", "systemMedium", 364),
-    13,
-  )
-  assert.equal(
-    listItemTitleFontSize("BANK 06 | Ally 后备资格与一次性申请", "systemLarge", 364),
-    14,
-  )
-
-  // Incidental whitespace must not change the predicted line count.
-  assert.equal(
-    listItemTitleFontSize("  Claude   Pro \t -   Monthly  ", "systemMedium", 364),
-    listItemTitleFontSize("Claude Pro - Monthly", "systemMedium", 364),
-  )
-
-  // A pasted explicit line break is already a two-line title.
-  assert.equal(listItemTitleFontSize("Claude Pro\nMonthly", "systemMedium", 364), 13)
-  assert.equal(listItemTitleFontSize("Claude Pro\nMonthly", "systemLarge", 364), 14)
-
-  // Wide Latin glyphs, repeated digits, supplementary CJK, and emoji modifiers
-  // keep their visual-width behavior at compact widget boundaries.
-  assert.equal(listItemTitleFontSize("W".repeat(10), "systemLarge", 338), 14)
-  assert.equal(listItemTitleFontSize("1".repeat(20), "systemLarge", 338), 14)
-  assert.equal(listItemTitleFontSize("𠀀".repeat(12), "systemMedium", 340), 13)
-  assert.equal(listItemTitleFontSize("👍".repeat(10), "systemMedium", 340), 14)
-  assert.equal(listItemTitleFontSize("👍🏽".repeat(10), "systemMedium", 340), 14)
-
-  // Titles that still exceed roughly two lines after the first reduction use
-  // the second compact step.
-  const extraLongTitle = "A".repeat(100)
-  assert.equal(listItemTitleFontSize(extraLongTitle, "systemMedium", 364), 12)
-  assert.equal(listItemTitleFontSize(extraLongTitle, "systemLarge", 364), 13)
-
-  // Missing and invalid widths use the same published fallback width.
-  const fallbackTitle = "BANK 06 | Ally 后备资格与一次性申请"
-  const fallbackSize = listItemTitleFontSize(fallbackTitle, "systemLarge")
-  assert.equal(fallbackSize, 14)
-  for (const invalidWidth of [Number.NaN, Number.POSITIVE_INFINITY, 0, -1]) {
-    assert.equal(
-      listItemTitleFontSize(fallbackTitle, "systemLarge", invalidWidth),
-      fallbackSize,
-    )
+test("title typography follows the available column rather than UTF-16 width", () => {
+  for (const fontSize of [14, 15, 17]) {
+    const fits = (title: string, width: number) => widgetTitleFitsOneLine(title, width, fontSize)
+    assert.ok(fits("i".repeat(15), 135))
+    assert.ok(!fits("W".repeat(15), 135))
+    assert.equal(fits("a".repeat(10), 115), true)
+    assert.equal(fits("𠀀".repeat(10), 115), false)
+    for (const width of [115, 150, 180]) {
+      assert.equal(fits("👍🏽".repeat(10), width), fits("👍".repeat(10), width))
+      assert.equal(fits("  Claude   Pro \t -   Monthly  ", width), fits("Claude Pro - Monthly", width))
+    }
   }
 })
 
-test("small item title fonts adapt across one, two, and three lines", () => {
-  assert.equal(smallItemTitleFontSize("Claude Pro", 170), 16)
-  assert.equal(smallItemTitleFontSize("Claude Pro - Monthly", 170), 15)
-  assert.equal(
-    smallItemTitleFontSize("BANK 06 | Ally 后备资格与一次性申请", 170),
-    14,
-  )
-
-  // A narrower published small-widget width can move the same title down one
-  // typography step without changing the fixed three-line title slot.
-  assert.equal(smallItemTitleFontSize("Claude Pro", 141), 15)
-  assert.equal(smallItemTitleFontSize("Claude Pro - Monthly", 141), 14)
-
-  assert.equal(smallItemTitleFontSize("Claude Pro\nMonthly", 170), 15)
-  assert.equal(smallItemTitleFontSize("One\nTwo\nThree", 170), 14)
-
-  const fallbackSize = smallItemTitleFontSize("Claude Pro - Monthly")
-  assert.equal(fallbackSize, 15)
-  for (const invalidWidth of [Number.NaN, Number.POSITIVE_INFINITY, 0, -1]) {
-    assert.equal(
-      smallItemTitleFontSize("Claude Pro - Monthly", invalidWidth),
-      fallbackSize,
-    )
-  }
-})
-
-test("widget rows fill published iPhone heights and account for large sections", () => {
-  assert.equal(widgetItemCapacity("systemMedium", 170), 3)
-  assert.equal(widgetRowHeight("systemMedium", 170, 3), 41)
-  assert.equal(widgetRowHeight("systemMedium", 145, 2), 42)
-  assert.equal(widgetRowHeight("systemLarge", 250, 3, 1), 46)
-  assert.equal(widgetRowHeight("systemLarge", 281, 4, 1), 40)
-  assert.equal(widgetRowHeight("systemLarge", 320, 5, 1), 40)
-  assert.equal(widgetRowHeight("systemLarge", 354, 5, 1), 45)
-  assert.equal(widgetRowHeight("systemLarge", 354, 5, 2), 38)
-  assert.equal(widgetRowHeight("systemLarge", 382, 5, 1), 50)
-  assert.equal(widgetRowHeight("systemLarge", 382, 5, 2), 44)
-  assert.equal(widgetRowHeight("systemLarge", undefined, 5, 1), 50)
-  assert.equal(widgetRowHeight("systemLarge", undefined, 5, 2), 44)
-})
 
 test("widget refresh targets a near timed due date before midnight", () => {
   const now = new Date(2026, 7, 30, 12, 0)
@@ -2616,22 +2472,13 @@ test("completion intent keeps one persisted transition and requests one widget r
   assert.match(source, /提醒已完成，但本地缓存或完成记录未能保存/)
 })
 
-test("widget view uses native queue transitions, safe controls, and unified list insets", () => {
+test("widget view keeps native queue transitions and exact completion intents", () => {
   const source = readFileSync(
     new URL("../到期管家/src/widget_view.tsx", import.meta.url),
     "utf8",
   )
-  const listWidget = source.slice(
-    source.indexOf("function ListWidget("),
-    source.indexOf("function ListWidgetBody"),
-  )
-  const widgetEntry = source.slice(
-    source.indexOf("export function DueManagerWidget"),
-    source.indexOf("function WidgetHeader"),
-  )
-  const importBlock = source.slice(0, source.indexOf("from \"scripting\"") + 16)
+  const importBlock = source.slice(0, source.indexOf('from "scripting"') + 16)
   assert.doesNotMatch(importBlock, /\bAnimation\b/)
-  assert.match(source, /declare const Transition: any/)
   assert.match(source, /Animation\.smooth\(\{\s*duration: 0\.46,\s*extraBounce: 0,?\s*\}\)/)
   assert.match(source, /Transition\.asymmetric\(/)
   assert.match(source, /Animation\.easeIn\(0\.32\)\.delay\(0\.08\)/)
@@ -2639,440 +2486,41 @@ test("widget view uses native queue transitions, safe controls, and unified list
   assert.doesNotMatch(source, /Transition\.move\(|Transition\.scale\(/)
   assert.match(source, /transition=\{QUEUE_SLOT_TRANSITION\}/)
   assert.match(source, /key="completion-active-layer"/)
-  assert.match(source, /function CompletionContent/)
-  assert.match(source, /contentTransition="opacity"/)
-  assert.match(source, /contentTransition="symbolEffectReplace"/)
-  assert.doesNotMatch(source, /zIndex=|allowsHitTesting=|<Toggle|toggleStyle=|buttonStyle="bordered"|buttonBorderShape=|clipShape=/)
-  assert.match(source, /return <Button\s+key=\{widgetItemIdentity\(item\)\}\s+buttonStyle="plain"[\s\S]*?CompleteDueItemIntent/)
-  assert.match(source, /key=\{widgetItemIdentity\(item\)\}/)
-  assert.doesNotMatch(source, /key=\{`queue-slot-/)
-  assert.match(source, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
-  assert.match(source, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
-  assert.match(
-    widgetEntry,
-    /const displaySize = Widget\.displaySize\s+const displayHeight = displaySize\?\.height\s+const displayWidth = displaySize\?\.width/,
-  )
-  assert.equal(
-    widgetEntry.match(/displayWidth=\{displayWidth\}/g)?.length,
-    3,
-    "small, medium, and large widget entry points must forward their actual width",
-  )
-  assert.match(
-    listWidget,
-    /const rowHeight = widgetRowHeight\(family, displayHeight, limit, largeSectionCount\)/,
-  )
-  assert.match(
-    listWidget,
-    /<LargeListWidgetBody[\s\S]*?displayWidth=\{displayWidth\}/,
-  )
-  assert.match(
-    listWidget,
-    /<ListWidgetBody[\s\S]*?displayWidth=\{displayWidth\}/,
-  )
-  assert.doesNotMatch(
-    listWidget,
-    /widgetRowHeight\(family, displayHeight, effectiveLimit, largeSectionCount\)/,
-  )
-  assert.match(
-    listWidget,
-    /return <WidgetFrame contentPadding=\{11\}>\s*<VStack\s+alignment="leading"\s+spacing=\{0\}\s+padding=\{\{ leading: 3, trailing: 3 \}\}/,
-    "11 pt frame padding plus 3 pt horizontal inset must keep an effective 14 pt list margin",
-  )
-  assert.equal(
-    listWidget.match(/padding=\{\{ leading: 3, trailing: 3 \}\}/g)?.length,
-    2,
-    "medium and large branches must both keep the effective 14 pt list margin",
-  )
-  assert.doesNotMatch(source, /contentPadding=\{roomy \? 14 : 11\}/)
-  assert.doesNotMatch(source, /previousItems|completionPhase|layer0|layer1/)
+  assert.doesNotMatch(source, /previousItems|completionPhase|layer0|layer1|symbolEffect=\{\{ effect: "bounce"/)
+  assert.doesNotMatch(source, /allowsHitTesting=|<Toggle|toggleStyle=|buttonStyle="bordered"|buttonBorderShape=/)
+
   const completionContent = source.slice(source.indexOf("function CompletionContent("), source.indexOf("function DueItemRow("))
   assert.equal(completionContent.match(/animation=/g)?.length, 1)
   assert.match(completionContent, /animation: COMPLETION_QUEUE_ANIMATION, value: generation/)
   assert.match(completionContent, /undefined/)
-  assert.doesNotMatch(source, /symbolEffect=\{\{ effect: "bounce"/)
-})
 
-test("medium and large rows use compact item icons as completion controls without duplicating title icons", () => {
-  const source = readFileSync(
-    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
-    "utf8",
-  )
-  const listRow = source.slice(
-    source.indexOf("function DueItemRow"),
-    source.indexOf("function ListCompletionIcon"),
-  )
-  const mediumBody = source.slice(
-    source.indexOf("function ListWidgetBody"),
-    source.indexOf("function LargeListWidgetBody"),
-  )
-  const largeBody = source.slice(
-    source.indexOf("function LargeListWidgetBody"),
-    source.indexOf("function CompletionContent"),
-  )
-  const listCompletionIcon = source.slice(
-    source.indexOf("function ListCompletionIcon"),
-    source.indexOf("function listItemSupportingText"),
-  )
-  const listDetail = source.slice(
-    source.indexOf("function listItemSupportingText"),
-    source.indexOf("function EmptyState"),
-  )
-
-  assert.doesNotMatch(listRow, /\btitleInset\b|\bsubjectTextOffset\b/)
-  assert.match(listRow, /const metadataWidth = roomy \? 124 : 116/)
-  assert.match(listRow, /const supportingText = listItemSupportingText\(item\)/)
+  const control = source.slice(source.indexOf("function ListCompletionIcon"), source.indexOf("function ListCompletionSymbol"))
+  assert.match(control, /if \(!item\.canComplete \|\| item\.stale\)/)
+  assert.match(control, /<Button\s+key=\{widgetItemIdentity\(item\)\}\s+buttonStyle="plain"/)
+  assert.match(control, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
   assert.match(
-    listRow,
-    /return <HStack\s+alignment="center"\s+spacing=\{0\}[\s\S]*?frame=\{\{ maxWidth: "infinity", height \}\}/,
-    "the completion control and both content columns should share the full row's vertical center",
-  )
-  assert.match(
-    listRow,
-    /<ListCompletionIcon\s+item=\{item\}\s+hitSize=\{hitSize\}\s+symbolSize=\{roomy \? 18 : 17\}\s*\/>/,
-    "medium and large rows should use 17 pt and 18 pt item icons",
-  )
-  assert.match(listRow, /const hitSize = Math\.min\(height, roomy \? 40 : 38\)/)
-  assert.match(
-    mediumBody,
-    /<DueItemRow\s+item=\{item\}\s+roomy=\{false\}\s+height=\{rowHeight\}\s+displayWidth=\{displayWidth\}\s*\/>/,
-    "medium rows must receive the actual widget width",
-  )
-  assert.match(
-    largeBody,
-    /<LargeWidgetSection[\s\S]*?displayWidth=\{displayWidth\}[\s\S]*?<DueItemRow\s+item=\{item\}\s+roomy\s+height=\{rowHeight\}\s+displayWidth=\{displayWidth\}\s*\/>/,
-    "large sections and rows must preserve the actual widget width",
-  )
-  assert.match(
-    listRow,
-    /<Link url=\{itemURL\(item\)\}>\s*<HStack\s+alignment="center"\s+spacing=\{8\}\s+frame=\{\{ maxWidth: "infinity", height \}\}\s+contentShape="rect"/,
-    "the subject and metadata columns should share one vertically centered content block",
-  )
-  assert.match(
-    listRow,
-    /<Link url=\{itemURL\(item\)\}>[\s\S]*?<Text[\s\S]*?\{item\.title\}[\s\S]*?<VStack\s+alignment="trailing"/,
-    "the title and metadata should remain inside the item link",
-  )
-  const itemLink = listRow.slice(
-    listRow.indexOf("<Link url={itemURL(item)}>"),
-    listRow.lastIndexOf("</Link>") + "</Link>".length,
-  )
-  assert.doesNotMatch(itemLink, /item\.iconName|item\.iconColor/)
-  const titleIndex = listRow.indexOf("{item.title}")
-  assert.ok(titleIndex >= 0)
-  const titleBlock = listRow.slice(
-    listRow.lastIndexOf("<Text", titleIndex),
-    listRow.indexOf("</Text>", titleIndex) + "</Text>".length,
-  )
-  assert.match(
-    listRow,
-    /const titleFontSize = listItemTitleFontSize\(\s*item\.title,\s*roomy \? "systemLarge" : "systemMedium",\s*displayWidth,\s*\)/,
-    "list title typography must be selected from its title, family, and actual width",
-  )
-  assert.match(titleBlock, /font=\{titleFontSize\}/)
-  assert.match(titleBlock, /lineLimit=\{2\}/)
-  assert.match(titleBlock, /multilineTextAlignment="leading"/)
-  assert.match(titleBlock, /fixedSize=\{\{ horizontal: false, vertical: true \}\}/)
-  assert.match(titleBlock, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
-  assert.doesNotMatch(titleBlock, /lineLimit=\{1\}|padding=/)
-  assert.equal(
-    listRow.match(/lineLimit=\{2\}/g)?.length,
-    1,
-    "only the item title should be allowed to wrap to a second line",
-  )
-  assert.match(
-    listRow,
-    /<VStack\s+alignment="trailing"\s+spacing=\{0\}\s+frame=\{\{ width: metadataWidth, alignment: "trailing" \}\}\s*>[\s\S]*?\{supportingText[\s\S]*?\{formatWidgetItemDate\(item, widgetRuntimeLocale\(\)\)\}/,
-    "supporting text and localized absolute date should occupy the trailing metadata column",
-  )
-  const supportingTextIndex = listRow.indexOf("{supportingText}")
-  assert.ok(supportingTextIndex >= 0)
-  const supportingTextBlock = listRow.slice(
-    listRow.lastIndexOf("<Text", supportingTextIndex),
-    listRow.indexOf("</Text>", supportingTextIndex) + "</Text>".length,
-  )
-  assert.match(supportingTextBlock, /lineLimit=\{1\}/)
-  assert.match(supportingTextBlock, /minScaleFactor=\{0\.85\}/)
-  assert.match(supportingTextBlock, /truncationMode="middle"/)
-  assert.match(supportingTextBlock, /allowsTightening=\{true\}/)
-  assert.match(supportingTextBlock, /multilineTextAlignment="trailing"/)
-  assert.match(supportingTextBlock, /frame=\{\{ maxWidth: "infinity", alignment: "trailing" \}\}/)
-  assert.match(
-    listRow,
-    /frame=\{\{ maxWidth: "infinity", height: 13, alignment: "trailing" \}\}/,
-    "a long note must remain in its reserved one-line slot above the date",
-  )
-  const dateIndex = listRow.indexOf("{formatWidgetItemDate(item, widgetRuntimeLocale())}")
-  assert.ok(dateIndex > supportingTextIndex, "the absolute date must remain a separate row after the note")
-  assert.equal(listRow.match(/formatWidgetItemDate\(item, widgetRuntimeLocale\(\)\)/g)?.length, 1)
-  assert.doesNotMatch(listRow, /DueStatusLabel|DateLabel|status\.label|style="timer"/)
-  assert.match(listDetail, /return \[item\.amount, item\.note\][\s\S]*?\.join\(" · "\)/)
-  assert.doesNotMatch(listDetail, /formatWidgetItemDate\(item, widgetRuntimeLocale\(\)\)/)
-
-  assert.match(listCompletionIcon, /<DueSymbolLabel[\s\S]*?name=\{item\.iconName\}[\s\S]*?size=\{symbolSize\}\s+slotSize=\{hitSize\}/)
-  assert.match(listCompletionIcon, /return <DueSymbol\s+name=\{item\.iconName\}/)
-  assert.match(listCompletionIcon, /color=\{enabled \? item\.iconColor : "tertiaryLabel"\}/)
-  assert.match(listCompletionIcon, /size=\{symbolSize\}\s+slotSize=\{hitSize\}/)
-  assert.match(listCompletionIcon, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
-  assert.match(
-    listCompletionIcon,
+    control,
     /CompleteDueItemIntent\(\{\s*source: item\.source,\s*id: item\.id,\s*occurrenceKey: item\.completionKey,\s*\}\)/,
   )
+  assert.doesNotMatch(control, /<Link/)
 })
 
-test("large widgets use adaptive Reminders-style summary and section spacing", () => {
-  const source = readFileSync(
-    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
-    "utf8",
-  )
-  const listWidget = source.slice(
-    source.indexOf("function ListWidget("),
-    source.indexOf("function ListWidgetBody"),
-  )
-  const mediumBody = source.slice(
-    source.indexOf("function ListWidgetBody"),
-    source.indexOf("function LargeListWidgetBody"),
-  )
-  const largeBody = source.slice(
-    source.indexOf("function LargeListWidgetBody"),
-    source.indexOf("function CompletionContent"),
-  )
-  const largeHeader = source.slice(
-    source.indexOf("function LargeSummaryHeader"),
-    source.indexOf("function largeSummaryDate"),
-  )
-
-  assert.match(largeHeader, /height: number/)
-  assert.match(largeHeader, /height, alignment: "topLeading"/)
-  assert.match(largeHeader, /frame=\{\{ maxWidth: "infinity", height: 61 \}\}/)
-  assert.match(
-    largeHeader,
-    /<Spacer minLength=\{0\} \/>\s*<Divider padding=\{\{ leading: 5, trailing: 5 \}\} \/>/,
-  )
-  assert.match(largeHeader, /<DueSymbol[\s\S]*?size=\{26\}\s+slotSize=\{40\}/)
-  assert.match(largeHeader, /<Divider padding=\{\{ leading: 5, trailing: 5 \}\} \/>/)
-  assert.match(
-    listWidget,
-    /<CompletionContent generation=\{completionGeneration\}>[\s\S]*?<LargeSummaryHeader\s+item=\{items\[0\]\}\s+issue=\{issue\}\s+height=\{largeLayout\.summaryHeight\}\s*\/>/,
-    "the large header must animate with the completion queue",
-  )
-  assert.match(
-    listWidget,
-    /const largeSectionCount = largeLayout[\s\S]*?largeWidgetSectionCount\(visible, largeLayout\.maximumSections\)/,
-  )
-  assert.match(
-    listWidget,
-    /widgetRowHeight\(family, displayHeight, limit, largeSectionCount\)/,
-  )
-  assert.match(listWidget, /maximumSections=\{largeLayout\.maximumSections\}/)
-  assert.match(listWidget, /sectionHeaderHeight=\{largeLayout\.sectionHeaderHeight\}/)
-  assert.match(largeBody, /maximumSections === 1\s*\? \[\{ id: "recent", title: widgetText\("recentItems", widgetRuntimeLocale\(\)\), rows: indexedItems \}\]/)
-  assert.match(largeBody, /title: widgetText\("needsAction", widgetRuntimeLocale\(\)\)/)
-  assert.match(largeBody, /title: widgetText\("nextItems", widgetRuntimeLocale\(\)\)/)
-  assert.match(largeBody, /maximumSections === 2 && needsAction\.length > 0/)
-  assert.match(largeBody, /maximumSections === 2 && upcoming\.length > 0/)
-  assert.match(largeBody, /padding=\{\{ bottom: 3, leading: 5, trailing: 5 \}\}/)
-  assert.match(largeBody, /height: headerHeight, alignment: "bottomLeading"/)
-  assert.doesNotMatch(largeBody, /<Divider/)
-  assert.match(mediumBody, /<VStack\s+key="medium-item-queue"\s+alignment="leading"\s+spacing=\{1\}/)
-  assert.doesNotMatch(mediumBody, /<Divider/)
+test("calendar widget layout does not reintroduce offset-based overlap", () => {
+  const source = readFileSync(new URL("../到期管家/src/widget_view.tsx", import.meta.url), "utf8")
+  assert.match(source, /Widget\.displaySize/)
+  assert.doesNotMatch(source, /\b(?:top|bottom|leading|trailing):\s*-\d/)
+  assert.doesNotMatch(source, /fixedSize=\{\{\s*horizontal: false,\s*vertical: true\s*\}\}/)
+  assert.doesNotMatch(source, /const metadataWidth = roomy \? 124 : 116/)
+  assert.match(source, /function listItemSupportingText/)
 })
 
-test("small widget uses adaptive item icons and fixed preview geometry", () => {
-  const source = readFileSync(
-    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
-    "utf8",
-  )
-  const widgetEntry = source.slice(
-    source.indexOf("export function DueManagerWidget"),
-    source.indexOf("function WidgetHeader"),
-  )
-  assert.match(source, /const nextItem = items\[1\]/)
-  assert.equal(source.match(/<SmallWidgetBody/g)?.length, 1)
-  const smallWidget = source.slice(
-    source.indexOf("function SmallWidget("),
-    source.indexOf("function SmallWidgetBody"),
-  )
-  const smallBody = source.slice(
-    source.indexOf("function SmallWidgetBody"),
-    source.indexOf("function SmallDueItem"),
-  )
-  const widgetHeader = source.slice(
-    source.indexOf("function WidgetHeader"),
-    source.indexOf("function SmallWidget("),
-  )
-  const smallDetail = source.slice(
-    source.indexOf("function SmallCurrentDetail"),
-    source.indexOf("function SmallNextItemPreview"),
-  )
-  const listCompletionIcon = source.slice(
-    source.indexOf("function ListCompletionIcon"),
-    source.indexOf("function listItemSupportingText"),
-  )
-
-  assert.match(
-    widgetEntry,
-    /if \(Widget\.family === "systemSmall"\) \{\s*return <SmallWidget \{\.\.\.props\} displayWidth=\{displayWidth\} \/>/,
-    "the real small-widget width must enter the compact layout",
-  )
-  assert.match(smallWidget, /function SmallWidget\(props: WidgetDataProps & \{ displayWidth\?: number \}\)/)
-  assert.match(smallWidget, /completionGeneration,\s*displayWidth,/)
-  assert.match(
-    smallWidget,
-    /<SmallWidgetBody\s+item=\{item\}\s+nextItem=\{nextItem\}\s+issue=\{issue\}\s+displayWidth=\{displayWidth\}\s*\/>/,
-  )
-  assert.match(
-    smallBody,
-    /<SmallDueItem\s+item=\{item\}\s+nextItem=\{nextItem\}\s+displayWidth=\{displayWidth\}\s+issue=\{issue\}\s*\/>/,
-  )
-  assert.match(
-    smallWidget,
-    /compactTitle=\{item\s*\? dueIconLabel\(item\.iconName, widgetRuntimeLanguage\(\)\)\s*:\s*widgetText\("due", widgetRuntimeLocale\(\)\)\}/,
-    "the top-left compact title must use the localized current icon name",
-  )
-  assert.match(widgetHeader, /compactTitle\?: string/)
-  assert.match(
-    widgetHeader,
-    /\{compact \? compactTitle \?\? widgetText\("due", widgetRuntimeLocale\(\)\) : widgetText\("appName", widgetRuntimeLocale\(\)\)\}/,
-  )
-  assert.match(widgetHeader, /\{compact\s*\? null\s*:\s*<Image/)
-  assert.doesNotMatch(smallWidget, /iconName=\{item\?\.iconName\}|iconColor=\{item\?\.iconColor\}/)
-  assert.match(smallWidget, /padding=\{\{ leading: 3, trailing: 3 \}\}/)
-  const smallItem = source.slice(
-    source.indexOf("function SmallDueItem"),
-    source.indexOf("function SmallNextItemPreview"),
-  )
-  assert.match(smallItem, /const detail = smallItemDetail\(item\)/)
-  assert.match(
-    smallItem,
-    /const titleFontSize = smallItemTitleFontSize\(item\.title, displayWidth\)/,
-  )
-  assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", height: 76, alignment: "topLeading" \}\}/)
-  assert.match(smallItem, /<HStack\s+alignment="top"\s+spacing=\{0\}\s+padding=\{\{ top: 15 \}\}/)
-  assert.match(
-    smallItem,
-    /<VStack\s+spacing=\{0\}\s+padding=\{\{ top: -5, bottom: 5 \}\}\s*>\s*<ListCompletionIcon\s+item=\{item\}\s+hitSize=\{40\}\s+symbolSize=\{17\}\s*\/>\s*<\/VStack>/,
-    "the small item icon must replace the old circle without shrinking its tap target",
-  )
-  assert.doesNotMatch(smallItem, /CompletionControl|systemName="circle"/)
-  assert.equal(
-    smallItem.match(/padding=\{\{ top: -5, bottom: 5 \}\}/g)?.length,
-    1,
-    "the small completion icon lift must remain unchanged",
-  )
-  assert.equal(smallItem.match(/padding=\{\{ top: 15 \}\}/g)?.length, 1)
-  assert.doesNotMatch(smallItem, /padding=\{\{ top: 22 \}\}/)
-  assert.match(smallItem, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
-  assert.doesNotMatch(smallItem, /height: 57/)
-  assert.match(smallItem, /frame=\{\{ maxWidth: 105, alignment: "leading" \}\}/)
-  assert.match(smallItem, /font=\{titleFontSize\}/)
-  assert.doesNotMatch(smallItem, /font=\{16\}/)
-  assert.match(smallItem, /lineLimit=\{3\}/)
-  assert.match(smallItem, /minScaleFactor=\{0\.9\}/)
-  assert.match(smallItem, /padding=\{\{ top: 6, bottom: -6 \}\}/)
-  assert.equal(
-    smallItem.match(/fixedSize=\{\{ horizontal: false, vertical: true \}\}/g)?.length,
-    2,
-  )
-  assert.match(smallItem, /function SmallCurrentDetail/)
-  assert.match(smallItem, /padding=\{\{ top: 4, leading: 5, trailing: 5 \}\}/)
-  assert.match(smallItem, /font=\{13\}/)
-  assert.match(smallDetail, /frame=\{\{ maxWidth: "infinity", height: 19, alignment: "leading" \}\}/)
-  assert.match(smallDetail, /padding=\{\{ top: 4, leading: 5, trailing: 5 \}\}/)
-  assert.doesNotMatch(smallDetail, /<Spacer/)
-  assert.match(smallDetail, /lineLimit=\{1\}/)
-  assert.match(smallDetail, /minScaleFactor=\{0\.85\}/)
-  assert.match(smallDetail, /truncationMode="middle"/)
-  assert.match(smallDetail, /allowsTightening=\{true\}/)
-  assert.match(smallDetail, /multilineTextAlignment="leading"/)
-  assert.match(smallDetail, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
-  assert.match(
-    widgetHeader,
-    /padding=\{\{[\s\S]*?trailing: 5,[\s\S]*?\}\}/,
-    "the compact header and current detail must keep the same 5 pt horizontal inset",
-  )
-  assert.match(smallItem, /<SmallCurrentDetail item=\{item\} detail=\{detail\} issue=\{issue\} \/>/)
-  assert.equal(smallItem.match(/height: 19, alignment: "leading"/g)?.length, 2)
-  assert.equal(smallItem.match(/height: 18, alignment: "leading"/g)?.length, 1)
-  assert.doesNotMatch(smallItem, /width: 39/)
-  assert.match(smallItem, /return \[item\.amount, item\.note\]/)
-  assert.match(smallItem, /\.join\(" · "\)/)
-  assert.match(smallItem, /<Spacer minLength=\{4\} \/>/)
-  assert.match(smallItem, /<Spacer minLength=\{0\} \/>/)
-  assert.doesNotMatch(smallItem, /displayDate\(item\)/)
-  assert.doesNotMatch(smallItem, /<DueStatusLabel item=\{item\} font="caption" \/>/)
-  assert.match(widgetHeader, /font=\{compact \? 13 :/)
-  assert.match(widgetHeader, /top: compact \? 8 :/)
-  assert.match(widgetHeader, /bottom: compact \? -6 :/)
-  assert.match(listCompletionIcon, /<DueSymbolLabel[\s\S]*?name=\{item\.iconName\}[\s\S]*?size=\{symbolSize\}\s+slotSize=\{hitSize\}/)
-  assert.match(listCompletionIcon, /return <DueSymbol\s+name=\{item\.iconName\}/)
-  assert.match(listCompletionIcon, /color=\{enabled \? item\.iconColor : "tertiaryLabel"\}/)
-  assert.match(listCompletionIcon, /size=\{symbolSize\}\s+slotSize=\{hitSize\}/)
-  assert.match(listCompletionIcon, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
-  assert.match(
-    listCompletionIcon,
-    /CompleteDueItemIntent\(\{\s*source: item\.source,\s*id: item\.id,\s*occurrenceKey: item\.completionKey,\s*\}\)/,
-    "tapping the small item icon must complete only the displayed occurrence",
-  )
-  assert.match(source, /function SmallNextItemPreview/)
-  const preview = source.slice(
-    source.indexOf("function SmallNextItemPreview"),
-    source.indexOf("function ListWidget"),
-  )
-  assert.match(preview, /height: 18, alignment: "leading"/)
-  assert.match(preview, /padding=\{\{ top: -5, leading: 5, trailing: 5, bottom: 9 \}\}/)
-  assert.doesNotMatch(preview, /<Divider/)
-  assert.doesNotMatch(preview, />下一项<\/Text>/)
-  assert.match(preview, /frame=\{\{ maxWidth: "infinity", alignment: "leading" \}\}/)
-  assert.match(preview, /<Link url=\{itemURL\(item\)\}>/)
-  assert.match(preview, /<DueSymbol\s+name=\{item\.iconName\}\s+color=\{item\.iconColor\}\s+size=\{11\}\s+slotSize=\{12\}\s+widget/)
-  assert.match(preview, /\{formatWidgetItemDate\(item, widgetRuntimeLocale\(\)\)\}/)
-  assert.doesNotMatch(preview, /status\.label|DateLabel|style="timer"/)
-  assert.doesNotMatch(preview, /ListCompletionIcon|CompleteDueItemIntent/)
-})
-
-test("small widget header keeps its date while list widgets omit item statistics", () => {
-  const source = readFileSync(
-    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
-    "utf8",
-  )
-  const header = source.slice(
-    source.indexOf("function WidgetHeader"),
-    source.indexOf("function SmallWidget("),
-  )
-  assert.match(
-    header,
-    /\{compact\s*\?\s*<Text[\s\S]*?\{items\[0\]\s*\?\s*formatWidgetDate\(items\[0\]\.dueDate, widgetRuntimeLocale\(\)\)\s*:\s*items\.length\}[\s\S]*?<\/Text>\s*:\s*null\}/,
-    "only compact headers should render the current date or the empty-state zero",
-  )
-  assert.equal(header.match(/items\.length/g)?.length, 1)
-
-  const listWidget = source.slice(
-    source.indexOf("function ListWidget("),
-    source.indexOf("function ListWidgetBody"),
-  )
-  assert.match(listWidget, /<WidgetHeader\s+[\s\S]*?items=\{items\}[\s\S]*?issue=\{issue\}[\s\S]*?\/>/)
-  assert.doesNotMatch(listWidget, /\bcompact\b/)
-})
-
-test("every widget family omits relative-day and live countdown labels", () => {
-  const viewSource = readFileSync(
-    new URL("../到期管家/src/widget_view.tsx", import.meta.url),
-    "utf8",
-  )
-  const widgetSource = readFileSync(
-    new URL("../到期管家/widget.tsx", import.meta.url),
-    "utf8",
-  )
+test("every widget family keeps absolute localized dates without live countdown labels", () => {
+  const viewSource = readFileSync(new URL("../到期管家/src/widget_view.tsx", import.meta.url), "utf8")
+  const widgetSource = readFileSync(new URL("../到期管家/widget.tsx", import.meta.url), "utf8")
 
   assert.doesNotMatch(viewSource, /\bDateLabel\b|style="timer"|DueStatusLabel|status\.label/)
-  assert.doesNotMatch(viewSource, /天后|逾期\s*\{|明天|今天/)
-  assert.equal(
-    viewSource.match(/formatWidgetItemDate\(item, widgetRuntimeLocale\(\)\)/g)?.length,
-    2,
-    "the small preview and medium/large rows should both show absolute localized dates",
-  )
+  assert.match(viewSource, /formatWidget(?:Item)?Date\(/)
   assert.match(viewSource, /currentWidgetLocale\(\)/)
-  assert.match(viewSource, /widgetLanguage\(widgetRuntimeLocale\(\)\)/)
   assert.match(widgetSource, /configureWidgetLocale\(Device\)/)
   assert.doesNotMatch(viewSource, /const WIDGET_(?:LOCALE|LANGUAGE)/)
   assert.match(widgetSource, /widgetText\("loadFailed", WIDGET_LOCALE\)/)
@@ -3291,7 +2739,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "3.7.1")
+  assert.equal(manifest.version, "3.8.0")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

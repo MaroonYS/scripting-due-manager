@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.7.1",
-  "description": "Due dates and Apple Reminders with softer native completion fades, stable occurrence identity and safe animation fallback.",
+  "version": "3.8.0",
+  "description": "Adaptive Calendar-inspired due dates and Apple Reminders widgets for compact, standard, and portrait extra-large layouts.",
   "localizedDescriptions": {
-    "en": "3.7.1 requests softer native completion fades: old occurrences ease out over 0.46 seconds, new content eases in with a short animation-only delay, without full-height bottom movement. Small items, disappearing large sections and final-item empty states have explicit transitions; surviving items retain exact identity. Unsupported animation APIs fall back to static rendering. No extra timeline, completed-item snapshot or completion-write delay is added. All 216 symbols, sizing, choices, full notes, dates, recurrence, completion checks, backups, architecture improvements and fixed updates remain. Actual animation and refresh require iPhone verification and are controlled by iOS and Scripting.",
-    "zh": "3.7.1 改善完成后的原生淡出接替：旧事项请求约 0.46 秒淡出，新事项稍后柔和淡入，取消从底部整行滑入。小号换项、大号分类消失和最后一项空状态补齐过渡，保留其他事项的准确身份。动画不支持时静态显示，不增加时间线、已完成快照或完成写入等待。216 个图标、尺寸、手选、完整备注、日期、周期、完成校验、备份、架构优化和固定更新地址保留。实际播放和刷新由 iOS 与 Scripting 决定，须在 iPhone 验证。",
-    "zh-Hans": "3.7.1 改善完成后的原生淡出接替：旧事项请求约 0.46 秒淡出，新事项稍后柔和淡入，取消从底部整行滑入。小号换项、大号分类消失和最后一项空状态补齐过渡，保留其他事项的准确身份。动画不支持时静态显示，不增加时间线、已完成快照或完成写入等待。216 个图标、尺寸、手选、完整备注、日期、周期、完成校验、备份、架构优化和固定更新地址保留。实际播放和刷新由 iOS 与 Scripting 决定，须在 iPhone 验证。",
-    "zh-Hant": "3.7.1 改善完成後的原生淡出接替：舊事項請求約 0.46 秒淡出，新事項稍後柔和淡入，取消從底部整行滑入。小號換項、大號分類消失及最後一項空狀態補齊過渡，保留其他事項的準確身分。動畫不支援時靜態顯示，不增加時間軸、已完成快照或完成寫入等待。216 個圖示、尺寸、手選、完整備註、日期、週期、完成校驗、備份、架構最佳化及固定更新網址保留。實際播放及更新由 iOS 與 Scripting 決定，須在 iPhone 驗證。"
+    "en": "3.8.0 adapts the widget to the width and height reported by Scripting. Small widgets separate the item, detail and preview. Agenda widgets prioritize titles and reflow dates and times. Uses the iOS 27 portrait extra-large family when exposed by the host. Notes, exact completion, fades, icons, data, reminder scope and the update URL remain. Duo Home Screen rendering still needs real-device verification.",
+    "zh": "3.8.0 重新设计组件排版：按宿主提供的实际宽高分配空间。小号拆开主事项、详情和预告；中、大号优先展示标题，日期与时间分行或移到标题下方。支持 Scripting 提供的 iOS 27 竖向超大组件，保留备注、准确完成、淡出、图标、数据与更新地址。未改 Apple 提醒读取范围。iPhone Duo 真机效果仍待验证。",
+    "zh-Hans": "3.8.0 重新设计组件排版：按宿主提供的实际宽高分配空间。小号拆开主事项、详情和预告；中、大号优先展示标题，日期与时间分行或移到标题下方。支持 Scripting 提供的 iOS 27 竖向超大组件，保留备注、准确完成、淡出、图标、数据与更新地址。未改 Apple 提醒读取范围。iPhone Duo 真机效果仍待验证。",
+    "zh-Hant": "3.8.0 重新設計小工具排版，依宿主提供的實際寬高分配空間。小型分開主事項、詳情和預告；中、大型優先顯示標題，日期與時間分行或移至標題下方。支援 Scripting 提供的 iOS 27 直向超大型小工具，保留備註、準確完成、淡出、圖示、資料與更新網址。未更改 Apple 提醒事項讀取範圍。iPhone Duo 真機效果仍待驗證。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

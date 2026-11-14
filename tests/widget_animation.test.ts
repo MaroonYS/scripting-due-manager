@@ -5,15 +5,15 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
-import { dateKeyToLocalDate, dueStatus } from "../到期管家/src/date.ts"
+import { dateKeyToLocalDate, dueStatus, localDateKey } from "../到期管家/src/date.ts"
 import { dueIconLabel, normalizeIconOverride } from "../到期管家/src/icons.ts"
 import * as localization from "../到期管家/src/widget_localization.ts"
 import * as layout from "../到期管家/src/widget_layout.ts"
 import type { DisplayDueItem } from "../到期管家/src/types.ts"
 
 type Node = { type: string; props: Record<string, any>; children: any[] }
-type Family = "systemSmall" | "systemMedium" | "systemLarge"
-const families: Family[] = ["systemSmall", "systemMedium", "systemLarge"]
+type Family = layout.HomeWidgetFamily
+const families: Family[] = ["systemSmall", "systemMedium", "systemLarge", "systemExtraLargePortrait"]
 const read = (path: string) => readFileSync(new URL(`../到期管家/${path}`, import.meta.url), "utf8")
 const transpile = (source: string) => new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } })
   .transformSync(source.replace(/^import[\s\S]*?from\s+"[^"]+"\s*\n/gm, "").replace(/^export /gm, ""))
@@ -60,7 +60,7 @@ function harness(globals: Record<string, unknown> = { Animation, Transition }) {
   const bindings = {
     h, ...localization, ...layout, ...symbols, ...globals,
     currentWidgetLocale: () => locale,
-    dueStatus, dueIconLabel, Widget,
+    dueStatus, localDateKey, dueIconLabel, Widget,
     Button: "Button", Divider: "Divider", HStack: "HStack", Image: "Image", Link: "Link", Spacer: "Spacer", Text: "Text", VStack: "VStack",
     Script: { name: "到期管家", createRunURLScheme: (_name: string, params?: Record<string, string>) => "scripting://run/manager?" + new URLSearchParams(params).toString() },
     CompleteDueItemIntent: (params: unknown) => ({ name: "CompleteDueItem", params }),
@@ -68,9 +68,11 @@ function harness(globals: Record<string, unknown> = { Animation, Transition }) {
   }
   const render = new Function(...Object.keys(bindings), `${transpile(read("src/widget_view.tsx"))}\nreturn DueManagerWidget`)(...Object.values(bindings))
   return {
-    render(family: Family, items: DisplayDueItem[], generation = 0, extra: Record<string, unknown> = {}, height = 376): Node {
+    render(family: Family, items: DisplayDueItem[], generation = 0, extra: Record<string, unknown> = {},
+      height = family === "systemExtraLargePortrait" ? 628 : 376,
+      width = family === "systemSmall" ? 170 : family === "systemExtraLargePortrait" ? 300 : 364): Node {
       Widget.family = family
-      Widget.displaySize = { width: family === "systemSmall" ? 170 : 364, height }
+      Widget.displaySize = { width, height }
       return render({ items, completionGeneration: generation, reminderFetchedAt: null, remindersLive: true, remindersFromCache: false,
         remindersEnabled: true, reminderError: null, interactionError: null, ...extra })
     },
@@ -121,7 +123,7 @@ test("small widget replaces exact native occurrence roots while leaving only the
 
 test("medium and large surviving rows retain occurrence identity instead of replacing the whole generation layer", () => {
   const env = harness(), a = item("a"), b = item("b"), c = item("c")
-  for (const family of ["systemMedium", "systemLarge"] as Family[]) {
+  for (const family of families.filter(value => value !== "systemSmall")) {
     const before = env.render(family, [a, b], 20), after = env.render(family, [b, c], 21)
     assert.equal(row(before, b).props.key, row(after, b).props.key)
     assert.deepEqual(buttons(before).find(node => node.props.key === identity(b))!.props.intent,
@@ -189,7 +191,81 @@ test("large disappearing sections have native transitions and stable semantic ke
   env.locale("en-US")
   const english = env.render("systemLarge", [action, next], 1)
   assert.ok(named(english, "large-section-action")[0]); assert.ok(named(english, "large-section-upcoming")[0])
-  assert.equal(named(env.render("systemLarge", [next], 1, {}, 320), "large-section-recent").length, 1)
+  assert.equal(named(env.render("systemLarge", [next], 1, {}, 320), "large-section-upcoming").length, 1)
+  assert.equal(named(env.render("systemLarge", [action, next], 1, {}, 196), "large-section-recent").length, 1)
+})
+
+function titleNode(root: Node, item: DisplayDueItem) {
+  return nodes(row(root, item)).find(node => node.type === "Text" && node.children.includes(item.title))!
+}
+
+test("compact small renders disjoint height-budgeted title, detail and day-only preview with exact independent links", () => {
+  const env = harness(), locale = "en-GB"
+  env.locale(locale)
+  const current = item("current", { source: "reminder", title: "Train arrival 到站", note: "Trip list", includesTime: true })
+  const previewDate = new Date(new Date().getFullYear(), 9, 6, 13, 25)
+  const preview = item("following", { source: "reminder", title: "Next itinerary", includesTime: true,
+    dueDate: localDateKey(previewDate), dueTimestamp: previewDate.getTime() })
+  const tree = env.render("systemSmall", [current, preview], 4, {}, 141, 141)
+  const plan = layout.smallWidgetLayout(141, 141, { hasDetail: true, hasNext: true })
+  const occurrence = row(tree, current)
+  const [headline, detail, next] = occurrence.children
+  assert.equal(headline.props.frame.height, plan.titleHeight)
+  assert.equal(detail.children[0].props.frame.height, plan.detailHeight)
+  assert.equal(next.children[0].children[0].props.frame.height, plan.previewHeight)
+  assert.equal(occurrence.props.spacing, plan.gap)
+  assert.ok(occurrence.props.spacing > 0)
+  assert.match(texts(detail), /Trip list/)
+  assert.ok(texts(detail).includes(localization.formatWidgetItemTime(current, locale)))
+  assert.ok(texts(next).includes(localization.formatWidgetDate(preview.dueDate, locale)))
+  assert.ok(!texts(next).includes(localization.formatWidgetItemTime(preview, locale)))
+  assert.deepEqual(Object.fromEntries(new URL(next.children[0].props.url).searchParams), { action: "reminder-notes", id: preview.id })
+  assertCurrentControls(tree, [current])
+  assert.equal(buttons(tree)[0].props.frame.width, 40)
+  const negativeEdges = nodes(tree).flatMap(node => Object.values(node.props.padding ?? {}))
+    .filter(padding => typeof padding === "number" && padding < 0)
+  assert.deepEqual(negativeEdges, [])
+})
+
+test("long small title takes a third line first and keeps the current detail and completion target", () => {
+  const env = harness(), a = item("long", { title: "换乘行程：" + "西安北站到站下车并从东广场出站".repeat(3), note: "Retain my detail" })
+  const b = item("preview", { title: "Optional preview" })
+  const tree = env.render("systemSmall", [a, b], 5, {}, 141, 141)
+  assert.equal(titleNode(tree, a).props.lineLimit, 3)
+  assert.match(texts(tree), /Retain my detail/)
+  assert.doesNotMatch(texts(tree), /Optional preview/)
+  assertCurrentControls(tree, [a])
+  assert.equal(buttons(tree)[0].props.frame.width, 40)
+})
+
+test("agenda keeps a wide title and reflows date and real time below it when the rail is too narrow", () => {
+  const env = harness(); env.locale("en-GB")
+  const a = item("mix", { title: "Venture One AutoPay — 出站换乘", note: "Optional metadata", includesTime: true })
+  for (const family of ["systemMedium", "systemLarge", "systemExtraLargePortrait"] as const) {
+    const height = family === "systemMedium" ? 162 : 360
+    const compact = env.render(family, [a], 1, {}, height, 154)
+    assert.equal(titleNode(compact, a).props.fixedSize, undefined)
+    const date = localization.formatWidgetDate(a.dueDate, "en-GB")
+    const time = localization.formatWidgetItemTime(a, "en-GB")
+    assert.ok(texts(row(compact, a)).includes([date, time].join(" · ")))
+    assert.doesNotMatch(texts(row(compact, a)), /Optional metadata/)
+    const wide = env.render(family, [a], 1, {}, height, 396)
+    const geometry = layout.agendaWidgetLayout(family, 396, height, { itemCount: 1 })
+    assert.ok(nodes(row(wide, a)).some(node => node.props.frame?.width === geometry.metadataWidth))
+    assert.ok(geometry.titleWidth > geometry.metadataWidth)
+    assertCurrentControls(compact, [a]); assertCurrentControls(wide, [a])
+  }
+})
+
+test("portrait extra large stays in the agenda instead of falling back to a noninteractive accessory count", () => {
+  const env = harness(), items = Array.from({ length: 12 }, (_, i) => item(`portrait-${i}`))
+  const tree = env.render("systemExtraLargePortrait", items, 8, { reminderError: "offline", remindersLive: false }, 628, 300)
+  const plan = layout.agendaWidgetLayout("systemExtraLargePortrait", 300, 628, { itemCount: items.length, hasIssue: true })
+  assert.ok(plan.capacity > 5)
+  assert.equal(named(tree, "large-item-queue").length, 1)
+  assertCurrentControls(tree, items.slice(0, plan.capacity))
+  assert.ok(nodes(tree).some(node => node.props.frame?.height === plan.issueHeight))
+  assert.match(texts(tree), /点按重试/)
 })
 
 test("empty error states retain fade identity without recreating completed item controls", () => {
@@ -199,6 +275,16 @@ test("empty error states retain fade identity without recreating completed item 
     const empty = named(root, "queue-empty-state")[0]
     assert.equal(empty.type, "Link"); assert.deepEqual(empty.props.transition, expectedTransition)
     assert.match(texts(root), /暂时无法读取/)
+    assertCurrentControls(root, [])
+  }
+})
+
+test("an empty agenda still opens the exact last-action status route when completion reported a warning", () => {
+  const env = harness()
+  for (const family of families) {
+    const root = env.render(family, [], 8, { interactionError: "action warning" })
+    const [warning] = named(root, "queue-empty-state")
+    assert.equal(new URL(warning.props.url).searchParams.get("action"), "widget-status")
     assertCurrentControls(root, [])
   }
 })

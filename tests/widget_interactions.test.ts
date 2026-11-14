@@ -172,7 +172,7 @@ test("widget controls use occurrence identity rather than slot position and give
   assert.doesNotMatch(source, /queue-slot-/)
   const completion = source.slice(source.indexOf("function ListCompletionIcon"), source.indexOf("function ListCompletionSymbol"))
   assert.match(completion, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
-  assert.match(completion, /<DueSymbolLabel\s+title=\{widgetCompletionLabel\(item, widgetRuntimeLocale\(\)\)\}[\s\S]*?size=\{symbolSize\}\s+slotSize=\{hitSize\}/)
+  assert.match(completion, /<DueSymbolLabel\s+title=\{widgetCompletionLabel\(item, widgetRuntimeLocale\(\)\)\}[\s\S]*?size=\{size\}\s+slotSize=\{hitSize\}/)
   const symbolSource = read("src/due_symbol.tsx")
   const semanticLabel = symbolSource.slice(symbolSource.indexOf("export function DueSymbolLabel"))
   assert.match(semanticLabel, /<Label[\s\S]*?frame=\{\{ width: geometry\.slotSize, height: geometry\.slotSize, alignment: "center" \}\}\s+contentShape="rect"/)

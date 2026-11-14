@@ -2,97 +2,201 @@
 // SPDX-License-Identifier: LicenseRef-Due-Manager-Personal-Use-1.0
 // See LICENSE and NOTICE.md. All rights reserved, subject to their exceptions.
 
-export type HomeWidgetFamily = "systemSmall" | "systemMedium" | "systemLarge"
+export type HomeWidgetFamily = "systemSmall" | "systemMedium" | "systemLarge" | "systemExtraLargePortrait"
 
-const LIST_VERTICAL_PADDING = 22
-const SMALL_WIDGET_FALLBACK_WIDTH = 170
-const LIST_WIDGET_FALLBACK_WIDTH = 364
 const TITLE_WRAP_TOLERANCE = 2
 const TITLE_WIDTH_SAFETY_FACTOR = 1.015
 
 type ListWidgetFamily = Exclude<HomeWidgetFamily, "systemSmall">
 
-export type LargeWidgetLayout = {
-  summaryHeight: number
+export type SmallWidgetLayout = {
+  padding: number
+  contentWidth: number
+  contentHeight: number
+  headerHeight: number
+  titleHeight: number
+  titleLines: 1 | 2 | 3
+  detailHeight: number
+  previewHeight: number
+  gap: number
+  hitSize: number
+}
+
+export type AgendaWidgetLayout = {
+  padding: number
+  contentWidth: number
+  contentHeight: number
+  headerHeight: number
+  rowHeight: number
+  capacity: number
   sectionHeaderHeight: number
-  maximumSections: 1 | 2
-  maximumRows: 3 | 4 | 5
+  sectionGap: number
+  sectionCount: 0 | 1 | 2
+  rowGap: number
+  queueGap: number
+  issueHeight: number
+  hitSize: number
+  metadataWidth: number
+  titleWidth: number
+  metadataGap: number
 }
 
-/** Mirrors the denser and roomier large-widget heights used across iPhones. */
-export function largeWidgetLayout(displayHeight?: number): LargeWidgetLayout {
-  if (typeof displayHeight !== "number" || !Number.isFinite(displayHeight)) {
-    return { summaryHeight: 74, sectionHeaderHeight: 32, maximumSections: 2, maximumRows: 5 }
-  }
-  if (displayHeight >= 350) {
-    return { summaryHeight: 74, sectionHeaderHeight: 32, maximumSections: 2, maximumRows: 5 }
-  }
-  if (displayHeight >= 310) {
-    return { summaryHeight: 70, sectionHeaderHeight: 28, maximumSections: 1, maximumRows: 5 }
-  }
-  if (displayHeight >= 272) {
-    return { summaryHeight: 70, sectionHeaderHeight: 28, maximumSections: 1, maximumRows: 4 }
-  }
-  return { summaryHeight: 66, sectionHeaderHeight: 24, maximumSections: 1, maximumRows: 3 }
+type AgendaLayoutOptions = {
+  itemCount?: number
+  actionCount?: number
+  actionFlags?: readonly boolean[]
+  hasIssue?: boolean
 }
 
-/** Selects 16/15/14 pt for the small widget's one-, two-, or three-line title. */
-export function smallItemTitleFontSize(title: string, displayWidth?: number): number {
-  const baseFontSize = 16
-  const compactFontSize = 15
-  const extraCompactFontSize = 14
-  const explicitLineCount = Math.min(3, title.split(/[\r\n\u2028\u2029]/).length)
-  const widgetWidth = typeof displayWidth === "number"
-    && Number.isFinite(displayWidth)
-    && displayWidth > 0
-    ? displayWidth
-    : SMALL_WIDGET_FALLBACK_WIDTH
-  // WidgetFrame (22) + content inset (6) + the unchanged 40 pt hit area.
-  const availableWidth = Math.min(105, Math.max(72, widgetWidth - 68))
-  const baseWidth = estimatedTitleWidth(title, baseFontSize)
-
-  if (explicitLineCount === 1 && baseWidth <= availableWidth + TITLE_WRAP_TOLERANCE) {
-    return baseFontSize
-  }
-
-  const compactWidth = estimatedTitleWidth(title, compactFontSize)
-  return explicitLineCount <= 2 && compactWidth <= availableWidth * 1.9
-    ? compactFontSize
-    : extraCompactFontSize
+type SmallLayoutOptions = {
+  hasDetail?: boolean
+  hasNext?: boolean
+  preferThreeLines?: boolean
 }
 
-/**
- * Uses the actual widget width and a lightweight glyph-width estimate to make
- * titles that need a second line one point smaller. Text still owns wrapping;
- * this only selects the more balanced typography before the view is rendered.
- */
-export function listItemTitleFontSize(
-  title: string,
+function widgetDimension(value: number | undefined, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback
+}
+
+function contentBox(width: number, height: number, preferredPadding: number) {
+  // Basing the inset on the smaller axis prevents a narrow or short host
+  // proposal from spending most of its usable room on a desktop-sized inset.
+  const padding = Math.min(preferredPadding, Math.min(width, height) * 0.085)
+  return { padding, contentWidth: width - 2 * padding, contentHeight: height - 2 * padding }
+}
+
+export function smallWidgetLayout(
+  displayWidth?: number,
+  displayHeight?: number,
+  { hasDetail = false, hasNext = false, preferThreeLines = false }: SmallLayoutOptions = {},
+): SmallWidgetLayout {
+  // Older hosts may not supply one axis. Keep that fallback compact instead
+  // of planning for the roomiest standard small widget.
+  const box = contentBox(widgetDimension(displayWidth, 148), widgetDimension(displayHeight, 148), 11)
+  const { contentWidth, contentHeight } = box
+  const gap = 4
+  const hitSize = Math.min(40, contentWidth * 0.42, contentHeight)
+  // Two fixed-size title lines and the completion target share one band.
+  // Below its ordinary height the renderer gets a one-line title budget.
+  let titleHeight = Math.min(contentHeight, 42)
+  let room = contentHeight - titleHeight
+  const headerHeight = room >= 24 + gap ? 24 : room >= 18 + gap ? 18 : 0
+  if (headerHeight > 0) room -= headerHeight + gap
+  // When even a compact header cannot fit, stop at the primary title. This
+  // avoids briefly showing a detail line only to lose it on a taller proposal
+  // where the higher-priority header becomes available.
+  const detailHeight = hasDetail && headerHeight > 0 && room >= 17 + gap ? 17 : 0
+  if (detailHeight > 0) room -= detailHeight + gap
+  // An unusually long title may use the spare line before a preview is
+  // admitted, but never at the expense of requested current-item detail.
+  if (preferThreeLines && (!hasDetail || detailHeight > 0) && room >= 16) {
+    titleHeight += 16
+    room -= 16
+  }
+  const previewHeight = hasNext && (!hasDetail || detailHeight > 0) && room >= 19 + gap ? 19 : 0
+  if (previewHeight > 0) room -= previewHeight + gap
+
+  if (titleHeight === 42 && contentHeight >= 150 && room >= 16) titleHeight += 16
+  return {
+    ...box, gap, hitSize, headerHeight, titleHeight, detailHeight, previewHeight,
+    titleLines: titleHeight >= 58 ? 3 : titleHeight >= 38 ? 2 : 1,
+  }
+}
+
+export function agendaWidgetLayout(
   family: ListWidgetFamily,
   displayWidth?: number,
-): number {
-  const baseFontSize = family === "systemLarge" ? 15 : 14
-  const compactFontSize = baseFontSize - 1
-  const extraCompactFontSize = baseFontSize - 2
-  const hasExplicitLineBreak = /[\r\n\u2028\u2029]/.test(title)
-  const widgetWidth = typeof displayWidth === "number"
-    && Number.isFinite(displayWidth)
-    && displayWidth > 0
-    ? displayWidth
-    : LIST_WIDGET_FALLBACK_WIDTH
-  // WidgetFrame (22) + list inset (6) + hit area + title/metadata gap + metadata.
-  const reservedWidth = family === "systemLarge" ? 200 : 190
-  const availableWidth = Math.max(72, widgetWidth - reservedWidth)
-  const baseWidth = estimatedTitleWidth(title, baseFontSize)
+  displayHeight?: number,
+  options: AgendaLayoutOptions = {},
+): AgendaWidgetLayout {
+  const medium = family === "systemMedium"
+  const portrait = family === "systemExtraLargePortrait"
+  const box = contentBox(
+    widgetDimension(displayWidth, portrait ? 300 : 320),
+    widgetDimension(displayHeight, medium ? 153 : portrait ? 628 : 330),
+    medium ? 11 : 12,
+  )
+  const { contentWidth, contentHeight } = box
+  const maximumRows = medium ? 3 : portrait ? 9 : 5
+  const { itemCount } = options
+  const requestedRows = typeof itemCount === "number" && Number.isFinite(itemCount)
+    ? Math.max(0, Math.min(maximumRows, Math.trunc(itemCount))) : maximumRows
+  const preferredHeader = medium ? 26 : portrait ? 62 : 58
+  const minimumRowHeight = medium ? 36 : 40
+  const maximumRowHeight = medium ? 44 : portrait ? 52 : 50
+  const rowGap = medium ? 1 : 2
+  let headerHeight = Math.min(preferredHeader, contentHeight)
+  let sectionHeaderHeight = medium ? 0 : 19
+  let sectionGap = medium ? 0 : 6
+  let queueGap = requestedRows > 0 ? 4 : 0
+  let issueHeight = requestedRows > 0 && options.hasIssue ? 18 : 0
+  let capacity = 0
+  let rowHeight = 0
+  let sectionCount: 0 | 1 | 2 = 0
 
-  if (!hasExplicitLineBreak && baseWidth <= availableWidth + TITLE_WRAP_TOLERANCE) {
-    return baseFontSize
+  // Try more rows before more headings. The exact prefix must fit; older
+  // cached rows can put an action item after a current upcoming item.
+  fit: for (let count = requestedRows; count > 0; count--) {
+    const groups: (0 | 1 | 2)[] = medium ? [0] : agendaHasMixedSections(options, count) ? [2, 1] : [1]
+    for (const sections of groups) {
+      const gaps = Math.max(0, count - Math.max(1, sections)) * rowGap
+      const headers = sections * sectionHeaderHeight + (sections === 2 ? sectionGap : 0)
+      const space = contentHeight - headerHeight - queueGap - issueHeight - gaps - headers
+      if (space < count * minimumRowHeight) continue
+      capacity = count
+      sectionCount = sections
+      rowHeight = Math.min(maximumRowHeight, Math.floor(space / count))
+      break fit
+    }
   }
 
-  const compactTwoLineWidth = estimatedTitleWidth(title, compactFontSize)
-  return compactTwoLineWidth > availableWidth * 1.9
-    ? extraCompactFontSize
-    : compactFontSize
+  if (requestedRows === 0) {
+    // Let the empty/error view use the rest; there is no queue or footer.
+    const availableForHeader = contentHeight - 48
+    headerHeight = availableForHeader >= 18 ? Math.min(preferredHeader, availableForHeader) : 0
+  } else if (capacity === 0) {
+    // A genuinely short proposal still gets its most important item. Optional
+    // chrome may disappear, never occupying space assigned to that row.
+    capacity = 1
+    sectionCount = medium ? 0 : 1
+    sectionHeaderHeight = 0
+    sectionGap = 0
+    const availableAsideFromRow = contentHeight - Math.min(36, contentHeight)
+    issueHeight = Math.min(issueHeight, availableAsideFromRow) >= 18 ? 18 : 0
+    const availableForHeader = availableAsideFromRow - issueHeight - 4
+    headerHeight = availableForHeader >= 18 ? Math.min(preferredHeader, availableForHeader) : 0
+    queueGap = headerHeight > 0 ? 4 : 0
+    rowHeight = Math.min(maximumRowHeight, contentHeight - headerHeight - queueGap - issueHeight)
+  }
+
+  const hitSize = Math.min(medium ? 38 : 40, rowHeight, contentWidth * 0.42)
+  // The right column is always subordinate. With too little room for two
+  // useful columns, the renderer can present metadata within the title area.
+  const metadataWidth = contentWidth >= 164 ? Math.min(medium ? 104 : 112, Math.floor(contentWidth * 0.28)) : 0
+  const metadataGap = metadataWidth > 0 ? 8 : 0
+  const titleWidth = contentWidth - hitSize - metadataWidth - metadataGap
+  return {
+    ...box, headerHeight, rowHeight, capacity, sectionHeaderHeight, sectionGap,
+    sectionCount, rowGap, queueGap, issueHeight, hitSize, metadataWidth, titleWidth, metadataGap,
+  }
+}
+
+function agendaHasMixedSections({ actionFlags, actionCount = 0 }: AgendaLayoutOptions, count: number): boolean {
+  if (actionFlags == null) return actionCount > 0 && actionCount < count
+  let hasAction = false
+  let hasUpcoming = false
+  for (let index = 0; index < count; index++) {
+    if (actionFlags[index]) hasAction = true
+    else hasUpcoming = true
+    if (hasAction && hasUpcoming) return true
+  }
+  return false
+}
+
+export function widgetTitleFitsOneLine(title: string, width: number, fontSize: number): boolean {
+  return Number.isFinite(width) && width > 0 && Number.isFinite(fontSize) && fontSize > 0
+    && !/[\r\n\u2028\u2029]/.test(title)
+    && estimatedTitleWidth(title, fontSize) <= width + TITLE_WRAP_TOLERANCE
 }
 
 function estimatedTitleWidth(title: string, fontSize: number): number {
@@ -151,88 +255,4 @@ function isZeroWidthTitleCharacter(codePoint: number): boolean {
     || codePoint === 0xfe0f
     || (codePoint >= 0x1f3fb && codePoint <= 0x1f3ff)
     || (codePoint >= 0xe0100 && codePoint <= 0xe01ef)
-}
-
-function listMetrics(
-  family: ListWidgetFamily,
-  displayHeight?: number,
-) {
-  if (family === "systemMedium") {
-    return { headerAndTopGap: 23, minimumRows: 2, maximumRows: 3, minimumRowHeight: 35 }
-  }
-  const layout = largeWidgetLayout(displayHeight)
-  return {
-    headerAndTopGap: layout.summaryHeight
-      + layout.sectionHeaderHeight * layout.maximumSections,
-    minimumRows: 3,
-    maximumRows: layout.maximumRows,
-    minimumRowHeight: 38,
-  }
-}
-
-/**
- * Keeps rows readable on compact devices while filling taller widget variants.
- * The fallbacks match the common iPhone Home Screen sizes.
- */
-export function widgetItemCapacity(
-  family: HomeWidgetFamily,
-  displayHeight?: number,
-): number {
-  if (family === "systemSmall") return 1
-  if (typeof displayHeight !== "number" || !Number.isFinite(displayHeight)) {
-    return family === "systemMedium" ? 3 : 5
-  }
-
-  const metrics = listMetrics(family, displayHeight)
-  for (let capacity = metrics.maximumRows; capacity >= metrics.minimumRows; capacity -= 1) {
-    const rowGaps = family === "systemMedium" ? Math.max(0, capacity - 1) : 0
-    const requiredHeight = LIST_VERTICAL_PADDING
-      + metrics.headerAndTopGap
-      + capacity * metrics.minimumRowHeight
-      + rowGaps
-    if (displayHeight >= requiredHeight) return capacity
-  }
-  return metrics.minimumRows
-}
-
-/** Uses the actual WidgetKit height so every supported iPhone size fills cleanly. */
-export function widgetRowHeight(
-  family: ListWidgetFamily,
-  displayHeight: number | undefined,
-  capacity: number,
-  largeSectionCount?: number,
-): number {
-  if (typeof displayHeight !== "number" || !Number.isFinite(displayHeight) || capacity <= 0) {
-    if (family === "systemMedium") return 38
-    return largeSectionCount === 1 ? 50 : 44
-  }
-  if (family === "systemMedium") {
-    const metrics = listMetrics(family, displayHeight)
-    const rowGaps = Math.max(0, capacity - 1)
-    const available = displayHeight
-      - LIST_VERTICAL_PADDING
-      - metrics.headerAndTopGap
-      - rowGaps
-    return clamp(Math.floor(available / capacity), metrics.minimumRowHeight, 42)
-  }
-
-  const layout = largeWidgetLayout(displayHeight)
-  const sectionCount = clamp(
-    Math.trunc(largeSectionCount ?? layout.maximumSections),
-    1,
-    layout.maximumSections,
-  )
-  const available = displayHeight
-    - LIST_VERTICAL_PADDING
-    - layout.summaryHeight
-    - layout.sectionHeaderHeight * sectionCount
-  return clamp(Math.floor(available / capacity), 38, 50)
-}
-
-export function visibleWidgetItems<T>(items: readonly T[], capacity: number): T[] {
-  return items.slice(0, Math.max(0, Math.trunc(capacity)))
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.min(maximum, Math.max(minimum, value))
 }

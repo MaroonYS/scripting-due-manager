@@ -7,6 +7,9 @@ import { readFileSync } from "node:fs"
 import test from "node:test"
 import { readReminderNotes } from "../到期管家/src/reminder_notes.ts"
 import { openReminderFromWidget } from "../到期管家/src/reminder_navigation.ts"
+import { localDateKey } from "../到期管家/src/date.ts"
+import { dueIconLabel } from "../到期管家/src/icons.ts"
+import { formatWidgetDate, formatWidgetWeekday, widgetItemDateKey, widgetText } from "../到期管家/src/widget_localization.ts"
 
 const UUID = "8ec3f3ed-7ba0-44e1-88ba-b9c9e4022a9d"
 const read = (file: string) => readFileSync(new URL(`../到期管家/${file}`, import.meta.url), "utf8")
@@ -184,18 +187,41 @@ test("external navigation is explicit, double-tap gated and never replaces notes
   } finally { env.unmount() }
 })
 
-test("compact theme hits resolve exactly to current notes; other row links retain their own IDs", () => {
+test("compact and roomy calendar headers open exact notes, with the issue link kept separate", () => {
   const source = read("src/widget_view.tsx")
-  const start = source.indexOf("function WidgetHeader("), end = source.indexOf("function LargeSummaryHeader(")
-  const header = source.slice(start, end)
-  const bindings = { h, Link: "Link", HStack: "HStack", Text: "Text", Image: "Image", Spacer: "Spacer",
+  const functionSource = (name: string) => {
+    const start = source.indexOf(`function ${name}(`)
+    assert.ok(start >= 0, name)
+    const rest = source.slice(start)
+    const next = rest.search(/\n(?:export )?function /)
+    return next < 0 ? rest : rest.slice(0, next)
+  }
+  const bindings = { h, Link: "Link", HStack: "HStack", VStack: "VStack", Text: "Text", Image: "Image",
     Script: { name: "到期管家", createRunURLScheme: (_: string, parameters: any) => "scripting://run/manager?" + new URLSearchParams(parameters).toString() },
-    itemURL: (item: any) => "notes:" + item.id, widgetText: () => "", widgetRuntimeLocale: () => "zh-CN", formatWidgetDate: () => "9月12日" }
-  const render = new Function(...Object.keys(bindings), transpile(header) + "\nreturn WidgetHeader")(...Object.values(bindings))
-  const view = render({ items: [{ id: "exact-current" }, { id: "next" }], compact: true, issue: null, compactTitle: "银行" })
-  assert.equal(view.props.url, "notes:exact-current")
-  assert.equal(view.children[0].props.contentShape, "rect")
-  assert.equal(view.children[0].props.frame.minHeight, 24)
+    widgetText, widgetItemDateKey, formatWidgetDate, formatWidgetWeekday, localDateKey, dueIconLabel,
+    widgetRuntimeLanguage: () => "zh-Hans" }
+  const compiled = transpile(["WidgetHeader", "AgendaHeader", "itemURL"].map(functionSource).join("\n"))
+  const { WidgetHeader, AgendaHeader } = new Function(...Object.keys(bindings), `${compiled}\nreturn { WidgetHeader, AgendaHeader }`)(...Object.values(bindings))
+  const item = { id: "current&exact=提醒", source: "reminder", iconName: "creditcard.fill", dueDate: "2026-09-12", includesTime: false }
+  const locale = "zh-CN", now = new Date(2026, 8, 12, 12)
+  const expected = { action: "reminder-notes", id: item.id }
+  const issue = { url: "scripting://run/manager?action=widget-status", color: "systemRed" }
+  const compact = WidgetHeader({ item, issue, locale, now, height: 20 })
+  const links = nodes(compact).filter(node => node.type === "Link")
+  assert.equal(links.length, 2)
+  assert.deepEqual(Object.fromEntries(new URL(links[0].props.url).searchParams), expected)
+  assert.equal(links[0].children[0].props.contentShape, "rect")
+  assert.equal(links[1].props.url, issue.url)
+
+  for (const height of [36, 56]) {
+    const roomy = AgendaHeader({ item, roomy: true, locale, now, height })
+    assert.deepEqual(Object.fromEntries(new URL(roomy.props.url).searchParams), expected)
+    assert.equal(roomy.children[0].props.contentShape, "rect")
+  }
+  assert.equal(new URL(AgendaHeader({ item, roomy: false, locale, now, height: 22 }).props.url).search, "")
+  const empty = WidgetHeader({ item: undefined, issue: null, locale, now, height: 20 })
+  assert.equal(new URL(nodes(empty).find(node => node.type === "Link")!.props.url).search, "")
+
   const viewSource = read("src/reminder_notes_view.tsx")
   assert.doesNotMatch(viewSource, /Storage|loadState|reconcileNotifications|\.save\(|\.slice\(|lineLimit=/)
   assert.doesNotMatch(read("src/reminder_notes.ts"), /Storage\.|\.save\(|console\./)

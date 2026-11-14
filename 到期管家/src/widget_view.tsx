@@ -4,7 +4,6 @@
 
 import {
   Button,
-  Divider,
   HStack,
   Image,
   Link,
@@ -16,29 +15,28 @@ import {
 } from "scripting"
 import { CompleteDueItemIntent } from "../app_intents"
 import { DueSymbol, DueSymbolLabel } from "./due_symbol"
-import { dueStatus } from "./date"
+import { dueStatus, localDateKey } from "./date"
 import { dueIconLabel } from "./icons"
 import type { DisplayDueItem } from "./types"
 import {
   currentWidgetLocale,
   formatWidgetDate,
-  formatWidgetItemDate,
   formatWidgetItemTime,
   formatWidgetLastSync,
-  formatWidgetMonth,
+  formatWidgetWeekday,
   localizeWidgetActionError,
   widgetCompletionLabel,
-  widgetKindLabel,
+  widgetItemDateKey,
   widgetLanguage,
   widgetText,
 } from "./widget_localization"
 import {
-  largeWidgetLayout,
-  listItemTitleFontSize,
-  smallItemTitleFontSize,
-  visibleWidgetItems,
-  widgetItemCapacity,
-  widgetRowHeight,
+  agendaWidgetLayout,
+  smallWidgetLayout,
+  widgetTitleFitsOneLine,
+  type AgendaWidgetLayout,
+  type HomeWidgetFamily,
+  type SmallWidgetLayout,
 } from "./widget_layout"
 
 type WidgetDataProps = {
@@ -95,702 +93,310 @@ export function DueManagerWidget(props: WidgetDataProps) {
   const displaySize = Widget.displaySize
   const displayHeight = displaySize?.height
   const displayWidth = displaySize?.width
-  if (Widget.family === "systemSmall") {
-    return <SmallWidget {...props} displayWidth={displayWidth} />
+  const family = Widget.family
+  if (family === "systemSmall") {
+    return <SmallWidget {...props} displayWidth={displayWidth} displayHeight={displayHeight} />
   }
-  if (Widget.family === "systemMedium") {
-    return <ListWidget
-      {...props}
-      limit={widgetItemCapacity("systemMedium", displayHeight)}
-      family="systemMedium"
-      displayHeight={displayHeight}
-      displayWidth={displayWidth}
-    />
-  }
-  if (Widget.family === "systemLarge") {
-    return <ListWidget
-      {...props}
-      limit={widgetItemCapacity("systemLarge", displayHeight)}
-      family="systemLarge"
-      displayHeight={displayHeight}
-      displayWidth={displayWidth}
-    />
+  if (family === "systemMedium" || family === "systemLarge" || family === "systemExtraLargePortrait") {
+    return <AgendaWidget {...props} family={family} displayWidth={displayWidth} displayHeight={displayHeight} />
   }
   return <AccessoryFallback items={props.items} />
 }
 
 function WidgetHeader({
-  items,
-  compact = false,
-  issue,
-  compactTitle,
-}: {
-  items: DisplayDueItem[]
-  compact?: boolean
-  issue: WidgetIssue | null
-  compactTitle?: string
-}) {
-  const url = compact && items[0]
-    ? itemURL(items[0])
-    : Script.createRunURLScheme(Script.name)
-  return <Link url={url}>
-    <HStack
-      alignment="center"
-      spacing={5}
-      padding={{
-        top: compact ? 8 : 4,
-        bottom: compact ? -6 : -2,
-        leading: 5,
-        trailing: 5,
-      }}
-      frame={{ maxWidth: "infinity", minHeight: compact ? 24 : undefined }}
-      contentShape="rect"
-    >
-      {compact
-        ? null
-        : <Image
-          systemName="calendar.badge.clock"
-          font={14}
-          foregroundStyle="systemOrange"
-          symbolRenderingMode="hierarchical"
-          contentTransition="symbolEffectReplace"
-          widgetAccentable
-        />}
-      <Text
-        font={compact ? 13 : 15}
-        fontWeight="semibold"
-        foregroundStyle="label"
-        lineLimit={1}
-        minScaleFactor={compact ? 0.65 : 1}
-      >
-        {compact ? compactTitle ?? widgetText("due", widgetRuntimeLocale()) : widgetText("appName", widgetRuntimeLocale())}
-      </Text>
-      <Spacer />
-      {issue
-        ? <Image
-          systemName="exclamationmark.circle.fill"
-          font={11}
-          foregroundStyle={issue.color}
-        />
-        : null}
-      {compact
-        ? <Text
-          font="caption2"
-          foregroundStyle="secondaryLabel"
-          lineLimit={1}
-          minScaleFactor={0.65}
-          fixedSize={{ horizontal: true, vertical: false }}
-          monospacedDigit
-          contentTransition="numericTextCountsDown"
-        >
-          {items[0] ? formatWidgetDate(items[0].dueDate, widgetRuntimeLocale()) : items.length}
-        </Text>
-        : null}
-    </HStack>
-  </Link>
-}
-
-function LargeSummaryHeader({
   item,
   issue,
   height,
+  locale,
+  now,
 }: {
   item: DisplayDueItem | undefined
   issue: WidgetIssue | null
   height: number
+  locale: string
+  now: Date
 }) {
-  const date = largeSummaryDate(item, widgetRuntimeLocale())
-  const context = largeSummaryContext(item, widgetRuntimeLocale())
-  const subtitle = `${date.month} · ${context}`
   const url = item ? itemURL(item) : Script.createRunURLScheme(Script.name)
-  return <Link url={url}>
-    <VStack
-      alignment="leading"
-      spacing={0}
-      frame={{ maxWidth: "infinity", height, alignment: "topLeading" }}
-    >
+  return <HStack spacing={4} frame={{ maxWidth: "infinity", height }}>
+    <Link url={url}>
       <HStack
-        alignment="center"
-        spacing={8}
-        padding={{ leading: 5, trailing: 5 }}
-        frame={{ maxWidth: "infinity", height: 61 }}
+        spacing={4}
+        frame={{ maxWidth: "infinity", height, alignment: "leading" }}
+        contentShape="rect"
       >
-        <VStack
-          alignment="leading"
-          spacing={0}
-          frame={{ maxWidth: "infinity", alignment: "leading" }}
-        >
-          <Text
-            font={30}
-            fontWeight="bold"
-            foregroundStyle="label"
-            lineLimit={1}
-            monospacedDigit
-            contentTransition="numericTextCountsDown"
-          >
-            {date.day}
-          </Text>
-          <Text
-            font={14}
-            fontWeight="semibold"
-            foregroundStyle={item?.iconColor ?? "systemOrange"}
-            lineLimit={1}
-            minScaleFactor={0.68}
-          >
-            {subtitle}
-          </Text>
-        </VStack>
-        {issue
-          ? <Image
-            systemName="exclamationmark.circle.fill"
-            font={12}
-            foregroundStyle={issue.color}
-          />
-          : null}
-        <DueSymbol
-          name={item?.iconName ?? "calendar.badge.clock"}
-          color={item?.iconColor ?? "systemOrange"}
-          size={26}
-          slotSize={40}
-          replace
-          widget
-        />
+        <Text font={12} fontWeight="semibold" foregroundStyle="label" lineLimit={1} minScaleFactor={0.8}
+          frame={{ maxWidth: "infinity", alignment: "leading" }}>
+          {item ? dueIconLabel(item.iconName, widgetRuntimeLanguage()) : widgetText("due", locale)}
+        </Text>
+        {item ? <Text font={11} fontWeight="semibold" foregroundStyle="secondaryLabel" lineLimit={1}
+          layoutPriority={1} minScaleFactor={0.8} monospacedDigit contentTransition="opacity">
+          {formatWidgetDate(widgetItemDateKey(item), locale, { now })}
+        </Text> : null}
       </HStack>
-      <Spacer minLength={0} />
-      <Divider padding={{ leading: 5, trailing: 5 }} />
-    </VStack>
-  </Link>
+    </Link>
+    {issue ? <Link url={issue.url}>
+      <Image systemName="exclamationmark.circle.fill" font={11} foregroundStyle={issue.color}
+        frame={{ width: 18, height }} />
+    </Link> : null}
+  </HStack>
 }
 
-function largeSummaryDate(
-  item: DisplayDueItem | undefined,
-  locale: string,
-): { day: string; month: string } {
-  const match = item?.dueDate.match(/^\d{4}-(\d{2})-(\d{2})$/)
-  if (match) {
-    return {
-      day: String(Number(match[2])),
-      month: formatWidgetMonth(item!.dueDate, locale),
-    }
-  }
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-  return { day: String(now.getDate()), month: formatWidgetMonth(today, locale) }
-}
-
-function largeSummaryContext(item: DisplayDueItem | undefined, locale: string): string {
-  if (!item) return widgetText("appName", locale)
-  if (item.source === "reminder") {
-    const listName = item.note.replace(/\s+/g, " ").trim()
-    return listName || widgetText("reminders", locale)
-  }
-  return widgetKindLabel(item.kind, locale)
-}
-
-function SmallWidget(props: WidgetDataProps & { displayWidth?: number }) {
-  const {
-    items,
-    completionGeneration,
-    displayWidth,
-  } = props
-  const item = items[0]
-  const nextItem = items[1]
+function SmallWidget(props: WidgetDataProps & { displayWidth?: number; displayHeight?: number }) {
+  const { items, completionGeneration, displayWidth, displayHeight } = props
+  const [item, nextItem] = items
   const issue = widgetIssue(props)
+  const detail = item ? listItemSupportingText(item) : ""
+  const options = {
+    hasDetail: !!item && (!!detail || item.includesTime || !!issue),
+    hasNext: !!nextItem,
+  }
+  const compactLayout = smallWidgetLayout(displayWidth, displayHeight, options)
+  const titleWidth = compactLayout.contentWidth - compactLayout.hitSize
+  const layout = item && compactLayout.titleLines === 2 && !widgetTitleFitsOneLine(item.title, titleWidth * 1.85, 15)
+    ? smallWidgetLayout(displayWidth, displayHeight, { ...options, preferThreeLines: true })
+    : compactLayout
+  const locale = widgetRuntimeLocale()
+  const now = new Date()
 
-  return <WidgetFrame contentPadding={11}>
-    <VStack
-      alignment="leading"
-      spacing={0}
-      padding={{ leading: 3, trailing: 3 }}
-      frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
-    >
-      <WidgetHeader
-        items={items}
-        compact
-        issue={issue}
-        compactTitle={item
-          ? dueIconLabel(item.iconName, widgetRuntimeLanguage())
-          : widgetText("due", widgetRuntimeLocale())}
-      />
-      <CompletionContent
-        generation={completionGeneration}
-      >
-        <SmallWidgetBody
-          item={item}
-          nextItem={nextItem}
-          issue={issue}
-          displayWidth={displayWidth}
-        />
+  return <WidgetFrame contentPadding={layout.padding}>
+    <VStack alignment="leading" spacing={layout.gap}
+      frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
+      {layout.headerHeight > 0 ? <WidgetHeader item={item} issue={issue} height={layout.headerHeight}
+        locale={locale} now={now} /> : null}
+      <CompletionContent generation={completionGeneration}>
+        {item && layout.titleHeight > 0 ? <SmallDueItem item={item} nextItem={nextItem} issue={issue}
+          detail={detail} layout={layout} locale={locale} now={now} />
+          : <WidgetEmptyContent compact issue={issue} />}
       </CompletionContent>
     </VStack>
   </WidgetFrame>
-}
-
-function SmallWidgetBody({
-  item,
-  nextItem,
-  issue,
-  displayWidth,
-}: {
-  item: DisplayDueItem | undefined
-  nextItem: DisplayDueItem | undefined
-  issue: WidgetIssue | null
-  displayWidth?: number
-}) {
-  return item
-    ? <SmallDueItem
-      item={item}
-      nextItem={nextItem}
-      displayWidth={displayWidth}
-      issue={issue}
-    />
-    : <WidgetEmptyContent compact issue={issue} />
 }
 
 function SmallDueItem({
   item,
   nextItem,
-  displayWidth,
   issue,
+  detail,
+  layout,
+  locale,
+  now,
 }: {
   item: DisplayDueItem
   nextItem: DisplayDueItem | undefined
-  displayWidth?: number
   issue: WidgetIssue | null
+  detail: string
+  layout: SmallWidgetLayout
+  locale: string
+  now: Date
 }) {
-  const detail = smallItemDetail(item)
-  const titleFontSize = smallItemTitleFontSize(item.title, displayWidth)
-
-  return <VStack
-    key={widgetItemIdentity(item)}
-    alignment="leading"
-    spacing={0}
-    contentTransition="opacity"
-    transition={QUEUE_SLOT_TRANSITION}
-    frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-  >
-    <VStack
-      alignment="leading"
-      spacing={0}
-      frame={{ maxWidth: "infinity", height: 76, alignment: "topLeading" }}
-    >
-      <HStack
-        alignment="top"
-        spacing={0}
-        padding={{ top: 15 }}
-        frame={{ maxWidth: "infinity", alignment: "leading" }}
-      >
-        <VStack
-          spacing={0}
-          padding={{ top: -5, bottom: 5 }}
-        >
-          <ListCompletionIcon
-            item={item}
-            hitSize={40}
-            symbolSize={17}
-          />
-        </VStack>
-        <Link url={itemURL(item)}>
-          <Text
-            font={titleFontSize}
-            fontWeight="semibold"
-            lineLimit={3}
-            minScaleFactor={0.9}
-            fixedSize={{ horizontal: false, vertical: true }}
-            padding={{ top: 6, bottom: -6 }}
-            frame={{ maxWidth: 105, alignment: "leading" }}
-          >
-            {item.title}
-          </Text>
-        </Link>
-      </HStack>
-    </VStack>
-    <Spacer minLength={4} />
-    {detail || item.includesTime || issue
-      ? <SmallCurrentDetail item={item} detail={detail} issue={issue} />
-      : <VStack frame={{ maxWidth: "infinity", height: 19, alignment: "leading" }} />}
-    <Spacer minLength={0} />
-    {nextItem
-      ? <SmallNextItemPreview item={nextItem} />
-      : <VStack frame={{ maxWidth: "infinity", height: 18, alignment: "leading" }} />}
+  const titleWidth = Math.max(0, layout.contentWidth - layout.hitSize)
+  const titleFont = widgetTitleFitsOneLine(item.title, titleWidth, 17) ? 17 : 15
+  const titleHeight = Math.max(1, Math.floor(layout.titleHeight / layout.titleLines) - 3)
+  return <VStack key={widgetItemIdentity(item)}
+    alignment="leading" spacing={layout.gap}
+    contentTransition="opacity" transition={QUEUE_SLOT_TRANSITION}
+    frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
+    <HStack alignment="center" spacing={0}
+      frame={{ maxWidth: "infinity", height: layout.titleHeight, alignment: "leading" }}>
+      <ListCompletionIcon item={item} hitSize={layout.hitSize} symbolSize={17} />
+      <Link url={itemURL(item)}>
+        <Text font={Math.min(titleFont, titleHeight)} fontWeight="semibold" lineLimit={layout.titleLines}
+          minScaleFactor={0.85} truncationMode="tail" multilineTextAlignment="leading"
+          frame={{ maxWidth: "infinity", height: layout.titleHeight, alignment: "leading" }} contentShape="rect">
+          {item.title}
+        </Text>
+      </Link>
+    </HStack>
+    {layout.detailHeight > 0 ? <SmallCurrentDetail item={item} detail={detail} issue={issue}
+      height={layout.detailHeight} locale={locale} /> : null}
+    {nextItem && layout.previewHeight > 0 ? <VStack spacing={0}
+      frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "bottomLeading" }}>
+      <SmallNextItemPreview item={nextItem}
+        width={layout.contentWidth} height={layout.previewHeight} locale={locale} now={now} />
+    </VStack> : null}
   </VStack>
 }
 
-function smallItemDetail(item: DisplayDueItem): string {
-  return [item.amount, item.note]
-    .map((value) => value.replace(/\s+/g, " ").trim())
-    .filter(Boolean)
-    .join(" · ")
-}
-
 function SmallCurrentDetail({
-  item,
-  detail,
-  issue,
+  item, detail, issue, height, locale,
 }: {
   item: DisplayDueItem
   detail: string
   issue: WidgetIssue | null
+  height: number
+  locale: string
 }) {
-  const time = formatWidgetItemTime(item, widgetRuntimeLocale())
-  const supportingText = issue?.compactText ?? detail
-  return <VStack
-    alignment="leading"
-    spacing={0}
-    frame={{ maxWidth: "infinity", height: 19, alignment: "leading" }}
-  >
-    <Link url={issue ? issue.url : itemURL(item)}>
-      <HStack
-        alignment="center"
-        spacing={time && supportingText ? 5 : 0}
-        padding={{ top: 4, leading: 5, trailing: 5 }}
-        frame={{ maxWidth: "infinity" }}
-      >
-        <Text
-          font={13}
-          foregroundStyle={issue?.color ?? "secondaryLabel"}
-          lineLimit={1}
-          minScaleFactor={0.85}
-          truncationMode="middle"
-          allowsTightening={true}
-          multilineTextAlignment="leading"
-          fixedSize={{ horizontal: false, vertical: true }}
-          frame={{ maxWidth: "infinity", alignment: "leading" }}
-        >
-          {supportingText}
-        </Text>
-        {time
-          ? <Text
-            font={12}
-            fontWeight="medium"
-            foregroundStyle="secondaryLabel"
-            lineLimit={1}
-            monospacedDigit
-            fixedSize={{ horizontal: true, vertical: false }}
-          >
-            {time}
-          </Text>
-          : null}
-      </HStack>
-    </Link>
-  </VStack>
+  const time = formatWidgetItemTime(item, locale)
+  const text = issue?.compactText ?? detail
+  return <Link url={issue ? issue.url : itemURL(item)}>
+    <HStack spacing={5} frame={{ maxWidth: "infinity", height, alignment: "leading" }} contentShape="rect">
+      {text ? <Text font={11} foregroundStyle={issue?.color ?? "secondaryLabel"} lineLimit={1}
+        minScaleFactor={0.85} truncationMode="middle" allowsTightening
+        frame={{ maxWidth: "infinity", alignment: "leading" }}>
+        {text}
+      </Text> : null}
+      {time ? <Text font={11} fontWeight="medium" foregroundStyle="secondaryLabel" lineLimit={1}
+        minScaleFactor={0.82} layoutPriority={1} monospacedDigit>{time}</Text> : null}
+    </HStack>
+  </Link>
 }
 
-function SmallNextItemPreview({ item }: { item: DisplayDueItem }) {
-  const status = dueStatus(item)
-  return <VStack
-    alignment="leading"
-    spacing={0}
-    frame={{ maxWidth: "infinity", height: 18, alignment: "leading" }}
-  >
-    <Link url={itemURL(item)}>
-      <HStack
-        alignment="center"
-        spacing={4}
-        padding={{ top: -5, leading: 5, trailing: 5, bottom: 9 }}
-        frame={{ maxWidth: "infinity" }}
-      >
-        <DueSymbol
-          name={item.iconName}
-          color={item.iconColor}
-          size={11}
-          slotSize={12}
-          widget
-        />
-        <Text
-          font="caption2"
-          fontWeight="medium"
-          foregroundStyle="secondaryLabel"
-          lineLimit={1}
-          minScaleFactor={0.75}
-          frame={{ maxWidth: "infinity", alignment: "leading" }}
-        >
-          {item.title}
-        </Text>
-        <Text
-          font="caption2"
-          foregroundStyle={status.overdue ? "systemRed" : "tertiaryLabel"}
-          lineLimit={1}
-          minScaleFactor={0.72}
-        >
-          {formatWidgetItemDate(item, widgetRuntimeLocale())}
-        </Text>
-      </HStack>
-    </Link>
-  </VStack>
+function SmallNextItemPreview({ item, width, height, locale, now }: {
+  item: DisplayDueItem
+  width: number
+  height: number
+  locale: string
+  now: Date
+}) {
+  const date = formatWidgetDate(widgetItemDateKey(item), locale, { now })
+  const showDate = widgetTitleFitsOneLine(date, width * 0.39, 10)
+  return <Link url={itemURL(item)}>
+    <HStack spacing={4} frame={{ maxWidth: "infinity", height, alignment: "leading" }} contentShape="rect">
+      <DueSymbol name={item.iconName} color={item.iconColor} size={11} slotSize={13} widget />
+      <Text font={11} fontWeight="medium" foregroundStyle="secondaryLabel" lineLimit={1}
+        truncationMode="tail" frame={{ maxWidth: "infinity", alignment: "leading" }}>{item.title}</Text>
+      {showDate ? <Text font={10} foregroundStyle="secondaryLabel" lineLimit={1}
+        layoutPriority={1} monospacedDigit>{date}</Text> : null}
+    </HStack>
+  </Link>
 }
 
-function ListWidget({
-  items,
-  completionGeneration,
-  limit,
-  family,
-  remindersLive,
-  remindersFromCache,
-  reminderFetchedAt,
-  reminderError,
-  interactionError,
-  displayHeight,
-  displayWidth,
-}: WidgetDataProps & {
-  limit: number
-  family: "systemMedium" | "systemLarge"
-  displayHeight?: number
+type AgendaFamily = Exclude<HomeWidgetFamily, "systemSmall">
+
+function AgendaWidget(props: WidgetDataProps & {
+  family: AgendaFamily
   displayWidth?: number
+  displayHeight?: number
 }) {
-  const issue = widgetIssue({
-    remindersLive,
-    remindersFromCache,
-    reminderFetchedAt,
-    reminderError,
-    interactionError,
+  const { items, family, completionGeneration, displayWidth, displayHeight } = props
+  const issue = widgetIssue(props)
+  const locale = widgetRuntimeLocale()
+  const now = new Date()
+  const positions = agendaWidgetLayout(family, displayWidth, displayHeight, { itemCount: items.length, hasIssue: !!issue })
+  const available = items.slice(0, positions.capacity)
+  const actionFlags = family === "systemMedium" ? [] : available.map(item => dueStatus(item, now).needsAction)
+  const layout = family === "systemMedium" ? positions : agendaWidgetLayout(family, displayWidth, displayHeight, {
+    itemCount: available.length,
+    hasIssue: !!issue,
+    actionFlags,
   })
-  const effectiveLimit = issue ? Math.max(1, limit - 1) : limit
-  const visible = visibleWidgetItems(items, effectiveLimit)
-  const roomy = family === "systemLarge"
-  const largeLayout = roomy ? largeWidgetLayout(displayHeight) : null
-  const largeSectionCount = largeLayout
-    ? largeWidgetSectionCount(visible, largeLayout.maximumSections)
-    : undefined
-  // Keep the row rhythm stable when one slot is reserved for an issue message.
-  const rowHeight = widgetRowHeight(family, displayHeight, limit, largeSectionCount)
+  const visible = available.slice(0, layout.capacity)
+  const roomy = family !== "systemMedium"
 
-  if (roomy && largeLayout) {
-    return <WidgetFrame contentPadding={11}>
-      <VStack
-        alignment="leading"
-        spacing={0}
-        padding={{ leading: 3, trailing: 3 }}
-        frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
-      >
-        <CompletionContent generation={completionGeneration}>
-          <VStack
-            alignment="leading"
-            spacing={0}
-            frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
-          >
-            <LargeSummaryHeader
-              item={items[0]}
-              issue={issue}
-              height={largeLayout.summaryHeight}
-            />
-            <LargeListWidgetBody
-              visible={visible}
-              rowHeight={rowHeight}
-              issue={issue}
-              maximumSections={largeLayout.maximumSections}
-              sectionHeaderHeight={largeLayout.sectionHeaderHeight}
-              displayWidth={displayWidth}
-            />
-          </VStack>
-        </CompletionContent>
+  return <WidgetFrame contentPadding={layout.padding}>
+    <CompletionContent generation={completionGeneration}>
+      <VStack alignment="leading" spacing={0}
+        frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
+        {layout.headerHeight > 0 ? <AgendaHeader item={visible[0]} roomy={roomy}
+          height={layout.headerHeight} locale={locale} now={now} /> : null}
+        {layout.queueGap > 0 ? <Spacer minLength={layout.queueGap} frame={{ height: layout.queueGap }} /> : null}
+        <AgendaQueue items={visible} actionFlags={actionFlags} roomy={roomy} layout={layout}
+          issue={issue} locale={locale} now={now} />
+        <Spacer minLength={0} />
+        {visible.length > 0 && issue && layout.issueHeight > 0
+          ? <WidgetIssueLink issue={issue} height={layout.issueHeight} />
+          : null}
       </VStack>
-    </WidgetFrame>
-  }
-
-  return <WidgetFrame contentPadding={11}>
-    <VStack
-      alignment="leading"
-      spacing={0}
-      padding={{ leading: 3, trailing: 3 }}
-      frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
-    >
-      <WidgetHeader
-        items={items}
-        issue={issue}
-      />
-      <CompletionContent
-        generation={completionGeneration}
-      >
-        <ListWidgetBody
-          visible={visible}
-          rowHeight={rowHeight}
-          issue={issue}
-          displayWidth={displayWidth}
-        />
-      </CompletionContent>
-    </VStack>
+    </CompletionContent>
   </WidgetFrame>
 }
 
-function ListWidgetBody({
-  visible,
-  rowHeight,
-  issue,
-  displayWidth,
-}: {
-  visible: DisplayDueItem[]
-  rowHeight: number
-  issue: WidgetIssue | null
-  displayWidth?: number
+function AgendaHeader({ item, roomy, height, locale, now }: {
+  item: DisplayDueItem | undefined
+  roomy: boolean
+  height: number
+  locale: string
+  now: Date
 }) {
-  return <VStack
-    alignment="leading"
-    spacing={0}
-    frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
-  >
-    <VStack
-      key="medium-item-queue"
-      alignment="leading"
-      spacing={1}
-      padding={{ top: visible.length > 0 ? 3 : 0 }}
-      frame={{ maxWidth: "infinity", maxHeight: visible.length > 0 ? undefined : "infinity" }}
-    >
-      {visible.map(item => (
-        <VStack
-          key={widgetItemIdentity(item)}
-          spacing={0}
-          contentTransition="opacity"
-          transition={QUEUE_SLOT_TRANSITION}
-          frame={{ maxWidth: "infinity" }}
-        >
-          <DueItemRow
-            item={item}
-            roomy={false}
-            height={rowHeight}
-            displayWidth={displayWidth}
-          />
-        </VStack>
-      ))}
-      {visible.length === 0 ? <WidgetEmptyContent issue={issue} /> : null}
-    </VStack>
-    <Spacer minLength={0} />
-    {visible.length > 0 && issue
-      ? <WidgetIssueLink issue={issue} />
-      : null}
-  </VStack>
-}
-
-function LargeListWidgetBody({
-  visible,
-  rowHeight,
-  issue,
-  maximumSections,
-  sectionHeaderHeight,
-  displayWidth,
-}: {
-  visible: DisplayDueItem[]
-  rowHeight: number
-  issue: WidgetIssue | null
-  maximumSections: 1 | 2
-  sectionHeaderHeight: number
-  displayWidth?: number
-}) {
-  const indexedItems = visible.map((item, index) => {
-    const status = dueStatus(item)
-    return { item, index, needsAction: status.needsAction }
-  })
-  const needsAction = indexedItems.filter(row => row.needsAction)
-  const upcoming = indexedItems.filter(row => !row.needsAction)
-  const sections: Array<{
-    id: "recent" | "action" | "upcoming"
-    title: string
-    rows: Array<{ item: DisplayDueItem; index: number }>
-  }> = maximumSections === 1
-    ? [{ id: "recent", title: widgetText("recentItems", widgetRuntimeLocale()), rows: indexedItems }]
-    : []
-  if (maximumSections === 2 && needsAction.length > 0) {
-    sections.push({ id: "action", title: widgetText("needsAction", widgetRuntimeLocale()), rows: needsAction })
-  }
-  if (maximumSections === 2 && upcoming.length > 0) {
-    sections.push({ id: "upcoming", title: widgetText("nextItems", widgetRuntimeLocale()), rows: upcoming })
-  }
-
-  return <VStack
-    alignment="leading"
-    spacing={0}
-    frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
-  >
-    <VStack
-      key="large-item-queue"
-      alignment="leading"
-      spacing={0}
-      frame={{ maxWidth: "infinity", maxHeight: visible.length > 0 ? undefined : "infinity" }}
-    >
-      {visible.length > 0 ? sections.map(section => (
-        <LargeWidgetSection
-          key={`large-section-${section.id}`}
-          sectionID={section.id}
-          title={section.title}
-          rows={section.rows}
-          rowHeight={rowHeight}
-          headerHeight={sectionHeaderHeight}
-          displayWidth={displayWidth}
-        />
-      )) : <WidgetEmptyContent issue={issue} />}
-    </VStack>
-    <Spacer minLength={0} />
-    {visible.length > 0 && issue
-      ? <WidgetIssueLink issue={issue} />
-      : null}
-  </VStack>
-}
-
-function LargeWidgetSection({
-  sectionID,
-  title,
-  rows,
-  rowHeight,
-  headerHeight,
-  displayWidth,
-}: {
-  sectionID: "recent" | "action" | "upcoming"
-  title: string
-  rows: Array<{ item: DisplayDueItem; index: number }>
-  rowHeight: number
-  headerHeight: number
-  displayWidth?: number
-}) {
-  return <VStack
-    key={`large-section-${sectionID}`}
-    alignment="leading"
-    spacing={0}
-    transition={QUEUE_SLOT_TRANSITION}
-    frame={{ maxWidth: "infinity" }}
-  >
-    <HStack
-      alignment="center"
-      spacing={0}
-      padding={{ bottom: 3, leading: 5, trailing: 5 }}
-      frame={{ maxWidth: "infinity", height: headerHeight, alignment: "bottomLeading" }}
-    >
-      <Text font={13} fontWeight="semibold" foregroundStyle="label" lineLimit={1}>
-        {title}
-      </Text>
-      <Spacer />
+  const dateKey = item ? widgetItemDateKey(item) : localDateKey(now)
+  const date = formatWidgetDate(dateKey, locale, { now })
+  const weekday = formatWidgetWeekday(dateKey, locale)
+  const todayKey = localDateKey(now)
+  const url = roomy && item ? itemURL(item) : Script.createRunURLScheme(Script.name)
+  if (!roomy || height < 40) return <Link url={url}>
+    <HStack spacing={8} frame={{ maxWidth: "infinity", height, alignment: "leading" }} contentShape="rect">
+      <Text font={13} fontWeight="semibold" lineLimit={1} foregroundStyle="label"
+        frame={{ maxWidth: "infinity", alignment: "leading" }}>{widgetText("appName", locale)}</Text>
+      <Text font={11} fontWeight="semibold" lineLimit={1} minScaleFactor={0.8} layoutPriority={1}
+        foregroundStyle="secondaryLabel" contentTransition="opacity">{[weekday, date].filter(Boolean).join(" · ")}</Text>
     </HStack>
-    {rows.map(({ item }) => (
-      <VStack
-        key={widgetItemIdentity(item)}
-        spacing={0}
-        contentTransition="opacity"
-        transition={QUEUE_SLOT_TRANSITION}
-        frame={{ maxWidth: "infinity" }}
-      >
-        <DueItemRow
-          item={item}
-          roomy
-          height={rowHeight}
-          displayWidth={displayWidth}
-        />
+  </Link>
+
+  const day = Number(dateKey.slice(-2))
+  return <Link url={url}>
+    <HStack alignment="center" spacing={10}
+      frame={{ maxWidth: "infinity", height, alignment: "leading" }} contentShape="rect">
+      {Number.isInteger(day) && day >= 1 && day <= 31
+        ? <Text font={Math.min(35, height - 8)} fontWeight="semibold" foregroundStyle="label" lineLimit={1}
+          monospacedDigit contentTransition="numericTextCountsDown">{day}</Text> : null}
+      <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity", alignment: "leading" }}>
+        <Text font={11} fontWeight="semibold" foregroundStyle="secondaryLabel" lineLimit={1}>
+          {widgetText(dateKey === todayKey ? "today" : dateKey < todayKey ? "due" : "nextDue", locale)}
+        </Text>
+        <Text font={14} fontWeight="semibold" foregroundStyle="label" lineLimit={1} minScaleFactor={0.8}
+          contentTransition="opacity">{[weekday, date].filter(Boolean).join(" · ")}</Text>
       </VStack>
-    ))}
+    </HStack>
+  </Link>
+}
+
+function AgendaQueue({ items, actionFlags, roomy, layout, issue, locale, now }: {
+  items: DisplayDueItem[]
+  actionFlags: readonly boolean[]
+  roomy: boolean
+  layout: AgendaWidgetLayout
+  issue: WidgetIssue | null
+  locale: string
+  now: Date
+}) {
+  const sections: Array<{ id: "recent" | "action" | "upcoming"; title: string; items: DisplayDueItem[] }> = []
+  if (roomy && items.length > 0) {
+    const action: DisplayDueItem[] = [], upcoming: DisplayDueItem[] = []
+    items.forEach((item, index) => (actionFlags[index] ? action : upcoming).push(item))
+    if (layout.sectionCount === 2) {
+      sections.push({ id: "action", title: widgetText("needsAction", locale), items: action })
+      sections.push({ id: "upcoming", title: widgetText("nextItems", locale), items: upcoming })
+    } else if (action.length === 0) {
+      sections.push({ id: "upcoming", title: widgetText("nextItems", locale), items })
+    } else if (upcoming.length === 0) {
+      sections.push({ id: "action", title: widgetText("needsAction", locale), items })
+    } else {
+      sections.push({ id: "recent", title: widgetText("recentItems", locale), items })
+    }
+  }
+
+  return <VStack key={roomy ? "large-item-queue" : "medium-item-queue"}
+    alignment="leading" spacing={roomy ? layout.sectionGap : layout.rowGap}
+    frame={{ maxWidth: "infinity", maxHeight: items.length === 0 ? "infinity" : undefined }}>
+    {items.length === 0 ? <WidgetEmptyContent issue={issue} />
+      : roomy ? sections.map(section => <VStack key={"large-section-" + section.id} alignment="leading"
+        spacing={0} transition={QUEUE_SLOT_TRANSITION} frame={{ maxWidth: "infinity" }}>
+        {layout.sectionHeaderHeight > 0
+          ? <Text font={11} fontWeight="semibold" foregroundStyle="secondaryLabel" lineLimit={1}
+            frame={{ maxWidth: "infinity", height: layout.sectionHeaderHeight, alignment: "leading" }}>
+            {section.title}
+          </Text> : null}
+        <VStack alignment="leading" spacing={layout.rowGap}>
+          {section.items.map(item => <AgendaOccurrence key={widgetItemIdentity(item)} item={item}
+            roomy layout={layout} locale={locale} now={now} />)}
+        </VStack>
+      </VStack>)
+        : items.map(item => <AgendaOccurrence key={widgetItemIdentity(item)} item={item}
+          roomy={false} layout={layout} locale={locale} now={now} />)}
   </VStack>
 }
 
-function largeWidgetSectionCount(
-  items: DisplayDueItem[],
-  maximumSections: 1 | 2,
-): number {
-  if (maximumSections === 1 || items.length === 0) return 1
-  let hasNeedsAction = false
-  let hasUpcoming = false
-  for (const item of items) {
-    const status = dueStatus(item)
-    if (status.needsAction) hasNeedsAction = true
-    else hasUpcoming = true
-  }
-  return hasNeedsAction && hasUpcoming ? 2 : 1
+function AgendaOccurrence({ item, roomy, layout, locale, now }: {
+  item: DisplayDueItem
+  roomy: boolean
+  layout: AgendaWidgetLayout
+  locale: string
+  now: Date
+}) {
+  return <VStack key={widgetItemIdentity(item)} spacing={0} contentTransition="opacity"
+    transition={QUEUE_SLOT_TRANSITION} frame={{ maxWidth: "infinity" }}>
+    <DueItemRow item={item} roomy={roomy} layout={layout} locale={locale} now={now} />
+  </VStack>
 }
 
 function WidgetEmptyContent({
@@ -802,7 +408,7 @@ function WidgetEmptyContent({
 }) {
   return <Link
     key="queue-empty-state"
-    url={Script.createRunURLScheme(Script.name)}
+    url={issue?.url ?? Script.createRunURLScheme(Script.name)}
     transition={QUEUE_SLOT_TRANSITION}
   >
     <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
@@ -835,103 +441,61 @@ function CompletionContent({
   </VStack>
 }
 
-function DueItemRow({
-  item,
-  roomy,
-  height,
-  displayWidth,
-}: {
+function DueItemRow({ item, roomy, layout, locale, now }: {
   item: DisplayDueItem
   roomy: boolean
-  height: number
-  displayWidth?: number
+  layout: AgendaWidgetLayout
+  locale: string
+  now: Date
 }) {
-  const hitSize = Math.min(height, roomy ? 40 : 38)
-  const metadataWidth = roomy ? 124 : 116
+  const { hitSize, rowHeight } = layout
+  const titleFont = Math.min(roomy ? 15 : 14, Math.max(1, rowHeight - 4))
+  const twoLines = rowHeight >= (roomy ? 38 : 35)
   const supportingText = listItemSupportingText(item)
-  const titleFontSize = listItemTitleFontSize(
-    item.title,
-    roomy ? "systemLarge" : "systemMedium",
-    displayWidth,
-  )
-  return <HStack
-    alignment="center"
-    spacing={0}
-    contentTransition="opacity"
-    frame={{ maxWidth: "infinity", height }}
-  >
-    <ListCompletionIcon
-      item={item}
-      hitSize={hitSize}
-      symbolSize={roomy ? 18 : 17}
-    />
+  const date = formatWidgetDate(widgetItemDateKey(item), locale, { now })
+  const time = formatWidgetItemTime(item, locale)
+  const metadataStatus = item.stale ? "clock.arrow.circlepath" : !item.canComplete ? "lock.fill" : null
+  const railWidth = layout.metadataWidth - (metadataStatus ? 11 : 0)
+  const dateFitsRail = widgetTitleFitsOneLine(date, railWidth, 9)
+    && (!time || widgetTitleFitsOneLine(time, layout.metadataWidth, 9))
+  const inlineDate = twoLines && !dateFitsRail
+  const metadataWidth = inlineDate ? 0 : layout.metadataWidth
+  const metadataGap = inlineDate ? 0 : layout.metadataGap
+  const titleFits = widgetTitleFitsOneLine(item.title, layout.titleWidth, titleFont)
+  const showSupporting = metadataWidth > 0 && titleFits && twoLines && !!supportingText
+  const secondaryMetadata = time || (!showSupporting && twoLines && item.amount
+    && widgetTitleFitsOneLine(item.amount, metadataWidth, 10) ? item.amount : "")
+  return <HStack alignment="center" spacing={0} contentTransition="opacity"
+    frame={{ maxWidth: "infinity", height: rowHeight }}>
+    <ListCompletionIcon item={item} hitSize={hitSize} symbolSize={roomy ? 18 : 17} />
     <Link url={itemURL(item)}>
-      <HStack
-        alignment="center"
-        spacing={8}
-        frame={{ maxWidth: "infinity", height }}
-        contentShape="rect"
-      >
-        <Text
-          font={titleFontSize}
-          fontWeight="semibold"
-          lineLimit={2}
-          minScaleFactor={0.85}
-          multilineTextAlignment="leading"
-          fixedSize={{ horizontal: false, vertical: true }}
-          frame={{ maxWidth: "infinity", alignment: "leading" }}
-        >
-          {item.title}
-        </Text>
-        <VStack
-          alignment="trailing"
-          spacing={0}
-          frame={{ width: metadataWidth, alignment: "trailing" }}
-        >
-          <VStack
-            alignment="trailing"
-            spacing={0}
-            frame={{ maxWidth: "infinity", height: 13, alignment: "trailing" }}
-          >
-            {supportingText
-              ? <Text
-                font="caption2"
-                foregroundStyle="secondaryLabel"
-                lineLimit={1}
-                minScaleFactor={0.85}
-                truncationMode="middle"
-                allowsTightening={true}
-                multilineTextAlignment="trailing"
-                frame={{ maxWidth: "infinity", alignment: "trailing" }}
-              >
-                {supportingText}
-              </Text>
-              : null}
-          </VStack>
-          <HStack
-            alignment="center"
-            spacing={4}
-            frame={{ maxWidth: "infinity", alignment: "trailing" }}
-          >
-            <Text
-              font="caption2"
-              foregroundStyle="secondaryLabel"
-              lineLimit={1}
-              minScaleFactor={0.72}
-            >
-              {formatWidgetItemDate(item, widgetRuntimeLocale())}
-            </Text>
-            {item.stale
-              ? <Image
-                systemName="clock.arrow.circlepath"
-                font={9}
-                foregroundStyle="tertiaryLabel"
-              />
-              : !item.canComplete
-                ? <Image systemName="lock.fill" font={9} foregroundStyle="tertiaryLabel" />
-                : null}
-          </HStack>
+      <HStack alignment="center" spacing={metadataGap}
+        frame={{ maxWidth: "infinity", height: rowHeight }} contentShape="rect">
+        <VStack alignment="leading" spacing={1} layoutPriority={1}
+          frame={{ maxWidth: "infinity", alignment: "leading" }}>
+          <Text font={titleFont} fontWeight="semibold"
+            lineLimit={!twoLines || showSupporting || (inlineDate && rowHeight < 52) ? 1 : 2}
+            minScaleFactor={0.9} truncationMode="tail" multilineTextAlignment="leading"
+            frame={{ maxWidth: "infinity", alignment: "leading" }}>{item.title}</Text>
+          {inlineDate ? <HStack spacing={3} frame={{ maxWidth: "infinity", alignment: "leading" }}>
+            {metadataStatus ? <Image systemName={metadataStatus} font={8} foregroundStyle="secondaryLabel" /> : null}
+            <Text font={10} foregroundStyle="secondaryLabel" lineLimit={1} minScaleFactor={0.82}
+              truncationMode="tail" monospacedDigit>{[date, time].filter(Boolean).join(" · ")}</Text>
+          </HStack> : showSupporting ? <Text font={10} foregroundStyle="secondaryLabel" lineLimit={1}
+            truncationMode="middle" allowsTightening frame={{ maxWidth: "infinity", alignment: "leading" }}>
+            {supportingText}
+          </Text> : null}
         </VStack>
+        {metadataWidth > 0 ? <VStack alignment="trailing" spacing={1}
+          frame={{ width: metadataWidth, alignment: "trailing" }}>
+          <HStack spacing={3} frame={{ maxWidth: "infinity", alignment: "trailing" }}>
+            {metadataStatus ? <Image systemName={metadataStatus} font={8} foregroundStyle="secondaryLabel" /> : null}
+            <Text font={Math.min(11, titleFont)} fontWeight="medium" foregroundStyle="label" lineLimit={1}
+              minScaleFactor={0.78} monospacedDigit>{date}</Text>
+          </HStack>
+          {secondaryMetadata && twoLines ? <Text font={10} foregroundStyle="secondaryLabel" lineLimit={1}
+            minScaleFactor={0.82} monospacedDigit>{secondaryMetadata}</Text> : null}
+        </VStack> : null}
       </HStack>
     </Link>
   </HStack>
@@ -946,11 +510,13 @@ function ListCompletionIcon({
   hitSize: number
   symbolSize: number
 }) {
+  if (hitSize < 8) return null
+  const size = Math.min(symbolSize, hitSize)
   if (!item.canComplete || item.stale) {
     return <ListCompletionSymbol
       item={item}
       hitSize={hitSize}
-      symbolSize={symbolSize}
+      symbolSize={size}
       enabled={false}
     />
   }
@@ -968,7 +534,7 @@ function ListCompletionIcon({
       title={widgetCompletionLabel(item, widgetRuntimeLocale())}
       name={item.iconName}
       color={item.iconColor}
-      size={symbolSize}
+      size={size}
       slotSize={hitSize}
       widget
     />
@@ -1076,7 +642,7 @@ function WidgetFrame({
 }) {
   return <VStack
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}
-    widgetBackground="secondarySystemBackground"
+    widgetBackground="systemBackground"
   >
     <VStack
       padding={contentPadding}
@@ -1087,17 +653,12 @@ function WidgetFrame({
   </VStack>
 }
 
-function WidgetIssueLink({ issue }: { issue: WidgetIssue }) {
+function WidgetIssueLink({ issue, height }: { issue: WidgetIssue; height: number }) {
   return <Link url={issue.url}>
-    <Text
-      font="caption2"
-      foregroundStyle={issue.color}
-      lineLimit={1}
-      minScaleFactor={0.8}
-      padding={{ top: 3, leading: 5, trailing: 5 }}
-    >
-      {issue.statusText}
-    </Text>
+    <HStack spacing={4} frame={{ maxWidth: "infinity", height, alignment: "leading" }} contentShape="rect">
+      <Image systemName="exclamationmark.circle.fill" font={10} foregroundStyle={issue.color} />
+      <Text font={10} foregroundStyle="label" lineLimit={1} minScaleFactor={0.82}>{issue.statusText}</Text>
+    </HStack>
   </Link>
 }
 

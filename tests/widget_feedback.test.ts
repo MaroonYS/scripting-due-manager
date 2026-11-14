@@ -6,10 +6,13 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
 import {
+  formatWidgetDate,
   formatWidgetItemTime,
   formatWidgetLastSync,
+  formatWidgetWeekday,
   localizeWidgetActionError,
   widgetCompletionLabel,
+  widgetItemDateKey,
   widgetText,
 } from "../到期管家/src/widget_localization.ts"
 import type { DisplayDueItem } from "../到期管家/src/types.ts"
@@ -72,6 +75,22 @@ test("invalid auxiliary timestamps fall back to safe hour and minute values", ()
   assert.equal(formatWidgetItemTime(item(), "not_a_locale"), "18:05")
 })
 
+test("calendar headers show the local timed date but keep all-day dates floating", () => {
+  const nextDay = new Date(2026, 9, 1, 0, 5)
+  const sameDueDate = item({ dueDate: "2026-09-30", dueTimestamp: nextDay.getTime() })
+  const timedKey = widgetItemDateKey(sameDueDate)
+  assert.equal(timedKey, "2026-10-01")
+  assert.equal(widgetItemDateKey({ ...sameDueDate, includesTime: false }), "2026-09-30")
+  assert.equal(widgetItemDateKey({ ...sameDueDate, dueTimestamp: 9e20 }), "2026-09-30")
+  for (const locale of ["en-US", "en-GB", "zh-CN", "zh-Hant-HK"]) {
+    assert.equal(formatWidgetWeekday(timedKey, locale),
+      new Intl.DateTimeFormat(locale, { weekday: "short" }).format(nextDay))
+    assert.equal(formatWidgetDate(timedKey, locale, { now: nextDay }),
+      new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(nextDay))
+  }
+  assert.equal(formatWidgetWeekday("2026-02-31", "en-US"), "")
+})
+
 test("sync feedback shows the last actual success and includes the date for old data", () => {
   const now = new Date(2026, 8, 4, 16, 0)
   assert.equal(formatWidgetLastSync(new Date(2026, 8, 4, 15, 5).getTime(), "en-GB", now), "Last sync 15:05")
@@ -109,30 +128,29 @@ test("completion icon has a localized action label with the full item title", ()
   assert.equal(widgetCompletionLabel(item({ title: "缴费" }), "zh-Hans"), "完成: 缴费")
 })
 
-test("small precise time reuses the detail row without taking title or preview space", () => {
-  const header = source.slice(source.indexOf("function WidgetHeader"), source.indexOf("function LargeSummaryHeader"))
-  const body = source.slice(source.indexOf("function SmallDueItem"), source.indexOf("function SmallNextItemPreview"))
+test("small precise time is auxiliary rather than a live timer or a second control", () => {
   const detail = source.slice(source.indexOf("function SmallCurrentDetail"), source.indexOf("function SmallNextItemPreview"))
-  assert.match(header, /formatWidgetDate\(items\[0\]\.dueDate, widgetRuntimeLocale\(\)\)/)
-  assert.doesNotMatch(header, /formatWidgetItemTime|formatWidgetItemDate/)
-  assert.match(body, /height: 76, alignment: "topLeading"/)
-  assert.match(body, /lineLimit=\{3\}/)
-  assert.match(body, /detail \|\| item\.includesTime \|\| issue/)
-  assert.match(body, /<SmallCurrentDetail item=\{item\} detail=\{detail\} issue=\{issue\} \/>/)
-  assert.match(body, /height: 18, alignment: "leading"/)
-  assert.match(detail, /height: 19, alignment: "leading"/)
-  assert.match(detail, /const time = formatWidgetItemTime\(item, widgetRuntimeLocale\(\)\)/)
-  assert.match(detail, /multilineTextAlignment="leading"/)
-  assert.match(detail, /fixedSize=\{\{ horizontal: true, vertical: false \}\}/)
-  assert.doesNotMatch(detail, /<Spacer|lineLimit=\{2\}/)
+  assert.ok(detail.includes("function SmallCurrentDetail"))
+  assert.match(detail, /\{time\}/)
+  assert.doesNotMatch(detail, /DateLabel|style="timer"|ListCompletionIcon|CompleteDueItemIntent/)
+  assert.doesNotMatch(detail, /\b(?:top|bottom):\s*-\d/)
 })
 
 test("small issue status replaces only auxiliary text and offers an app link", () => {
   const detail = source.slice(source.indexOf("function SmallCurrentDetail"), source.indexOf("function SmallNextItemPreview"))
-  assert.match(detail, /supportingText = issue\?\.compactText \?\? detail/)
-  assert.match(detail, /<Link url=\{issue \? issue\.url : itemURL\(item\)\}>/)
-  assert.match(detail, /\{time\}/)
-  assert.equal(detail.match(/height: 19/g)?.length, 1)
+  const compiled = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "h" } } }).transformSync(detail)
+  const h = (type: string, props: any, ...children: any[]) => ({ type, props, children: children.filter(child => child != null) })
+  const bindings = { h, Link: "Link", HStack: "HStack", Text: "Text", formatWidgetItemTime,
+    itemURL: (item: DisplayDueItem) => `notes:${item.id}` }
+  const render = new Function(...Object.keys(bindings), `${compiled}\nreturn SmallCurrentDetail`)(...Object.values(bindings))
+  const current = item(), detailText = "Sensitive original note", locale = "en-GB"
+  const issue = { compactText: "Review action", color: "systemRed", url: "app:widget-status" }
+  const plain = render({ item: current, detail: detailText, issue: null, locale, height: 16 })
+  const warning = render({ item: current, detail: detailText, issue, locale, height: 16 })
+  assert.equal(plain.props.url, `notes:${current.id}`)
+  assert.equal(warning.props.url, issue.url)
+  assert.deepEqual(plain.children[0].children.map((node: any) => node.children[0]), [detailText, "18:05"])
+  assert.deepEqual(warning.children[0].children.map((node: any) => node.children[0]), [issue.compactText, "18:05"])
 })
 
 test("cached and failed list widgets show actionable last-sync feedback only when needed", () => {
@@ -141,7 +159,7 @@ test("cached and failed list widgets show actionable last-sync feedback only whe
   assert.match(issue, /if \(props\.remindersFromCache\)/)
   assert.match(issue, /formatWidgetLastSync\(props\.reminderFetchedAt, widgetRuntimeLocale\(\)\)/)
   assert.match(issue, /return null/)
-  assert.equal(source.match(/visible\.length > 0 && issue\s*\? <WidgetIssueLink issue=\{issue\} \/>/g)?.length, 2)
+  assert.match(source, /<WidgetIssueLink\s+issue=\{issue\}/)
 })
 
 test("sync retries open the main refresh flow while completion warnings open action inspection", () => {
@@ -170,7 +188,8 @@ test("completion buttons use a native semantic icon-only label and retain tap si
   assert.match(control, /<DueSymbolLabel\s+title=\{widgetCompletionLabel\(item, widgetRuntimeLocale\(\)\)\}/)
   assert.match(control, /name=\{item\.iconName\}/)
   assert.match(control, /color=\{item\.iconColor\}/)
-  assert.match(control, /size=\{symbolSize\}\s+slotSize=\{hitSize\}\s+widget/)
+  assert.match(control, /const size = Math.min\(symbolSize, hitSize\)/)
+  assert.match(control, /size=\{size\}\s+slotSize=\{hitSize\}\s+widget/)
   assert.match(control, /frame=\{\{ width: hitSize, height: hitSize \}\}/)
   assert.match(control, /occurrenceKey: item\.completionKey/)
   assert.doesNotMatch(control, /accessibilityLabel=|font=\{symbolSize [+-]/)
