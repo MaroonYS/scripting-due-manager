@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.8.0",
-  "description": "Adaptive Calendar-inspired due dates and Apple Reminders widgets for compact, standard, and portrait extra-large layouts.",
+  "version": "3.8.1",
+  "description": "Adaptive due-date widgets with a bottom-aligned notes and preview area in the small size.",
   "localizedDescriptions": {
-    "en": "3.8.0 adapts the widget to the width and height reported by Scripting. Small widgets separate the item, detail and preview. Agenda widgets prioritize titles and reflow dates and times. Uses the iOS 27 portrait extra-large family when exposed by the host. Notes, exact completion, fades, icons, data, reminder scope and the update URL remain. Duo Home Screen rendering still needs real-device verification.",
-    "zh": "3.8.0 重新设计组件排版：按宿主提供的实际宽高分配空间。小号拆开主事项、详情和预告；中、大号优先展示标题，日期与时间分行或移到标题下方。支持 Scripting 提供的 iOS 27 竖向超大组件，保留备注、准确完成、淡出、图标、数据与更新地址。未改 Apple 提醒读取范围。iPhone Duo 真机效果仍待验证。",
-    "zh-Hans": "3.8.0 重新设计组件排版：按宿主提供的实际宽高分配空间。小号拆开主事项、详情和预告；中、大号优先展示标题，日期与时间分行或移到标题下方。支持 Scripting 提供的 iOS 27 竖向超大组件，保留备注、准确完成、淡出、图标、数据与更新地址。未改 Apple 提醒读取范围。iPhone Duo 真机效果仍待验证。",
-    "zh-Hant": "3.8.0 重新設計小工具排版，依宿主提供的實際寬高分配空間。小型分開主事項、詳情和預告；中、大型優先顯示標題，日期與時間分行或移至標題下方。支援 Scripting 提供的 iOS 27 直向超大型小工具，保留備註、準確完成、淡出、圖示、資料與更新網址。未更改 Apple 提醒事項讀取範圍。iPhone Duo 真機效果仍待驗證。"
+    "en": "3.8.1 brings the small widget’s notes and time back down beside the bottom preview, with separate rows and tap targets. The current item and its details still take priority when space is tight. Larger widget sizes, data, Reminders scope, completion and fades are unchanged.",
+    "zh": "3.8.1 仅调整小号组件：备注和时间下移，与下一项预告一起靠底。两行仍有独立间距和点击入口，空间不足继续优先保留主事项与详情。中、大及竖向超大号不变；数据、提醒读取范围、完成按钮和淡出保留。",
+    "zh-Hans": "3.8.1 仅调整小号组件：备注和时间下移，与下一项预告一起靠底。两行仍有独立间距和点击入口，空间不足继续优先保留主事项与详情。中、大及竖向超大号不变；数据、提醒读取范围、完成按钮和淡出保留。",
+    "zh-Hant": "3.8.1 僅調整小型小工具：備註和時間下移，與下一項預告一起靠底。兩行仍有獨立間距和點按入口，空間不足時優先保留目前事項與詳情。中型、大型和直向超大型不變；資料、提醒事項讀取範圍、完成按鈕與淡出保留。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

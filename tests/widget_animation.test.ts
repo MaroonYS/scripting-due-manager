@@ -199,7 +199,7 @@ function titleNode(root: Node, item: DisplayDueItem) {
   return nodes(row(root, item)).find(node => node.type === "Text" && node.children.includes(item.title))!
 }
 
-test("compact small renders disjoint height-budgeted title, detail and day-only preview with exact independent links", () => {
+test("compact small anchors both footer rows at the bottom and keeps their bands and links independent", () => {
   const env = harness(), locale = "en-GB"
   env.locale(locale)
   const current = item("current", { source: "reminder", title: "Train arrival 到站", note: "Trip list", includesTime: true })
@@ -209,17 +209,24 @@ test("compact small renders disjoint height-budgeted title, detail and day-only 
   const tree = env.render("systemSmall", [current, preview], 4, {}, 141, 141)
   const plan = layout.smallWidgetLayout(141, 141, { hasDetail: true, hasNext: true })
   const occurrence = row(tree, current)
-  const [headline, detail, next] = occurrence.children
+  assert.equal(occurrence.children.length, 2)
+  const [headline, footer] = occurrence.children
+  const [detail, next] = footer.children
+  assert.equal(footer.type, "VStack")
+  assert.equal(footer.props.frame.alignment, "bottomLeading")
+  assert.equal(footer.props.frame.maxHeight, "infinity")
+  assert.equal(footer.props.spacing, plan.gap)
   assert.equal(headline.props.frame.height, plan.titleHeight)
   assert.equal(detail.children[0].props.frame.height, plan.detailHeight)
-  assert.equal(next.children[0].children[0].props.frame.height, plan.previewHeight)
+  assert.equal(next.children[0].props.frame.height, plan.previewHeight)
   assert.equal(occurrence.props.spacing, plan.gap)
   assert.ok(occurrence.props.spacing > 0)
   assert.match(texts(detail), /Trip list/)
   assert.ok(texts(detail).includes(localization.formatWidgetItemTime(current, locale)))
   assert.ok(texts(next).includes(localization.formatWidgetDate(preview.dueDate, locale)))
   assert.ok(!texts(next).includes(localization.formatWidgetItemTime(preview, locale)))
-  assert.deepEqual(Object.fromEntries(new URL(next.children[0].props.url).searchParams), { action: "reminder-notes", id: preview.id })
+  assert.deepEqual(Object.fromEntries(new URL(detail.props.url).searchParams), { action: "reminder-notes", id: current.id })
+  assert.deepEqual(Object.fromEntries(new URL(next.props.url).searchParams), { action: "reminder-notes", id: preview.id })
   assertCurrentControls(tree, [current])
   assert.equal(buttons(tree)[0].props.frame.width, 40)
   const negativeEdges = nodes(tree).flatMap(node => Object.values(node.props.padding ?? {}))
@@ -234,8 +241,32 @@ test("long small title takes a third line first and keeps the current detail and
   assert.equal(titleNode(tree, a).props.lineLimit, 3)
   assert.match(texts(tree), /Retain my detail/)
   assert.doesNotMatch(texts(tree), /Optional preview/)
+  const footer = row(tree, a).children[1]
+  assert.equal(footer.props.frame.alignment, "bottomLeading")
+  assert.equal(footer.children.length, 1)
+  assert.match(texts(footer), /Retain my detail/)
   assertCurrentControls(tree, [a])
   assert.equal(buttons(tree)[0].props.frame.width, 40)
+})
+
+test("small footer uses one band for a lone detail or preview and none when both are absent", () => {
+  const env = harness(), current = item("current"), next = item("next")
+  const withDetail = { ...current, note: "My detail" }
+  for (const [items, text] of [
+    [[withDetail], withDetail.note], [[current, next], next.title], [[current], ""],
+  ] as const) {
+    const tree = env.render("systemSmall", [...items], 1, {}, 170, 170)
+    const occurrence = row(tree, current)
+    assert.equal(occurrence.children.length, text ? 2 : 1)
+    if (text) {
+      const footer = occurrence.children[1]
+      assert.equal(footer.props.frame.alignment, "bottomLeading")
+      assert.equal(footer.children.length, 1)
+      assert.equal(footer.children[0].type, "Link")
+      assert.ok(texts(footer).includes(text))
+    }
+    assertCurrentControls(tree, [current])
+  }
 })
 
 test("agenda keeps a wide title and reflows date and real time below it when the rail is too narrow", () => {

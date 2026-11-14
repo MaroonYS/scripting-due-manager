@@ -192,6 +192,7 @@ function SmallDueItem({
   const titleWidth = Math.max(0, layout.contentWidth - layout.hitSize)
   const titleFont = widgetTitleFitsOneLine(item.title, titleWidth, 17) ? 17 : 15
   const titleHeight = Math.max(1, Math.floor(layout.titleHeight / layout.titleLines) - 3)
+  const preview = layout.previewHeight > 0 ? nextItem : undefined
   return <VStack key={widgetItemIdentity(item)}
     alignment="leading" spacing={layout.gap}
     contentTransition="opacity" transition={QUEUE_SLOT_TRANSITION}
@@ -207,12 +208,13 @@ function SmallDueItem({
         </Text>
       </Link>
     </HStack>
-    {layout.detailHeight > 0 ? <SmallCurrentDetail item={item} detail={detail} issue={issue}
-      height={layout.detailHeight} locale={locale} /> : null}
-    {nextItem && layout.previewHeight > 0 ? <VStack spacing={0}
+    {/* The footer shares the remaining height; its links occupy only their own bands. */}
+    {layout.detailHeight > 0 || preview ? <VStack alignment="leading" spacing={layout.gap}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "bottomLeading" }}>
-      <SmallNextItemPreview item={nextItem}
-        width={layout.contentWidth} height={layout.previewHeight} locale={locale} now={now} />
+      {layout.detailHeight > 0 ? <SmallCurrentDetail item={item} detail={detail} issue={issue}
+        height={layout.detailHeight} locale={locale} /> : null}
+      {preview ? <SmallNextItemPreview item={preview}
+        width={layout.contentWidth} height={layout.previewHeight} locale={locale} now={now} /> : null}
     </VStack> : null}
   </VStack>
 }
