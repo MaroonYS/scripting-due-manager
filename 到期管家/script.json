@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.8.5",
-  "description": "Balanced small-widget headline spacing without altering the other rows.",
+  "version": "3.8.6",
+  "description": "Restores the 3.8.1 widget layout and runtime through the normal update path.",
   "localizedDescriptions": {
-    "en": "3.8.5 gives the small widget's main item independent spacing. Short titles sit slightly inward when there is room; long or manually wrapped titles keep the space they need. The other rows retain their right inset and footer alignment. Completion, notes, other sizes and data are unchanged.",
-    "zh": "3.8.5 仅调整小号第二行主事项的位置：短标题有空余时稍向内收，长标题或手动换行时更靠左。第一、三、四行右边距、底部排版及完成热区不变，完成图标仍在左侧。其他尺寸、提醒读取与数据不变。",
-    "zh-Hans": "3.8.5 仅调整小号第二行主事项的位置：短标题有空余时稍向内收，长标题或手动换行时更靠左。第一、三、四行右边距、底部排版及完成热区不变，完成图标仍在左侧。其他尺寸、提醒读取与数据不变。",
-    "zh-Hant": "3.8.5 僅調整小型小工具的第二行：短標題有餘裕時略向內收，長標題或手動換行時更靠左。第一、三、四行右邊距、底部排版及完成點按區域不變，完成圖示仍在左側。其他尺寸、提醒事項讀取與資料不變。"
+    "en": "3.8.6 restores the 3.8.1 widget layout and runtime, reverting later small-widget alignment and headline positioning changes. Only the version and release metadata differ from 3.8.1, so existing installations can update without disabling downgrade protection.",
+    "zh": "3.8.6 恢复 3.8.1 的运行代码与组件布局，撤回后续小号对齐和主标题位置调整。小号完成图标仍在左侧，备注和预告继续靠底。使用新版本号允许正常覆盖更新，不更改事项数据或降级保护。",
+    "zh-Hans": "3.8.6 恢复 3.8.1 的运行代码与组件布局，撤回后续小号对齐和主标题位置调整。小号完成图标仍在左侧，备注和预告继续靠底。使用新版本号允许正常覆盖更新，不更改事项数据或降级保护。",
+    "zh-Hant": "3.8.6 恢復 3.8.1 的執行程式碼與小工具排版，撤回後續的小型對齊及主標題位置調整。完成圖示仍在左側，備註和預告繼續靠底。使用新版本號以正常覆蓋更新，不更改事項資料或降級保護。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

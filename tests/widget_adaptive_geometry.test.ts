@@ -6,7 +6,6 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import {
   agendaWidgetLayout,
-  smallHeadlinePlacement,
   smallWidgetLayout,
   widgetTitleFitsOneLine,
 } from "../到期管家/src/widget_layout.ts"
@@ -119,29 +118,6 @@ test("small can give a long title another line before an optional preview withou
   assert.equal(longTitle.detailHeight, ordinary.detailHeight)
   assert.equal(longTitle.hitSize, ordinary.hitSize)
   assert.equal(longTitle.previewHeight, 0)
-})
-
-test("small headline has bounded independent padding and never spends the width a long title needs", () => {
-  const short = "账单"
-  const mixed = "Check rail tickets"
-  const long = "西安北站换乘并核对下次出发的列车时间"
-  const multiline = "缴费\n确认"
-  for (const [width, height] of [[6, 12], [96, 112], [141, 141], [170, 170], [204, 180]]) {
-    const plan = smallWidgetLayout(width, height)
-    const [compact, medium, wide, wrapped] = [short, mixed, long, multiline].map(text => smallHeadlinePlacement(plan, text))
-    for (const placement of [compact, medium, wide, wrapped]) {
-      assertFiniteGeometry(placement, `headline ${width}×${height}`)
-      assert.ok(placement.leadingAllowance <= plan.padding)
-      assert.ok(placement.leadingPadding <= placement.leadingAllowance + 6)
-      assert.ok(Math.abs(placement.leadingPadding + plan.hitSize + placement.textWidth
-        - plan.contentWidth - placement.leadingAllowance) < tolerance)
-    }
-    assert.ok(compact.leadingPadding >= medium.leadingPadding)
-    assert.ok(medium.leadingPadding >= wide.leadingPadding)
-    assert.equal(wrapped.leadingPadding, 0)
-    assert.ok(wide.textWidth >= compact.textWidth)
-    if (width >= 141) assert.ok(compact.leadingPadding > wide.leadingPadding)
-  }
 })
 
 test("agenda budgets fit visible rows, real sections, gaps and sync issues together", () => {
