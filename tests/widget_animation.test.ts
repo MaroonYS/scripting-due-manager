@@ -249,7 +249,7 @@ test("long small title takes a third line first and keeps the current detail and
   assert.equal(buttons(tree)[0].props.frame.width, 40)
 })
 
-test("small headline shares the red heading's leading edge and leaves completion to a separate trailing slot", () => {
+test("small headline aligns its leading completion glyph with the red heading and keeps the title link separate", () => {
   const env = harness(), locale = "en-GB"
   env.locale(locale)
   const current = item("current", { title: "Train arrival", source: "reminder", note: "Trip list", includesTime: true })
@@ -258,14 +258,12 @@ test("small headline shares the red heading's leading edge and leaves completion
   for (const [width, height] of [[118, 148], [141, 141], [170, 170]]) {
     const tree = env.render("systemSmall", [current, preview], 4, {}, height, width)
     const plan = layout.smallWidgetLayout(width, height, { hasDetail: true, hasNext: true })
-    const inset = { leading: plan.auxiliaryInset, trailing: plan.auxiliaryInset }
+    const inset = { leading: plan.sideInset, trailing: plan.sideInset }
     const content = tree.children[0]
     const [header] = content.children[0].children
     const [headline, footer] = row(tree, current).children
     const headerLink = header.children[0].children.find((n: Node) => n.type === "Link")!
-    assert.deepEqual(content.props.padding, {
-      top: plan.verticalInset, bottom: plan.verticalInset, leading: plan.padding, trailing: plan.padding,
-    })
+    assert.deepEqual(content.props.padding, { top: plan.verticalInset, bottom: plan.verticalInset })
     assert.deepEqual(header.props.padding, inset)
     assert.deepEqual(footer.props.padding, inset)
     const [headingText, headingDate] = headerLink.children[0].children
@@ -275,8 +273,8 @@ test("small headline shares the red heading's leading edge and leaves completion
     assert.equal(headingDate.props.font, 12)
     assert.equal(headingDate.props.foregroundStyle, "secondaryLabel")
     assert.equal(headingDate.props.layoutPriority, 1)
-    assert.deepEqual(headline.props.padding, { leading: header.props.padding.leading })
-    const [titleLink, completion] = headline.children
+    assert.deepEqual(headline.props.padding, { leading: plan.headlineInset, trailing: plan.padding })
+    const [completion, titleLink] = headline.children
     assert.equal(titleLink.type, "Link")
     assert.deepEqual(Object.fromEntries(new URL(titleLink.props.url).searchParams), { action: "reminder-notes", id: current.id })
     assert.equal(titleLink.children[0], titleNode(tree, current))
@@ -284,8 +282,12 @@ test("small headline shares the red heading's leading edge and leaves completion
     assert.equal(titleLink.children[0].props.multilineTextAlignment, "leading")
     assert.equal(completion.type, "Button")
     assert.deepEqual(completion.props.frame, { width: 40, height: 40 })
-    const glyph = nodes(completion.children[0].props.background.content).find(node => node.type === "Image")!
-    assert.equal(glyph.props.padding, undefined)
+    const symbol = completion.children[0].props.background.content
+    const glyph = nodes(symbol).find(node => node.type === "Image")!
+    assert.deepEqual(glyph.props.frame, { width: plan.symbolSize, height: plan.symbolSize, alignment: "center" })
+    const paddedGlyphWidth = glyph.props.padding.leading + plan.symbolSize + glyph.props.padding.trailing
+    assert.ok(Math.abs(paddedGlyphWidth - completion.props.frame.width) < 1e-6)
+    assert.ok(Math.abs(headline.props.padding.leading + glyph.props.padding.leading - header.props.padding.leading) < 1e-6)
     assert.equal(content.children[0].props.spacing, plan.headerGap)
     assert.equal(footer.props.frame.alignment, "bottomLeading")
     assert.equal(footer.props.spacing, 1)
@@ -299,21 +301,21 @@ test("small headline shares the red heading's leading edge and leaves completion
   }
 })
 
-test("small headline's actual inset width determines title wrapping before rendering", () => {
+test("small headline uses the reclaimed left gutter to keep a fitting title and preview", () => {
   const env = harness(), width = 141, height = 141
   const plan = layout.smallWidgetLayout(width, height, { hasDetail: true, hasNext: true })
-  const oldTitleWidth = plan.contentWidth - plan.hitSize
-  const currentTitleWidth = oldTitleWidth - plan.auxiliaryInset
+  const oldTitleWidth = width - 2 * plan.padding - plan.hitSize
+  assert.equal(plan.titleWidth, oldTitleWidth + 8)
   const title = Array.from({ length: 30 }, (_, i) => "宽".repeat(i + 1)).find(candidate =>
-    layout.widgetTitleFitsOneLine(candidate, oldTitleWidth * 1.85, 15)
-    && !layout.widgetTitleFitsOneLine(candidate, currentTitleWidth * 1.85, 15))
-  assert.ok(title, "fixture fits the old two-line budget but not the new one")
+    !layout.widgetTitleFitsOneLine(candidate, oldTitleWidth * 1.85, 15)
+    && layout.widgetTitleFitsOneLine(candidate, plan.titleWidth * 1.85, 15))
+  assert.ok(title, "fixture fits two lines only with the reclaimed width")
   const current = item("wrapped", { title, note: "Retain my detail" })
   const next = item("preview", { title: "Optional preview" })
   const tree = env.render("systemSmall", [current, next], 4, {}, height, width)
-  assert.equal(titleNode(tree, current).props.lineLimit, 3)
+  assert.equal(titleNode(tree, current).props.lineLimit, 2)
   assert.match(texts(tree), /Retain my detail/)
-  assert.doesNotMatch(texts(tree), /Optional preview/)
+  assert.match(texts(tree), /Optional preview/)
   assertCurrentControls(tree, [current])
 })
 
@@ -431,6 +433,16 @@ test("stale and readonly items retain visual identity but expose no completion i
     const root = env.render(family, family === "systemSmall" ? [stale] : [stale, readonly], 1)
     assert.deepEqual(row(root, stale).props.transition, expectedTransition)
     assertCurrentControls(root, [])
+  }
+  for (const current of [stale, readonly]) {
+    const tree = env.render("systemSmall", [current], 1, {}, 141, 141)
+    const [symbol, titleLink] = row(tree, current).children[0].children
+    const glyph = nodes(symbol).find(node => node.type === "Image")!
+    assert.deepEqual(symbol.props.frame, { width: 40, height: 40, alignment: "center" })
+    assert.deepEqual(glyph.props.padding, { leading: 16, trailing: 7 })
+    assert.equal(glyph.props.foregroundStyle, "tertiaryLabel")
+    assert.equal(titleLink.type, "Link")
+    assertCurrentControls(tree, [])
   }
 })
 

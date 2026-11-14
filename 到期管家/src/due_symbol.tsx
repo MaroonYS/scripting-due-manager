@@ -12,6 +12,7 @@ export interface DueSymbolProps {
   slotSize?: number
   widget?: boolean
   replace?: boolean
+  leadingInset?: number
 }
 
 /** Drawing bounds and layout/tap bounds are deliberately separate. */
@@ -23,8 +24,11 @@ export function dueSymbolGeometry(size: number, slotSize?: number) {
 }
 
 /** Every item symbol uses the same aspect-fit drawing path, not font-only sizing. */
-export function DueSymbol({ name, color, size, slotSize, widget, replace }: DueSymbolProps) {
+export function DueSymbol({ name, color, size, slotSize, widget, replace, leadingInset }: DueSymbolProps) {
   const geometry = dueSymbolGeometry(size, slotSize)
+  const spareWidth = geometry.slotSize - geometry.size
+  const leading = typeof leadingInset === "number" && Number.isFinite(leadingInset)
+    ? Math.max(0, Math.min(leadingInset, spareWidth)) : undefined
   return <VStack alignment="center" spacing={0} frame={{ width: geometry.slotSize, height: geometry.slotSize, alignment: "center" }}>
     <Image
       systemName={normalizeIconOverride(name) ?? "calendar.badge.clock"}
@@ -35,6 +39,7 @@ export function DueSymbol({ name, color, size, slotSize, widget, replace }: DueS
       foregroundStyle={color}
       symbolRenderingMode={widget ? "hierarchical" : "monochrome"}
       frame={{ width: geometry.size, height: geometry.size, alignment: "center" }}
+      padding={leading == null ? undefined : { leading, trailing: spareWidth - leading }}
       contentTransition={replace ? "symbolEffectReplace" : undefined}
       widgetAccentable={widget ? true : undefined}
     />

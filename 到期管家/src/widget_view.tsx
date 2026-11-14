@@ -160,18 +160,17 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number; displayHe
 
   return <WidgetFrame contentPadding={{
     top: layout.verticalInset, bottom: layout.verticalInset,
-    leading: layout.padding, trailing: layout.padding,
   }}>
     <VStack alignment="leading" spacing={layout.headerGap}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
       {layout.headerHeight > 0 ? <VStack alignment="leading" spacing={0}
-        padding={{ leading: layout.auxiliaryInset, trailing: layout.auxiliaryInset }}>
+        padding={{ leading: layout.sideInset, trailing: layout.sideInset }}>
         <WidgetHeader item={item} issue={issue} height={layout.headerHeight} locale={locale} now={now} />
       </VStack> : null}
       <CompletionContent generation={completionGeneration}>
         {item && layout.titleHeight > 0 ? <SmallDueItem item={item} nextItem={nextItem} issue={issue}
           detail={detail} layout={layout} locale={locale} now={now} />
-          : <WidgetEmptyContent compact issue={issue} />}
+          : <WidgetEmptyContent compact issue={issue} sideInset={layout.padding} />}
       </CompletionContent>
     </VStack>
   </WidgetFrame>
@@ -202,8 +201,10 @@ function SmallDueItem({
     contentTransition="opacity" transition={QUEUE_SLOT_TRANSITION}
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
     <HStack alignment="center" spacing={0}
-      padding={{ leading: layout.auxiliaryInset }}
+      padding={{ leading: layout.headlineInset, trailing: layout.padding }}
       frame={{ maxWidth: "infinity", height: layout.titleHeight, alignment: "leading" }}>
+      <ListCompletionIcon item={item} hitSize={layout.hitSize} symbolSize={layout.symbolSize}
+        symbolInset={layout.symbolInset} />
       <Link url={itemURL(item)}>
         <Text font={Math.max(1, Math.min(titleFont, titleHeight) - 1)} fontWeight="semibold" lineLimit={layout.titleLines}
           minScaleFactor={0.85} truncationMode="tail" multilineTextAlignment="leading"
@@ -211,11 +212,10 @@ function SmallDueItem({
           {item.title}
         </Text>
       </Link>
-      <ListCompletionIcon item={item} hitSize={layout.hitSize} symbolSize={17} />
     </HStack>
     {/* The footer shares the remaining height; its links occupy only their own bands. */}
     {layout.detailHeight > 0 || preview ? <VStack alignment="leading" spacing={layout.footerGap}
-      padding={{ leading: layout.auxiliaryInset, trailing: layout.auxiliaryInset }}
+      padding={{ leading: layout.sideInset, trailing: layout.sideInset }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "bottomLeading" }}>
       {layout.detailHeight > 0 ? <SmallCurrentDetail item={item} detail={detail} issue={issue}
         height={layout.detailHeight} locale={locale} /> : null}
@@ -410,16 +410,19 @@ function AgendaOccurrence({ item, roomy, layout, locale, now }: {
 function WidgetEmptyContent({
   compact = false,
   issue,
+  sideInset,
 }: {
   compact?: boolean
   issue: WidgetIssue | null
+  sideInset?: number
 }) {
   return <Link
     key="queue-empty-state"
     url={issue?.url ?? Script.createRunURLScheme(Script.name)}
     transition={QUEUE_SLOT_TRANSITION}
   >
-    <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+    <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+      padding={sideInset == null ? undefined : { leading: sideInset, trailing: sideInset }}>
       {issue
         ? <ErrorState compact={compact} title={widgetText("unableToLoad", widgetRuntimeLocale())} detail={issue.text} />
         : <EmptyState compact={compact} />}
@@ -513,10 +516,12 @@ function ListCompletionIcon({
   item,
   hitSize,
   symbolSize,
+  symbolInset,
 }: {
   item: DisplayDueItem
   hitSize: number
   symbolSize: number
+  symbolInset?: number
 }) {
   if (hitSize < 8) return null
   const size = Math.min(symbolSize, hitSize)
@@ -526,6 +531,7 @@ function ListCompletionIcon({
       hitSize={hitSize}
       symbolSize={size}
       enabled={false}
+      symbolInset={symbolInset}
     />
   }
   return <Button
@@ -545,6 +551,7 @@ function ListCompletionIcon({
       size={size}
       slotSize={hitSize}
       widget
+      leadingInset={symbolInset}
     />
   </Button>
 }
@@ -554,11 +561,13 @@ function ListCompletionSymbol({
   hitSize,
   symbolSize,
   enabled,
+  symbolInset,
 }: {
   item: DisplayDueItem
   hitSize: number
   symbolSize: number
   enabled: boolean
+  symbolInset?: number
 }) {
   return <DueSymbol
     name={item.iconName}
@@ -567,6 +576,7 @@ function ListCompletionSymbol({
     slotSize={hitSize}
     replace
     widget
+    leadingInset={symbolInset}
   />
 }
 
@@ -644,8 +654,8 @@ function WidgetFrame({
   contentPadding?: number | {
     top: number
     bottom: number
-    leading: number
-    trailing: number
+    leading?: number
+    trailing?: number
   }
 }) {
   return <VStack

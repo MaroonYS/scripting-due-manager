@@ -14,7 +14,8 @@ export type SmallWidgetLayout = {
   verticalInset: number
   contentWidth: number
   contentHeight: number
-  auxiliaryInset: number
+  sideInset: number
+  headlineInset: number
   auxiliaryContentWidth: number
   titleWidth: number
   headerHeight: number
@@ -26,6 +27,8 @@ export type SmallWidgetLayout = {
   headerGap: number
   footerGap: number
   hitSize: number
+  symbolSize: number
+  symbolInset: number
 }
 
 export type AgendaWidgetLayout = {
@@ -80,11 +83,16 @@ export function smallWidgetLayout(
   // of planning for the roomiest standard small widget.
   const box = contentBox(widgetDimension(displayWidth, 148), widgetDimension(displayHeight, 148), 11)
   const { contentWidth, contentHeight } = box
-  // The side-by-side Surge reference has a slightly deeper side inset.
-  // Keep that adjustment independent of the previously balanced top/bottom.
-  const auxiliaryInset = box.padding * (8 / 11)
+  const sideInset = box.padding * (19 / 11)
   const gap = 4
   const hitSize = Math.min(40, contentWidth * 0.42, contentHeight)
+  const symbolSize = Math.min(17, hitSize)
+  // Use some of the left margin for the button's tap area. The visible
+  // glyph still starts at the same inset as the heading.
+  const headlineInset = hitSize >= 8
+    ? Math.max(box.padding * (3 / 11), sideInset - (hitSize - symbolSize))
+    : sideInset
+  const titleWidth = contentWidth + box.padding - headlineInset - (hitSize >= 8 ? hitSize : 0)
   // Two fixed-size title lines and the completion target share one band.
   // Below its ordinary height the renderer gets a one-line title budget.
   let titleHeight = Math.min(contentHeight, 42)
@@ -118,9 +126,9 @@ export function smallWidgetLayout(
   const previewHeight = previewBudget > 0 ? 16 : 0
   return {
     ...box, verticalInset: box.padding + verticalExtra, contentHeight: contentHeight - 2 * verticalExtra,
-    auxiliaryInset, auxiliaryContentWidth: contentWidth - 2 * auxiliaryInset,
-    titleWidth: contentWidth - auxiliaryInset - (hitSize >= 8 ? hitSize : 0),
+    sideInset, headlineInset, auxiliaryContentWidth: contentWidth + 2 * (box.padding - sideInset), titleWidth,
     gap, headerGap: 0, footerGap: 1, hitSize, headerHeight, titleHeight, detailHeight, previewHeight,
+    symbolSize, symbolInset: sideInset - headlineInset,
     titleLines: titleHeight >= 58 ? 3 : titleHeight >= 38 ? 2 : 1,
   }
 }
