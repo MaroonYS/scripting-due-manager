@@ -294,8 +294,11 @@ test("small headline aligns its leading completion glyph with the red heading an
     const [detailLink, nextLink] = footer.children
     assert.equal(detailLink.children[0].children[0].props.frame.alignment, "leading")
     assert.equal(detailLink.children[0].children.at(-1).props.layoutPriority, 1)
-    assert.equal(nextLink.children[0].children[0].type, "VStack", "the preview symbol remains on its leading edge")
-    assert.equal(nextLink.children[0].children[1].props.frame.alignment, "leading")
+    const [nextTitle] = nextLink.children[0].children
+    assert.equal(nextTitle.type, "Text")
+    assert.deepEqual(nextTitle.children, [preview.title])
+    assert.equal(nextTitle.props.frame.alignment, "leading")
+    assert.equal(nodes(nextLink).some(node => node.type === "Image"), false)
     assert.equal(new URL(nextLink.props.url).searchParams.get("id"), preview.id)
     assertCurrentControls(tree, [current])
   }

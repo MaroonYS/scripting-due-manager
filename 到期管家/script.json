@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.8.12",
-  "description": "A left-side completion icon aligned with the small widget heading.",
+  "version": "3.8.13",
+  "description": "A text-only next-item preview in the small widget.",
   "localizedDescriptions": {
-    "en": "The small widget’s completion icon sits to the left of the item title. The icon’s leading edge aligns with the red heading. Tap the icon to complete the item or tap the title to open its details.",
-    "zh": "小号组件的完成图标和点击区域放在第二行左侧，图标左缘与首行红字对齐。点击图标完成事项，点击标题打开详情。",
-    "zh-Hans": "小号组件的完成图标和点击区域放在第二行左侧，图标左缘与首行红字对齐。点击图标完成事项，点击标题打开详情。",
-    "zh-Hant": "小型小工具的完成圖示和點按區域放在第二行左側，圖示左緣與首行紅字對齊。點按圖示完成事項，點按標題開啟詳情。"
+    "en": "The small widget’s next-item preview shows the title and date as space permits. The current item keeps its completion icon on the left.",
+    "zh": "小号组件的第四行预告去掉图标，显示标题并在空间允许时显示日期。第二行当前事项左侧仍显示完成图标。",
+    "zh-Hans": "小号组件的第四行预告去掉图标，显示标题并在空间允许时显示日期。第二行当前事项左侧仍显示完成图标。",
+    "zh-Hant": "小型小工具的第四行預告移除圖示，顯示標題並在空間允許時顯示日期。第二行目前事項左側仍顯示完成圖示。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

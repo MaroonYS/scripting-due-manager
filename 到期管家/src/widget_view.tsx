@@ -260,7 +260,6 @@ function SmallNextItemPreview({ item, width, height, locale, now }: {
   const showDate = widgetTitleFitsOneLine(date, width * 0.39, 10)
   return <Link url={itemURL(item)}>
     <HStack spacing={4} frame={{ maxWidth: "infinity", height, alignment: "leading" }} contentShape="rect">
-      <DueSymbol name={item.iconName} color={item.iconColor} size={11} slotSize={13} widget />
       <Text font={11} fontWeight="medium" foregroundStyle="secondaryLabel" lineLimit={1}
         truncationMode="tail" frame={{ maxWidth: "infinity", alignment: "leading" }}>{item.title}</Text>
       {showDate ? <Text font={10} foregroundStyle="secondaryLabel" lineLimit={1}
