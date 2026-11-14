@@ -158,7 +158,10 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number; displayHe
   const locale = widgetRuntimeLocale()
   const now = new Date()
 
-  return <WidgetFrame contentPadding={layout.padding}>
+  return <WidgetFrame contentPadding={{
+    top: layout.verticalInset, bottom: layout.verticalInset,
+    leading: layout.padding, trailing: layout.padding,
+  }}>
     <VStack alignment="leading" spacing={layout.gap}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
       {layout.headerHeight > 0 ? <VStack alignment="leading" spacing={0}
@@ -203,7 +206,7 @@ function SmallDueItem({
       frame={{ maxWidth: "infinity", height: layout.titleHeight, alignment: "leading" }}>
       <ListCompletionIcon item={item} hitSize={layout.hitSize} symbolSize={17} />
       <Link url={itemURL(item)}>
-        <Text font={Math.min(titleFont, titleHeight)} fontWeight="semibold" lineLimit={layout.titleLines}
+        <Text font={Math.max(1, Math.min(titleFont, titleHeight) - 1)} fontWeight="semibold" lineLimit={layout.titleLines}
           minScaleFactor={0.85} truncationMode="tail" multilineTextAlignment="leading"
           frame={{ maxWidth: "infinity", height: layout.titleHeight, alignment: "leading" }} contentShape="rect">
           {item.title}

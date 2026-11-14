@@ -1,8 +1,8 @@
-# 到期管家 v3.8.7
+# 到期管家 v3.8.8
 
-以 3.8.1 的布局为底，只微调小号第 1、3、4 行的左右边距。不再把整行文字推向右侧。
+只微调小号组件的四周留白和主标题字号。
 
-- 常规尺寸的辅助三行从每侧 11 pt 调到 16 pt，参考 [Apple 小组件设计指南](https://developer.apple.com/design/human-interface-guidelines/widgets?changes=lat_2_6)。紧凑尺寸自动少收一点，不是对 Calendar 私有排版的实测数值。
-- 第二行主事项、完成按钮与热区不动；备注和预告继续靠底，点击链接仍独立。中号及更大组件、提醒读取和数据不变。
+- 上下对称增加留白：第一行下移，第四行上收。空间宽裕时以 [Apple 小组件设计指南](https://developer.apple.com/design/human-interface-guidelines/widgets?changes=lat_2_6) 的 16 pt 为基准；紧凑尺寸只用剩余高度。不是对 Calendar 私有排版的实测数值。
+- 第二行主标题字号减 1 pt，横向位置、完成图标和热区不变。备注与预告仍一起靠底，各自保留点击链接；其他尺寸、提醒读取和数据不变。
 
 更新原脚本后刷新桌面组件，无需删除脚本或重建事项。

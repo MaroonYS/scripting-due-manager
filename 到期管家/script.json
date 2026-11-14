@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.8.7",
-  "description": "Subtle symmetric insets for the small widget’s auxiliary rows.",
+  "version": "3.8.8",
+  "description": "Balanced top and bottom margins and a slightly smaller headline in the small widget.",
   "localizedDescriptions": {
-    "en": "3.8.7 gives the small widget’s heading, detail and preview modest symmetric side margins. Standard sizes add 5 points on each side, with less added in tighter sizes. The main item, completion button, bottom alignment, other sizes and data are unchanged.",
-    "zh": "3.8.7 仅细调小号第一、三、四行的左右边距：常规尺寸每侧增加 5 点，紧凑尺寸少加一点。不再整行右对齐；第二行、左侧完成按钮、底部排版、其他尺寸和事项数据不变。",
-    "zh-Hans": "3.8.7 仅细调小号第一、三、四行的左右边距：常规尺寸每侧增加 5 点，紧凑尺寸少加一点。不再整行右对齐；第二行、左侧完成按钮、底部排版、其他尺寸和事项数据不变。",
-    "zh-Hant": "3.8.7 僅微調小型小工具第一、三、四行的左右邊距：常規尺寸每側增加 5 點，緊湊尺寸少加一點。不再整行靠右；第二行、左側完成按鈕、底部排版、其他尺寸和事項資料不變。"
+    "en": "3.8.8 adds balanced top and bottom spacing to the small widget, up to the standard 16-point inset when available. The main title is one point smaller. Horizontal positioning, the completion icon and tap area, other sizes and data are unchanged.",
+    "zh": "3.8.8 仅调整小号组件：上下对称增加留白，第一行下移、第四行上收；空间宽裕时以 16 点为基准，紧凑尺寸只使用剩余高度。第二行主标题字号减 1 点，横向位置、左侧完成图标与热区不变。其他尺寸和数据不变。",
+    "zh-Hans": "3.8.8 仅调整小号组件：上下对称增加留白，第一行下移、第四行上收；空间宽裕时以 16 点为基准，紧凑尺寸只使用剩余高度。第二行主标题字号减 1 点，横向位置、左侧完成图标与热区不变。其他尺寸和数据不变。",
+    "zh-Hant": "3.8.8 僅調整小型小工具：上下對稱增加留白，第一行下移、第四行上收；空間足夠時以 16 點為基準，緊湊尺寸只使用剩餘高度。第二行主標題字級減 1 點，橫向位置、左側完成圖示和點按區域不變。其他尺寸和資料不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

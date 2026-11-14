@@ -11,6 +11,7 @@ type ListWidgetFamily = Exclude<HomeWidgetFamily, "systemSmall">
 
 export type SmallWidgetLayout = {
   padding: number
+  verticalInset: number
   contentWidth: number
   contentHeight: number
   auxiliaryInset: number
@@ -101,9 +102,16 @@ export function smallWidgetLayout(
   const previewHeight = hasNext && (!hasDetail || detailHeight > 0) && room >= 19 + gap ? 19 : 0
   if (previewHeight > 0) room -= previewHeight + gap
 
-  if (titleHeight === 42 && contentHeight >= 150 && room >= 16) titleHeight += 16
+  if (titleHeight === 42 && contentHeight >= 150 && room >= 16) {
+    titleHeight += 16
+    room -= 16
+  }
+  // Bring the top and bottom toward the same inset as the auxiliary rows,
+  // but only spend leftover height so the planned rows and hit area still fit.
+  const verticalExtra = Math.min(auxiliaryInset, Math.max(0, room) / 2)
   return {
-    ...box, auxiliaryInset, auxiliaryContentWidth: contentWidth - 2 * auxiliaryInset,
+    ...box, verticalInset: box.padding + verticalExtra, contentHeight: contentHeight - 2 * verticalExtra,
+    auxiliaryInset, auxiliaryContentWidth: contentWidth - 2 * auxiliaryInset,
     gap, hitSize, headerHeight, titleHeight, detailHeight, previewHeight,
     titleLines: titleHeight >= 58 ? 3 : titleHeight >= 38 ? 2 : 1,
   }

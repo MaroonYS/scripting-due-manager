@@ -263,7 +263,9 @@ test("small auxiliary rows share modest horizontal margins without moving the se
     const [header] = content.children[0].children
     const [headline, footer] = row(tree, current).children
     const headerLink = header.children[0].children.find((n: Node) => n.type === "Link")!
-    assert.equal(content.props.padding, plan.padding)
+    assert.deepEqual(content.props.padding, {
+      top: plan.verticalInset, bottom: plan.verticalInset, leading: plan.padding, trailing: plan.padding,
+    })
     assert.deepEqual(header.props.padding, inset)
     assert.deepEqual(footer.props.padding, inset)
     assert.equal(headerLink.children[0].children[0].props.frame.alignment, "leading")
@@ -279,6 +281,26 @@ test("small auxiliary rows share modest horizontal margins without moving the se
     assert.equal(nextLink.children[0].children[1].props.frame.alignment, "leading")
     assert.equal(new URL(nextLink.props.url).searchParams.get("id"), preview.id)
     assertCurrentControls(tree, [current])
+  }
+})
+
+test("small shrinks only the main title by one point after applying its available-height cap", () => {
+  const env = harness()
+  const cases = [
+    { title: "缴费", size: 16, lines: 2 },
+    { title: "出门以后核对最近所有的停车缴费时间和停车记录", size: 14, lines: 3 },
+    { title: "缴费", size: 15, lines: 3, height: 180 },
+  ]
+  for (const { title, size, lines, height = 141 } of cases) {
+    const a = item("title-size", { title, note: "Trip list" })
+    const tree = env.render("systemSmall", [a], 4, {}, height, 141)
+    const mainTitle = titleNode(tree, a)
+    assert.equal(mainTitle.props.font, size)
+    assert.equal(mainTitle.props.lineLimit, lines)
+    assert.deepEqual(buttons(tree)[0].props.frame, { width: 40, height: 40 })
+    assert.equal(buttons(tree)[0].children[0].props.font, 17)
+    const footer = row(tree, a).children[1]
+    assert.equal(nodes(footer).find(n => n.type === "Text" && n.children.includes("Trip list"))!.props.font, 11)
   }
 })
 

@@ -28,7 +28,8 @@ function assertSmallFit(width: number, height: number, hasDetail: boolean, hasNe
   assert.ok(plan.auxiliaryInset <= 5, context)
   assert.ok(Math.abs(plan.auxiliaryContentWidth + 2 * (plan.padding + plan.auxiliaryInset) - width) < tolerance, context)
   if (plan.padding === 11) assert.equal(plan.padding + plan.auxiliaryInset, 16, context)
-  assert.ok(plan.contentHeight + 2 * plan.padding <= height + tolerance, context)
+  assert.ok(plan.verticalInset >= plan.padding && plan.verticalInset <= plan.padding + plan.auxiliaryInset, context)
+  assert.ok(Math.abs(plan.contentHeight + 2 * plan.verticalInset - height) < tolerance, context)
   assert.ok(plan.titleHeight >= plan.hitSize && plan.hitSize <= plan.contentWidth, context)
   assert.ok([1, 2, 3].includes(plan.titleLines), context)
   if (!hasDetail) assert.equal(plan.detailHeight, 0, context)
@@ -109,6 +110,16 @@ test("small loses the optional preview before its own detail and preserves the n
     if (hasSeenPreview) assert.ok(plan.previewHeight > 0, "more height must not hide an already fitting preview")
   }
   assert.ok(hasSeenPreview)
+})
+
+test("small spends only leftover height on paired top and bottom insets", () => {
+  const compact = assertSmallFit(141, 141, true, true)
+  assert.ok(compact.previewHeight > 0)
+  assert.equal(compact.verticalInset, 13.5)
+  const roomy = assertSmallFit(170, 170, true, true)
+  assert.equal(roomy.verticalInset, roomy.padding + roomy.auxiliaryInset)
+  assert.equal(roomy.verticalInset, 16)
+  assert.equal(roomy.hitSize, compact.hitSize)
 })
 
 test("small can give a long title another line before an optional preview without losing current detail", () => {
