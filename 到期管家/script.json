@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.8.4",
-  "description": "Refined small-widget alignment: details at the trailing inset, main item closer to the leading edge.",
+  "version": "3.8.5",
+  "description": "Balanced small-widget headline spacing without altering the other rows.",
   "localizedDescriptions": {
-    "en": "3.8.4 refines only the small widget. The heading, note and preview rows align toward the same trailing inset; the main item moves left while the left-side completion target remains unchanged in size. The footer stays bottom-aligned. Other sizes, Reminders scope and data are unchanged.",
-    "zh": "3.8.4 仅调整小号桌面组件：第一行主题、第三行备注和第四行预告向右收齐，日期与时间共用右边距；第二行主事项向左移，完成图标仍在左侧，热区不变。备注和预告继续靠底，其他尺寸、提醒读取与数据不变。",
-    "zh-Hans": "3.8.4 仅调整小号桌面组件：第一行主题、第三行备注和第四行预告向右收齐，日期与时间共用右边距；第二行主事项向左移，完成图标仍在左侧，热区不变。备注和预告继续靠底，其他尺寸、提醒读取与数据不变。",
-    "zh-Hant": "3.8.4 僅調整小型桌面小工具：第一行主題、第三行備註和第四行預告向右收齊，日期與時間共用右邊距；第二行目前事項向左移，完成圖示仍在左側，點按區域不變。備註和預告繼續靠底，其他尺寸、提醒事項讀取與資料不變。"
+    "en": "3.8.5 gives the small widget's main item independent spacing. Short titles sit slightly inward when there is room; long or manually wrapped titles keep the space they need. The other rows retain their right inset and footer alignment. Completion, notes, other sizes and data are unchanged.",
+    "zh": "3.8.5 仅调整小号第二行主事项的位置：短标题有空余时稍向内收，长标题或手动换行时更靠左。第一、三、四行右边距、底部排版及完成热区不变，完成图标仍在左侧。其他尺寸、提醒读取与数据不变。",
+    "zh-Hans": "3.8.5 仅调整小号第二行主事项的位置：短标题有空余时稍向内收，长标题或手动换行时更靠左。第一、三、四行右边距、底部排版及完成热区不变，完成图标仍在左侧。其他尺寸、提醒读取与数据不变。",
+    "zh-Hant": "3.8.5 僅調整小型小工具的第二行：短標題有餘裕時略向內收，長標題或手動換行時更靠左。第一、三、四行右邊距、底部排版及完成點按區域不變，完成圖示仍在左側。其他尺寸、提醒事項讀取與資料不變。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

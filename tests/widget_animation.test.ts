@@ -249,13 +249,14 @@ test("long small title takes a third line first and keeps the current detail and
   assert.equal(buttons(tree)[0].props.frame.width, 40)
 })
 
-test("small rows 1, 3 and 4 use a shared trailing inset while row 2 moves left with its unchanged completion target", () => {
+test("small rows 1, 3 and 4 retain their shared trailing inset while row 2 uses its own placement", () => {
   const env = harness(), locale = "en-GB"
   env.locale(locale)
   const a = item("current", { title: "Train arrival", source: "reminder", note: "Trip list", includesTime: true })
   const next = item("next", { title: "Next item", dueDate: localDateKey(new Date()) })
   for (const [width, height] of [[118, 148], [141, 141], [170, 170], [204, 180]]) {
     const plan = layout.smallWidgetLayout(width, height, { hasDetail: true, hasNext: true })
+    const placement = layout.smallHeadlinePlacement(plan, a.title)
     for (const warning of [false, true]) {
       const tree = env.render("systemSmall", [a, next], 3, warning ? { interactionError: "warning" } : {}, height, width)
       const inset = tree.children[0].props.padding
@@ -265,7 +266,7 @@ test("small rows 1, 3 and 4 use a shared trailing inset while row 2 moves left w
       assert.equal(inset.trailing, plan.padding)
       assert.equal(inset.top, plan.padding)
       assert.equal(inset.bottom, plan.padding)
-      assert.equal(inset.leading, plan.padding - Math.min(6, plan.padding))
+      assert.equal(inset.leading, plan.padding - placement.leadingAllowance)
       assert.equal(inset.leading + headerWrap.props.padding.leading, plan.padding)
       assert.equal(inset.leading + footer.props.padding.leading, plan.padding)
       assert.equal(header.props.frame.alignment, "trailing")
@@ -276,6 +277,7 @@ test("small rows 1, 3 and 4 use a shared trailing inset while row 2 moves left w
       assert.equal(heading.props.frame.alignment, "trailing")
       assert.equal(headerDate.props.layoutPriority, 1)
       assert.equal(headline.props.frame.alignment, "leading")
+      assert.equal(headline.props.padding.leading, placement.leadingPadding)
       assert.equal(headline.children[0].type, "Button")
       assert.equal(headline.children[0].props.frame.width, plan.hitSize)
       assert.equal(titleNode(tree, a).props.frame.alignment, "leading")
@@ -287,6 +289,28 @@ test("small rows 1, 3 and 4 use a shared trailing inset while row 2 moves left w
       assert.equal(footer.props.frame.alignment, "bottomLeading")
       assertCurrentControls(tree, [a])
     }
+  }
+})
+
+test("small title placement balances short text without penalizing wrapped text or shrinking the completion target", () => {
+  const env = harness()
+  const short = item("short", { title: "账单" })
+  const long = item("longer", { title: "下车后从东广场出站并检查换乘时间" })
+  const manuallyWrapped = item("wrapped", { title: "续订\n信用卡" })
+  const render = (a: DisplayDueItem) => env.render("systemSmall", [a], 3, {}, 170, 170)
+  const [shortTree, longTree, wrappedTree] = [short, long, manuallyWrapped].map(render)
+  const leading = (tree: Node, a: DisplayDueItem) =>
+    tree.children[0].props.padding.leading + row(tree, a).children[0].props.padding.leading
+  assert.ok(leading(shortTree, short) > leading(longTree, long))
+  assert.equal(leading(longTree, long), leading(wrappedTree, manuallyWrapped))
+  assert.ok(leading(shortTree, short) - leading(longTree, long) <= 10)
+  for (const [a, tree] of [[short, shortTree], [long, longTree], [manuallyWrapped, wrappedTree]] as const) {
+    const [control, link] = row(tree, a).children[0].children
+    assert.equal(control.type, "Button")
+    assert.equal(link.type, "Link")
+    assert.equal(new URL(link.props.url).searchParams.get("id"), a.id)
+    assert.deepEqual(control.props.frame, { width: 40, height: 40 })
+    assertCurrentControls(tree, [a])
   }
 })
 

@@ -22,6 +22,12 @@ export type SmallWidgetLayout = {
   hitSize: number
 }
 
+export type SmallHeadlinePlacement = {
+  leadingAllowance: number
+  leadingPadding: number
+  textWidth: number
+}
+
 export type AgendaWidgetLayout = {
   padding: number
   contentWidth: number
@@ -101,6 +107,18 @@ export function smallWidgetLayout(
     ...box, gap, hitSize, headerHeight, titleHeight, detailHeight, previewHeight,
     titleLines: titleHeight >= 58 ? 3 : titleHeight >= 38 ? 2 : 1,
   }
+}
+
+export function smallHeadlinePlacement(layout: SmallWidgetLayout, title: string): SmallHeadlinePlacement {
+  // The title band can use a little more of the leading edge than the other
+  // rows. Inset short titles by a fraction of their spare width, not the
+  // whole amount, so the completion button remains in a predictable area.
+  const leadingAllowance = Math.min(4, layout.padding / 2)
+  const maximumTextWidth = Math.max(0, layout.contentWidth + leadingAllowance - layout.hitSize)
+  const spare = /[\r\n\u2028\u2029]/.test(title) ? 0
+    : Math.max(0, maximumTextWidth - estimatedTitleWidth(title, 17))
+  const leadingPadding = Math.min(leadingAllowance + 6, Math.floor(spare / 4))
+  return { leadingAllowance, leadingPadding, textWidth: maximumTextWidth - leadingPadding }
 }
 
 export function agendaWidgetLayout(

@@ -2739,7 +2739,7 @@ test("published script keeps a fixed remote URL and exposes a checked backed-up 
     new URL("../到期管家/script.json", import.meta.url),
     "utf8",
   ))
-  assert.equal(manifest.version, "3.8.4")
+  assert.equal(manifest.version, "3.8.5")
   const latestPackageURL = "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting"
   assert.equal(manifest.remoteResource.url, latestPackageURL)
 

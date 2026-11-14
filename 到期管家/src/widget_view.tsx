@@ -32,10 +32,12 @@ import {
 } from "./widget_localization"
 import {
   agendaWidgetLayout,
+  smallHeadlinePlacement,
   smallWidgetLayout,
   widgetTitleFitsOneLine,
   type AgendaWidgetLayout,
   type HomeWidgetFamily,
+  type SmallHeadlinePlacement,
   type SmallWidgetLayout,
 } from "./widget_layout"
 
@@ -151,11 +153,10 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number; displayHe
     hasNext: !!nextItem,
   }
   const compactLayout = smallWidgetLayout(displayWidth, displayHeight, options)
-  // Only the title band gets the extra room on the left. Its icon still owns
-  // the same square, and every row keeps the original trailing inset.
-  const titleLeadingShift = item ? Math.min(6, compactLayout.padding) : 0
-  const titleWidth = compactLayout.contentWidth + titleLeadingShift - compactLayout.hitSize
-  const layout = item && compactLayout.titleLines === 2 && !widgetTitleFitsOneLine(item.title, titleWidth * 1.85, 15)
+  const headline = item ? smallHeadlinePlacement(compactLayout, item.title) : undefined
+  const leadingAllowance = headline?.leadingAllowance ?? 0
+  const layout = item && headline && compactLayout.titleLines === 2
+      && !widgetTitleFitsOneLine(item.title, headline.textWidth * 1.85, 15)
     ? smallWidgetLayout(displayWidth, displayHeight, { ...options, preferThreeLines: true })
     : compactLayout
   const locale = widgetRuntimeLocale()
@@ -163,16 +164,16 @@ function SmallWidget(props: WidgetDataProps & { displayWidth?: number; displayHe
 
   return <WidgetFrame contentPadding={{
     top: layout.padding, bottom: layout.padding,
-    leading: layout.padding - titleLeadingShift, trailing: layout.padding,
+    leading: layout.padding - leadingAllowance, trailing: layout.padding,
   }}>
     <VStack alignment="leading" spacing={layout.gap}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
-      {layout.headerHeight > 0 ? <VStack spacing={0} padding={{ leading: titleLeadingShift }}>
+      {layout.headerHeight > 0 ? <VStack spacing={0} padding={{ leading: leadingAllowance }}>
         <WidgetHeader item={item} issue={issue} height={layout.headerHeight} locale={locale} now={now} />
       </VStack> : null}
       <CompletionContent generation={completionGeneration}>
-        {item && layout.titleHeight > 0 ? <SmallDueItem item={item} nextItem={nextItem} issue={issue}
-          detail={detail} layout={layout} titleLeadingShift={titleLeadingShift} locale={locale} now={now} />
+        {item && headline && layout.titleHeight > 0 ? <SmallDueItem item={item} nextItem={nextItem} issue={issue}
+          detail={detail} layout={layout} headline={headline} locale={locale} now={now} />
           : <WidgetEmptyContent compact issue={issue} />}
       </CompletionContent>
     </VStack>
@@ -185,7 +186,7 @@ function SmallDueItem({
   issue,
   detail,
   layout,
-  titleLeadingShift,
+  headline,
   locale,
   now,
 }: {
@@ -194,19 +195,18 @@ function SmallDueItem({
   issue: WidgetIssue | null
   detail: string
   layout: SmallWidgetLayout
-  titleLeadingShift: number
+  headline: SmallHeadlinePlacement
   locale: string
   now: Date
 }) {
-  const titleWidth = Math.max(0, layout.contentWidth + titleLeadingShift - layout.hitSize)
-  const titleFont = widgetTitleFitsOneLine(item.title, titleWidth, 17) ? 17 : 15
+  const titleFont = widgetTitleFitsOneLine(item.title, headline.textWidth, 17) ? 17 : 15
   const titleHeight = Math.max(1, Math.floor(layout.titleHeight / layout.titleLines) - 3)
   const preview = layout.previewHeight > 0 ? nextItem : undefined
   return <VStack key={widgetItemIdentity(item)}
     alignment="leading" spacing={layout.gap}
     contentTransition="opacity" transition={QUEUE_SLOT_TRANSITION}
     frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "topLeading" }}>
-    <HStack alignment="center" spacing={0}
+    <HStack alignment="center" spacing={0} padding={{ leading: headline.leadingPadding }}
       frame={{ maxWidth: "infinity", height: layout.titleHeight, alignment: "leading" }}>
       <ListCompletionIcon item={item} hitSize={layout.hitSize} symbolSize={17} />
       <Link url={itemURL(item)}>
@@ -219,7 +219,7 @@ function SmallDueItem({
     </HStack>
     {/* The footer shares the remaining height; its links occupy only their own bands. */}
     {layout.detailHeight > 0 || preview ? <VStack alignment="leading" spacing={layout.gap}
-      padding={{ leading: titleLeadingShift }}
+      padding={{ leading: headline.leadingAllowance }}
       frame={{ maxWidth: "infinity", maxHeight: "infinity", alignment: "bottomLeading" }}>
       {layout.detailHeight > 0 ? <SmallCurrentDetail item={item} detail={detail} issue={issue}
         height={layout.detailHeight} locale={locale} /> : null}
