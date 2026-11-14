@@ -12,7 +12,6 @@ export interface DueSymbolProps {
   slotSize?: number
   widget?: boolean
   replace?: boolean
-  towardTitle?: boolean
 }
 
 /** Drawing bounds and layout/tap bounds are deliberately separate. */
@@ -24,11 +23,8 @@ export function dueSymbolGeometry(size: number, slotSize?: number) {
 }
 
 /** Every item symbol uses the same aspect-fit drawing path, not font-only sizing. */
-export function DueSymbol({ name, color, size, slotSize, widget, replace, towardTitle }: DueSymbolProps) {
+export function DueSymbol({ name, color, size, slotSize, widget, replace }: DueSymbolProps) {
   const geometry = dueSymbolGeometry(size, slotSize)
-  // Move only the ink inside the square; the transparent semantic Label
-  // and its touch rectangle do not inherit this padding.
-  const leadingPad = towardTitle ? Math.min(12, geometry.slotSize - geometry.size) : 0
   return <VStack alignment="center" spacing={0} frame={{ width: geometry.slotSize, height: geometry.slotSize, alignment: "center" }}>
     <Image
       systemName={normalizeIconOverride(name) ?? "calendar.badge.clock"}
@@ -39,7 +35,6 @@ export function DueSymbol({ name, color, size, slotSize, widget, replace, toward
       foregroundStyle={color}
       symbolRenderingMode={widget ? "hierarchical" : "monochrome"}
       frame={{ width: geometry.size, height: geometry.size, alignment: "center" }}
-      padding={leadingPad > 0 ? { leading: leadingPad } : undefined}
       contentTransition={replace ? "symbolEffectReplace" : undefined}
       widgetAccentable={widget ? true : undefined}
     />

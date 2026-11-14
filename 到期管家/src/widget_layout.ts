@@ -16,6 +16,7 @@ export type SmallWidgetLayout = {
   contentHeight: number
   auxiliaryInset: number
   auxiliaryContentWidth: number
+  titleWidth: number
   headerHeight: number
   titleHeight: number
   titleLines: 1 | 2 | 3
@@ -118,6 +119,7 @@ export function smallWidgetLayout(
   return {
     ...box, verticalInset: box.padding + verticalExtra, contentHeight: contentHeight - 2 * verticalExtra,
     auxiliaryInset, auxiliaryContentWidth: contentWidth - 2 * auxiliaryInset,
+    titleWidth: contentWidth - auxiliaryInset - (hitSize >= 8 ? hitSize : 0),
     gap, headerGap: 0, footerGap: 1, hitSize, headerHeight, titleHeight, detailHeight, previewHeight,
     titleLines: titleHeight >= 58 ? 3 : titleHeight >= 38 ? 2 : 1,
   }

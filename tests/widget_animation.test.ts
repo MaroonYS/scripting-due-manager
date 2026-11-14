@@ -249,7 +249,7 @@ test("long small title takes a third line first and keeps the current detail and
   assert.equal(buttons(tree)[0].props.frame.width, 40)
 })
 
-test("small auxiliary rows share modest horizontal margins without moving the second row or right-justifying labels", () => {
+test("small headline shares the red heading's leading edge and leaves completion to a separate trailing slot", () => {
   const env = harness(), locale = "en-GB"
   env.locale(locale)
   const current = item("current", { title: "Train arrival", source: "reminder", note: "Trip list", includesTime: true })
@@ -275,11 +275,17 @@ test("small auxiliary rows share modest horizontal margins without moving the se
     assert.equal(headingDate.props.font, 12)
     assert.equal(headingDate.props.foregroundStyle, "secondaryLabel")
     assert.equal(headingDate.props.layoutPriority, 1)
-    assert.equal(headline.props.padding, undefined)
-    assert.equal(headline.children[0].type, "Button")
-    assert.equal(headline.children[0].props.frame.width, 40)
-    const glyph = nodes(headline.children[0].children[0].props.background.content).find(node => node.type === "Image")!
-    assert.deepEqual(glyph.props.padding, { leading: 12 })
+    assert.deepEqual(headline.props.padding, { leading: header.props.padding.leading })
+    const [titleLink, completion] = headline.children
+    assert.equal(titleLink.type, "Link")
+    assert.deepEqual(Object.fromEntries(new URL(titleLink.props.url).searchParams), { action: "reminder-notes", id: current.id })
+    assert.equal(titleLink.children[0], titleNode(tree, current))
+    assert.equal(titleLink.children[0].props.frame.alignment, "leading")
+    assert.equal(titleLink.children[0].props.multilineTextAlignment, "leading")
+    assert.equal(completion.type, "Button")
+    assert.deepEqual(completion.props.frame, { width: 40, height: 40 })
+    const glyph = nodes(completion.children[0].props.background.content).find(node => node.type === "Image")!
+    assert.equal(glyph.props.padding, undefined)
     assert.equal(content.children[0].props.spacing, plan.headerGap)
     assert.equal(footer.props.frame.alignment, "bottomLeading")
     assert.equal(footer.props.spacing, 1)
@@ -291,6 +297,24 @@ test("small auxiliary rows share modest horizontal margins without moving the se
     assert.equal(new URL(nextLink.props.url).searchParams.get("id"), preview.id)
     assertCurrentControls(tree, [current])
   }
+})
+
+test("small headline's actual inset width determines title wrapping before rendering", () => {
+  const env = harness(), width = 141, height = 141
+  const plan = layout.smallWidgetLayout(width, height, { hasDetail: true, hasNext: true })
+  const oldTitleWidth = plan.contentWidth - plan.hitSize
+  const currentTitleWidth = oldTitleWidth - plan.auxiliaryInset
+  const title = Array.from({ length: 30 }, (_, i) => "宽".repeat(i + 1)).find(candidate =>
+    layout.widgetTitleFitsOneLine(candidate, oldTitleWidth * 1.85, 15)
+    && !layout.widgetTitleFitsOneLine(candidate, currentTitleWidth * 1.85, 15))
+  assert.ok(title, "fixture fits the old two-line budget but not the new one")
+  const current = item("wrapped", { title, note: "Retain my detail" })
+  const next = item("preview", { title: "Optional preview" })
+  const tree = env.render("systemSmall", [current, next], 4, {}, height, width)
+  assert.equal(titleNode(tree, current).props.lineLimit, 3)
+  assert.match(texts(tree), /Retain my detail/)
+  assert.doesNotMatch(texts(tree), /Optional preview/)
+  assertCurrentControls(tree, [current])
 })
 
 test("small shrinks only the main title by one point after applying its available-height cap", () => {

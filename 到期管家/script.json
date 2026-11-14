@@ -7,13 +7,13 @@
   },
   "icon": "calendar.badge.clock",
   "color": "rgba(255, 115, 64, 1)",
-  "version": "3.8.10",
-  "description": "Surge-inspired red heading and tighter main-item grouping in the small widget.",
+  "version": "3.8.11",
+  "description": "Aligned heading and item title with a trailing completion button in the small widget.",
   "localizedDescriptions": {
-    "en": "3.8.10 updates only the small widget: a Surge-inspired red heading, the second row about 4 points higher when the heading is present, and the icon visually closer to its title without changing the tap area. When the preview is present the detail sits about 7 points lower. Other layouts, completion, notes and data are unchanged.",
-    "zh": "3.8.10 只调整小号组件：首行主题改成接近 Surge 的红色，第二行上移约 4 点，图标在原完成热区内向标题靠拢。有预告时第三行下移约 7 点，第四行仍靠底。其他尺寸、完成操作、备注跳转和事项数据不变。",
-    "zh-Hans": "3.8.10 只调整小号组件：首行主题改成接近 Surge 的红色，第二行上移约 4 点，图标在原完成热区内向标题靠拢。有预告时第三行下移约 7 点，第四行仍靠底。其他尺寸、完成操作、备注跳转和事项数据不变。",
-    "zh-Hant": "3.8.10 只調整小型小工具：首行主題改成接近 Surge 的紅色，第二行上移約 4 點，圖示在原完成點按區域內向標題靠攏。有預告時第三行下移約 7 點，第四行仍靠底。其他尺寸、完成操作、備註跳轉和事項資料不變。"
+    "en": "In the small widget, the item title now shares the red heading’s left edge. The completion icon and its full tap target move together to the right of the title. Tap the title to open item details.",
+    "zh": "小号组件的第二行标题与首行红字左对齐，完成图标和点击区域一起移到第二行右侧。点击标题可打开事项详情。",
+    "zh-Hans": "小号组件的第二行标题与首行红字左对齐，完成图标和点击区域一起移到第二行右侧。点击标题可打开事项详情。",
+    "zh-Hant": "小型小工具的第二行標題與首行紅字左對齊，完成圖示和點按區域一起移到第二行右側。點按標題可開啟事項詳情。"
   },
   "remoteResource": {
     "url": "https://github.com/MaroonYS/scripting-due-manager/releases/latest/download/due-manager.scripting",

@@ -31,6 +31,8 @@ function assertSmallFit(width: number, height: number, hasDetail: boolean, hasNe
   assert.ok(plan.verticalInset >= plan.padding && plan.verticalInset <= plan.padding + plan.padding * (5 / 11), context)
   assert.ok(Math.abs(plan.contentHeight + 2 * plan.verticalInset - height) < tolerance, context)
   assert.ok(plan.titleHeight >= plan.hitSize && plan.hitSize <= plan.contentWidth, context)
+  assert.ok(Math.abs(plan.auxiliaryInset + plan.titleWidth + (plan.hitSize >= 8 ? plan.hitSize : 0)
+    - plan.contentWidth) < tolerance, context)
   assert.ok([1, 2, 3].includes(plan.titleLines), context)
   if (!hasDetail) assert.equal(plan.detailHeight, 0, context)
   if (!hasNext) assert.equal(plan.previewHeight, 0, context)
@@ -262,7 +264,7 @@ test("title width estimates handle mixed scripts and explicit breaks within the 
   assert.equal(widgetTitleFitsOneLine("A", 0, 15), false)
   assert.equal(widgetTitleFitsOneLine(title, Infinity, 15), false)
   const small = smallWidgetLayout(141, 141)
-  assert.equal(widgetTitleFitsOneLine(title, small.contentWidth - small.hitSize, 15), false)
+  assert.equal(widgetTitleFitsOneLine(title, small.titleWidth, 15), false)
   for (const family of agendaFamilies) {
     const wide = agendaWidgetLayout(family, 450, 382)
     assert.equal(widgetTitleFitsOneLine(title, wide.titleWidth, 15), true)
