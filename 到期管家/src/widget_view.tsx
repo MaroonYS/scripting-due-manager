@@ -124,7 +124,7 @@ function WidgetHeader({
         frame={{ maxWidth: "infinity", height, alignment: "leading" }}
         contentShape="rect"
       >
-        <Text font={14} fontWeight="semibold" foregroundStyle={{ light: "#C72A32", dark: "#FF4148" }}
+        <Text font={14} fontWeight="semibold" foregroundStyle={{ light: "#C72A32", dark: "#FF504C" }}
           lineLimit={1} minScaleFactor={0.8}
           frame={{ maxWidth: "infinity", alignment: "leading" }}>
           {item ? dueIconLabel(item.iconName, widgetRuntimeLanguage()) : widgetText("due", locale)}

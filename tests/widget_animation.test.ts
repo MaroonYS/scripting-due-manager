@@ -269,7 +269,7 @@ test("small headline aligns its leading completion glyph with the red heading an
     const [headingText, headingDate] = headerLink.children[0].children
     assert.equal(headingText.props.frame.alignment, "leading")
     assert.equal(headingText.props.font, 14)
-    assert.deepEqual(headingText.props.foregroundStyle, { light: "#C72A32", dark: "#FF4148" })
+    assert.deepEqual(headingText.props.foregroundStyle, { light: "#C72A32", dark: "#FF504C" })
     assert.equal(headingDate.props.font, 12)
     assert.equal(headingDate.props.foregroundStyle, "secondaryLabel")
     assert.equal(headingDate.props.layoutPriority, 1)
